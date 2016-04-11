@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="MediaHAVEN_external_metadata" type="MediaHAVEN_external_metadataType"/>
+  <xs:complexType name="MDPropertiesType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="CP">
+        <xs:annotation>
+          <xs:documentation>CP name - always VRT</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="PID">
+        <xs:annotation>
+          <xs:documentation>PID - we use VRT's Media ID</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="CreationDate">
+        <xs:annotation>
+          <xs:documentation>Creation date in EXIF (YYYY:MM:DD hh:mm:ss) format => mapped from A_REGISTRAT2</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_title">
+        <xs:annotation>
+          <xs:documentation>title fields  main title.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dcterms_title_detail">
+        <xs:annotation>
+          <xs:documentation>alternative title, usually contains more detail, such as episode title.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dcterms_season_number">
+        <xs:annotation>
+          <xs:documentation>season and series fields  season and episode number</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dcterms_episode_number"/>
+      <xs:element type="xs:string" name="dcterms_title_season">
+        <xs:annotation>
+          <xs:documentation>title of the season</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dcterms_title_series">
+        <xs:annotation>
+          <xs:documentation>title of the series</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_description_main">
+        <xs:annotation>
+          <xs:documentation>description fields  main description of the program, concat of two fields</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_description_subtitles">
+        <xs:annotation>
+          <xs:documentation>subtitles if any</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_description_series">
+        <xs:annotation>
+          <xs:documentation>description of the *series*</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_description_cast">
+        <xs:annotation>
+          <xs:documentation>cast information</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_publisher_distributor"/>
+      <xs:element type="xs:string" name="dcterms_created">
+        <xs:annotation>
+          <xs:documentation>dates section creation date</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dcterms_issued">
+        <xs:annotation>
+          <xs:documentation>airdate</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_identifier_MEDIAID">
+        <xs:annotation>
+          <xs:documentation>identifiers  VRT media ID</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_identifier_HISTOR">
+        <xs:annotation>
+          <xs:documentation>VRT historical ID, e.g. Ardome  TODO : onderstaand veld uit elkaar trekken en twee keer mappen.                 - eerste 19 karakters gaan naar ARDOME ID                                - volledig veld gaat naar een ander histor veld.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_source">
+        <xs:annotation>
+          <xs:documentation>original filename and path on TSM</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_identifier_OBJID">
+        <xs:annotation>
+          <xs:documentation>AVID object ID's, concatenated using a delimeter: "-"</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_identifier_TSM_ID">
+        <xs:annotation>
+          <xs:documentation>we assume this is the TSM ID</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_format">
+        <xs:annotation>
+          <xs:documentation>indicates the version (browse, essence)</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_type_genre">
+        <xs:annotation>
+          <xs:documentation>genre and category ID's</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dc_type_category"/>
+      <xs:element type="xs:string" name="dc_rights">
+        <xs:annotation>
+          <xs:documentation>rights section  rights holder</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="dcterms_rights_comment">
+        <xs:annotation>
+          <xs:documentation>rights comment</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="MediaHAVEN_external_metadataType">
+    <xs:sequence>
+      <xs:element type="xs:string" name="title">
+        <xs:annotation>
+          <xs:documentation>main title as used in mediahaven - we concat two existing titles here</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="xs:string" name="description">
+        <xs:annotation>
+          <xs:documentation>main description as used in mediahaven</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element type="MDPropertiesType" name="MDProperties"/>
+    </xs:sequence>
+    <xs:attribute type="xs:float" name="version"/>
+    <xs:attribute type="xs:string" name="name"/>
+  </xs:complexType>
+</xs:schema>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
+http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd">
+    <and-filter name="And" doc:name="And">
+        <expression-filter expression="#[flowVars.comment = &quot;Metadata format was incorrect.&quot;]" nullReturnsTrue="true"/>
+        <filter ref="Provant_Schema_Validation"/>
+    </and-filter>
+    <sub-flow name="PI_METADATA_MAPPING_RMM">
+        <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <mulerequester:request config-ref="Mule_Requester" resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['collateral'].file_path]/#[flowVars.files['collateral'].file_name]?connector=FTP" doc:name="Get SRT file from FTP" throwExceptionOnTimeout="true"/>
+        <invoke object-ref="srtService" method="TransformSrt" methodArguments="#[payload]" doc:name="Invoke"/>
+        <set-variable variableName="fragments" value="#[payload]" doc:name="Set Fragments"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <data-mapper:transform config-ref="XML_To_XML" doc:name="XML To XML">
+            <data-mapper:input-arguments>
+                <data-mapper:input-argument key="cp">#[flowVars.input.cp_name]</data-mapper:input-argument>
+                <data-mapper:input-argument key="pid">#[flowVars.pid]</data-mapper:input-argument>
+            </data-mapper:input-arguments>
+        </data-mapper:transform>
+        <mulexml:xslt-transformer xsl-file="transform.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT">
+        	<mulexml:context-property key="fragments" value="#[flowVars.fragments]"/>
+        </mulexml:xslt-transformer>
+        <object-to-string-transformer doc:name="Object to String"/>
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <message-filter throwOnUnaccepted="true" doc:name="Check output format">
+        <and-filter>
+        	<expression-filter expression="#[flowVars.comment = &quot;Output format is incorrect.&quot;]" />
+        	<filter ref="xsdValidator"/>
+        </and-filter>
+        </message-filter>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+        <sub-flow name="PI_METADATA_MAPPING_VRT">
+        <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="mediaId" value="#[xpath3(&quot;//mediaId/text()&quot;)]" doc:name="Set mediaId"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+	MediaHAVEN_external_metadata: 
+	{
+		title: flowVars.pid ++ "-" ++ flowVars.mediaId,
+		MDProperties: {
+			CP: "failures",
+			PID: flowVars.pid,
+			dc_identifier_cpid: flowVars.mediaId
+		}
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <object-to-string-transformer doc:name="Object to String"/>
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <!--
+        <message-filter throwOnUnaccepted="true" doc:name="Check output format">
+            <and-filter>
+                <expression-filter expression="#[flowVars.comment = &quot;Output format is incorrect.&quot;]"/>
+            </and-filter>
+        </message-filter>
+        -->
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_METADATA_MAPPING_PROVANT">
+        <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
+            <dw:input-payload doc:sample="content.xml"/>
+            <dw:input-variable  variableName="comment"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+%namespace ns0 http://www.jcp.org/jcr/1.0
+%namespace ns6 http://purl.org/dc/elements/1.1/
+%namespace ns11 http://www.day.com/jcr/cq/1.0
+%namespace ns12 http://dublincore.org/documents/dcmi-terms/
+%function split(name) name splitBy ", "
+%namespace ns4 http://iptc.org/std/Iptc4xmpExt/2008-02-29/
+%namespace ns7 http://www.loc.gov/standards/premis/v2/premis.xsd
+---
+{
+	MediaHAVEN_external_metadata: {
+		
+		title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") otherwise payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo,
+		description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
+		MDProperties: {
+			(CP: payload.xml.ns0#content.metadata.ns6#publisher) when payload.xml.ns0#content.metadata.ns6#publisher? and payload.xml.ns0#content.metadata.ns6#publisher != 'null',
+			dc_identifier_cpids @(type: "list"): {
+				(dc_identifier_cpid: payload.xml.ns0#uuid) when payload.xml.ns0#uuid?,
+				(dc_identifier_cpid: payload.xml.ns0#content.metadata.ns6#identifier) when payload.xml.ns0#content.metadata.ns6#identifier?,
+				(dc_identifier_cpid: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?
+			},
+			dc_format: payload.xml.ns0#content.metadata.ns6#format when (payload.xml.ns0#content.metadata.ns6#format?) otherwise "",
+			dc_source: payload.xml.ns0#content.ns11#name when (payload.xml.ns0#content.ns11#name?) otherwise "",
+			dcterms_created: payload.xml.ns0#create when (payload.xml.ns0#create?) otherwise "",
+			dc_subjects @(type: "list"): {
+				(
+					split(payload.xml.ns0#content.metadata.ns6#subject) map {
+						dc_subject: $
+					}
+				)
+			} when payload.xml.ns0#content.metadata.ns6#subject?
+			otherwise {
+				dc_subject: {}
+			},
+			dc_publisher: payload.xml.ns0#content.metadata.ns6#publisher when (payload.xml.ns0#content.metadata.ns6#publisher?) otherwise "",
+			dc_creator: payload.xml.ns0#content.metadata.ns6#creator when (payload.xml.ns0#content.metadata.ns6#creator?) otherwise "",
+			dc_contributor: payload.xml.ns0#content.metadata.ns6#contributor when (payload.xml.ns0#content.metadata.ns6#contributor?) otherwise "",
+			dc_rightslist @(type: "list"): {
+				(dc_rights: payload.xml.ns0#content.metadata.ns7#copyrightStatus) when payload.xml.ns0#content.metadata.ns7#copyrightStatus?,
+				(dc_rights: payload.xml.ns0#content.metadata.ns12#rightsHolder) when payload.xml.ns0#content.metadata.ns12#rightsHolder?
+			},
+			dc_title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "")
+			otherwise {
+				dc_title: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo
+			},
+			dc_description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
+			(md5: payload.xml.md5) when payload.xml.md5?,
+			PID: flowVars.pid 
+		}
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="CP" value="#[xpath3(&quot;//CP/text()&quot;)]" doc:name="Set CP"/>
+        <set-variable variableName="comment" value="#[&quot;XML failed to validate against the XSD&quot;]" doc:name="Set comment"/>
+        <message-filter throwOnUnaccepted="true" doc:name="Message">
+            <filter ref="Provant_Schema_Validation"/>
+        </message-filter>
+        <!-- 
+        <message-filter throwOnUnaccepted="true" doc:name="Message">
+            <and-filter>
+                <expression-filter expression="#[true]" nullReturnsTrue="true"/>
+                <filter ref="Provant_Schema_Validation"/>
+            </and-filter>
+        </message-filter>
+        -->
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+
+</mule>

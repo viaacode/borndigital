@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster"
+	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester"
+	xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+	xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+
+<mulerequester:config name="Mule_Requester" doc:name="Mule Requester"></mulerequester:config>
+    <configuration defaultExceptionStrategy-ref="globalChoice_Exception_Strategy" doc:name="Configuration">
+        <http:config useTransportForUris="false"/>
+    </configuration>
+    <data-mapper:config name="XML_To_XML" transformationGraphPath="xml_to_xml.grf" doc:name="XML_To_XML"/>
+    
+
+    <flow name="moveMP4Flow" processingStrategy="synchronous" initialState="started"> 
+        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound" exchange-pattern="request-response"></amqp:inbound-endpoint>
+        <json:json-to-object-transformer returnClass="model.Input" doc:name="JSON to Object"/>
+  
+        <set-variable variableName="input" value="#[payload]" doc:name="Save POJO"></set-variable>
+        <component class="utils.Utils" doc:name="Extract files"></component>
+        <set-variable variableName="files" value="#[payload]" doc:name="Save Files metadata"/>
+        <flow-ref name="PI_SIP_DETECTED" doc:name="PI_SIP_DETECTED"/>
+        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+  
+        <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"></flow-ref>
+        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;rmm&quot;)]">
+                <flow-ref name="PI_METADATA_MAPPING_RMM" doc:name="PI_METADATA_MAPPING_RMM"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
+                <flow-ref name="PI_METADATA_MAPPING_PROVANT" doc:name="PI_METADATA_MAPPING_PROVANT"/>
+            </when>
+        </choice>
+        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;rmm&quot;)]">
+                <flow-ref name="PI_METADATA_MAPPING_RMM" doc:name="PI_METADATA_MAPPING_RMM"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
+                <flow-ref name="PI_SIP_DELIVERY_PROVANT" doc:name="PI_SIP_DELIVERY_PROVANT"/>
+            </when>
+        </choice>
+        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+        <exception-strategy ref="globalChoice_Exception_Strategy" doc:name="Reference Exception Strategy"/>        
+  
+    </flow>
+    <sub-flow name="PI_SIP_DETECTED">
+        <set-variable variableName="eventName" value="PI_SIP_DETECTED" doc:name="Set Name"/>
+        <mulerequester:request
+	        config-ref="Mule_Requester"
+	        resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP"
+	        doc:name="Get XML file from FTP"
+	        throwExceptionOnTimeout="true"/>
+        <byte-array-to-object-transformer doc:name="Byte Array to Object"></byte-array-to-object-transformer>
+        <set-variable variableName="incomingXml" value="#[payload]" doc:name="Save file XML"/>
+        <set-variable variableName="assetId" value="#[flowVars.input.sourceFile]" doc:name="Set assetId"/>
+        <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set First MD5"/>
+        <message-filter throwOnUnaccepted="true" doc:name="Error if MD5 does not exist in sidecar">
+            <and-filter>
+                <expression-filter expression="#[flowVars.comment = &quot;MD5 does not exist in sidecar XML&quot;]" />
+				<expression-filter expression="#[md5Xml != null]"/>
+				<expression-filter expression="#[!(md5Xml.equals(&quot;&quot;))]"/>
+            </and-filter>
+        </message-filter>
+                <message-filter throwOnUnaccepted="true" doc:name="Error if MD5 does not exist">
+            <and-filter>
+                <expression-filter expression="#[flowVars.comment = &quot;MD5 does not exist in Rabbit message&quot;]" />
+                <expression-filter expression="#[flowVars.files['essence'].md5 != null]"/>
+                <expression-filter expression="#[!(flowVars.files['essence'].md5.equals(&quot;&quot;))]"/>
+            </and-filter>
+        </message-filter>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <set-variable variableName="correlationid" value="#[xpath3('//correlationId/text()')]" doc:name="Set correlationid"/>
+                <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
+                    <db:parameterized-query><![CDATA[SELECT * FROM ${db.buffer} WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
+                </db:select>
+                <set-variable variableName="pid" value="#[payload[0].pid]" doc:name="Set pid"/>
+                <set-variable variableName="filename" value="#[flowVars.pid + '.' + String.format(&quot;%03d&quot;, payload.size()) + '.' + flowVars.type + '.' + flowVars.extension]" doc:name="Set filename"/>
+                <set-variable variableName="status" value="#[&quot;New file from VRT&quot;]" doc:name="Set status"/>
+            </when>
+            <otherwise >
+                <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
+                    <db:parameterized-query><![CDATA[SELECT * FROM ${db.eventstable} WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterized-query>
+                </db:select>
+                <choice doc:name="Records exist?">
+                    <when expression="#[payload.size() &gt; 0]">
+                        <logger message="#[payload.toString()]" level="INFO" doc:name="Positive"/>
+                        <set-variable variableName="pid" value="#[payload[0].pid]" doc:name="Set pid"/>
+                        <set-variable variableName="status" value="#[&quot;retransmission&quot;]" doc:name="Set status"/>
+                    </when>
+                    <otherwise>
+                        <logger message="No records exist. Request a PID" level="INFO" doc:name="Negative"/>
+                        <http:request config-ref="Webservice_Configuration" path="/PIDIdRequest?number=1" method="GET" doc:name="Request PID">
+                            <http:success-status-code-validator values="200"/>
+                        </http:request>
+                        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                        <json:json-to-object-transformer returnClass="answer.PIDIdResponse[]" doc:name="JSON to Object"/>
+                        <message-filter throwOnUnaccepted="true" doc:name="Error if no PID was received">
+                            <and-filter>
+                                <expression-filter expression="#[flowVars.comment = &quot;No PID was received from the webservice&quot;]"/>
+                                <expression-filter expression="#[!payload.equals(&quot;&quot;)]"/>
+                                <expression-filter expression="#[payload != null]"/>
+                            </and-filter>
+                        </message-filter>
+                        <set-variable variableName="pid" value="#[payload[0].id]" doc:name="Set pid"/>
+                        <set-variable variableName="status" value="#[&quot;new file&quot;]" doc:name="Set status"/>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#[flowVars.status]" doc:name="Set comment"/>
+        <foreach collection="#[flowVars.files]" doc:name="For Each">
+            <set-variable variableName="comment" value="#[flowVars.comment + &quot;\n&quot; + payload.file_path +  payload.file_name + &quot;, &quot; + payload.md5]" doc:name="Append file info to comment"/>
+        </foreach>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_MD5_CHECK">
+        <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
+
+        <set-variable variableName="md5Source" value="#[flowVars.files['essence'].md5]" doc:name="Set payload MD5"/>
+        <message-filter throwOnUnaccepted="true" doc:name="Error if MD5's are not equal">
+            <and-filter>
+                <expression-filter expression="#[flowVars.comment = &quot;MD5\'s are not equal\n&quot;  + &quot;calculated MD5: &quot; + md5Source + &quot;\nsidecar MD5: &quot; + flowVars.md5Xml]"/>
+                <expression-filter expression="#[flowVars.md5Source.equals(flowVars.md5Xml)]"/>
+            </and-filter>
+        </message-filter>  
+         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+                <set-variable variableName="comment" value="#['MD5: ' + md5Source]" doc:name="Set Comment"/>
+                <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="CLEAR_VALUES">
+        <remove-variable variableName="comment" doc:name="Clear Comment"/>
+        <remove-variable variableName="result" doc:name="Clear result"/>
+    </sub-flow>
+
+</mule>

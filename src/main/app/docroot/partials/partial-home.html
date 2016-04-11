@@ -1,0 +1,61 @@
+<div class="container" ng-controller="MainController">
+    <div id="form1" class="col s12">
+        <h2 class="header">Borndigital Events</h2>
+        <table class="bordered">
+       		<thead>
+        		<tr>
+	        		<th>
+	        			<a href="#" ng-click="orderByField='pid'; reverseSort = !reverseSort; performQuery()">
+				          PID <span ng-show="orderByField == 'pid'"><span ng-show="!reverseSort">^</span><span ng-show="reverseSort">v</span></span>
+				        </a>
+				        <div class="row" style="margin-left: 0px; margin-right: 0px">
+							<input placeholder="PID" id="query" type="text" class="validate" ng-model="pid" ng-change="performQuery()">
+						</div>
+				    </th>
+				    <th>
+	        			<a href="#" ng-click="orderByField='outcome'; reverseSort = !reverseSort; performQuery()">
+				          OUTCOME <span ng-show="orderByField == 'outcome'"><span ng-show="!reverseSort">^</span><span ng-show="reverseSort">v</span></span>
+				        </a>
+			        	<div class="row" style="margin-left: 0px; margin-right: 0px">
+							<input placeholder="OUTCOME" id="outcome" type="text" class="validate" ng-model="outcome" ng-change="performQuery()">
+						</div>
+				    </th>
+				    <th>
+				    	<a href="#" ng-click="orderByField='date'; reverseSort = !reverseSort; performQuery()">
+				          DATE <span ng-show="orderByField == 'date'"><span ng-show="!reverseSort">^</span><span ng-show="reverseSort">v</span></span>
+				        </a>
+				       <div class="row col s6" style="margin-left: 0px; margin-right: 0px">
+							<input id="datefrom" 	placeholder="FROM"	type="date" class="datepicker col s5" style="margin-left:0px; margin-right: 5px; height: 3rem; padding: 0 0rem">
+							<input id="dateto"		placeholder="TO"	type="date" class="datepicker col s5" style="margin-left:5px; margin-right: 0px; height: 3rem; padding: 0 0rem">
+						</div>
+	        		</th>
+	        		<th>
+	        			<a href="#" ng-click="orderByField='cp'; reverseSort = !reverseSort; performQuery()">
+				          CP <span ng-show="orderByField == 'cp'"><span ng-show="!reverseSort">^</span><span ng-show="reverseSort">v</span></span>
+				        </a>
+				        <div class="row" style="margin-left: 0px; margin-right: 0px">
+							<input placeholder="CP" id="cp" type="text" class="validate" ng-model="cp" ng-change="performQuery()">
+						</div>
+	        		</th>
+        		</tr>
+        	</thead>
+        	<tbody>
+        		<div>
+            		<tr ng-repeat="row in data" ng-click="getSinglePid(row.pid)" class="clickable" ng-class="{'green accent-1': row.outcome == 'OK', 'deep-orange accent-1': row.outcome == 'NOK' }">
+                		<td>{{ row.pid }}</td>
+                		<td>{{ row.outcome }}</td>
+                		<td>{{ row.date | date : 'yyyy-MM-dd HH:mm:ss' }}</td>
+                		<td>{{ row.cp }}</td>
+            		</tr>
+        		</div>
+        	</tbody>
+        </table>
+        <ul class="pagination" ng-show="count > 1">
+		    <li ng-class="{'disabled': prevDisabled()}"><a href="#!" ng-click="minPage()"><i class="material-icons">chevron_left</i></a></li>
+		    <span ng-repeat="i in getTimes(count) track by $index">
+		    	<li ng-class="{'active': $index == page}"><a href="#!" ng-click="changePage($index)">{{ $index + 1 }}</a></li>
+		    </span>
+		    <li class="waves-effect" ng-class="{'disabled': nextDisabled()}"><a href="#!" ng-click="plusPage()"><i class="material-icons">chevron_right</i></a></li>
+		</ul>
+    </div>
+</div>

@@ -1,0 +1,164 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="MediaHAVEN_external_metadata">
+        <xs:complexType>
+            <xs:all>
+                <xs:element type="xs:string" name="title" minOccurs="1" maxOccurs="1"/>
+                <xs:element type="xs:string" name="description" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="MDProperties" minOccurs="1" maxOccurs="1">
+                    <xs:complexType>
+                        <xs:all>
+                            <xs:element type="xs:string" name="CP" minOccurs="1" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="SP" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="PID" minOccurs="1" maxOccurs="1"/>
+                            <xs:element name="md5" minOccurs="1" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_identifier_cpid" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element name="dc_identifier_cpids" minOccurs="0"
+                                maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="dc_identifier_cpid" minOccurs="0"
+                                            maxOccurs="unbounded"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element type="xs:string" name="dc_format" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_source" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="CreationDate" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_issued" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_created" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_title" minOccurs="1" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_alternative" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_alternative_programme"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_alternative_series"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_alternative_series_number"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_alternative_season"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dcterms_alternative_season_number"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_description" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_description_subtitles"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_description_programme"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_description_cast" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element name="dcterms_spatial" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="dcterms_spatial"
+                                            minOccurs="0" maxOccurs="unbounded"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="dcterms_temporal" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="dcterms_temporal"
+                                            minOccurs="0" maxOccurs="unbounded"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="dc_subjects" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="dc_subject"
+                                            maxOccurs="unbounded" minOccurs="0"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="dc_rightslist" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="dc_rights"
+                                            maxOccurs="unbounded" minOccurs="0"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="dc_subject" minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_publisher" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element name="dc_creator" minOccurs="0" maxOccurs="1"/>
+                            <xs:element name="dc_contributor" minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_creator_productioncompany"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_type" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_type_objectType" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_language" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_rights" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="dc_rights_comment" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element type="xs:string" name="lom_description" minOccurs="0"
+                                maxOccurs="1"/>
+                            <xs:element name="lom_intendedenduserroles" minOccurs="0"
+                                maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="lom_intendedenduserrole"
+                                            maxOccurs="unbounded" minOccurs="0"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="lom_typicalageranges" minOccurs="0"
+                                maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="lom_typicalagerange"
+                                            maxOccurs="unbounded" minOccurs="0"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="lom_classifications" minOccurs="0"
+                                maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="lom_classification"
+                                            maxOccurs="unbounded" minOccurs="0"/>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="lom_contexts" minOccurs="0" maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element type="xs:string" name="lom_context"
+                                            maxOccurs="unbounded" minOccurs="0"/>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element type="xs:string" name="lom_learningresourcetype"
+                                minOccurs="0" maxOccurs="1"/>
+                            <xs:element type="xs:string" name="lom_language" minOccurs="0"
+                                maxOccurs="1"/>
+                        </xs:all>
+                    </xs:complexType>
+                </xs:element>
+            </xs:all>
+            <xs:attribute type="xs:float" name="version"/>
+            <xs:attribute type="xs:string" name="name"/>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>

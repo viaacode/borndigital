@@ -1,0 +1,16 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "provant_test_new_input"
+        }
+    },
+    "outputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "VIAA_METADATA_COMPLETE"
+        }
+    },
+    "id": "d696f7ed-e9b9-4f34-8265-1191510a0be4",
+    "version": "5.2.0.0"
+}

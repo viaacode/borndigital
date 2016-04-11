@@ -1,0 +1,27 @@
+      	<div class="container" ng-controller="PidController">
+            <div id="form1" class="col s12">
+                <h2 class="header">{{ pid }}</h2>
+                <table class="bordered" >
+                	<thead>
+                		<tr>
+                			<th>PID</th>
+                			<th>EVENT</th>
+                			<th>OUTCOME</th>
+                			<th>DATE</th>
+                			<th>CP</th>
+                		</tr>
+                	</thead>
+                	<tbody>
+                		<div>
+	                		<tr ng-repeat="row in data" ng-class="{'green accent-1': row.outcome == 'OK', 'deep-orange accent-1': row.outcome == 'NOK' }">
+		                		<td>{{ row.pid }}</td>
+		                		<td>{{ row.name }}</td>
+		                		<td>{{ row.outcome }}</td>
+		                		<td>{{ row.date | date : 'yyyy-dd-MM HH:mm:ss' }}</td>
+		                		<td>{{ row.cp }}</td>
+	                		</tr>
+                		</div>
+                	</tbody>
+                </table>
+            </div>
+        </div>

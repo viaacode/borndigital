@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+  This schema ensures that the element "MediaHAVEN_external_metadata"
+  has the following children:
+    - title
+    - MDProperties
+    - fragments (optional)
+
+  Where MDProperties has the following children:
+    - CP
+    - PID
+    - CreationDate
+    - dcterms_created
+    - dc_identifier_HISTOR
+
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="MediaHAVEN_external_metadata">
+        <xs:complexType>
+            <xs:all>
+                <xs:element name="title" type="xs:string" />
+                <xs:element name="MDProperties">
+                    <xs:complexType>
+                        <xs:all>
+                            <xs:element name="CP" type="NonEmptyString" />
+                            <xs:element name="PID" type="NonEmptyString" />
+                            <xs:element name="CreationDate" type="NonEmptyString" />
+                            <xs:element name="dcterms_created" type="NonEmptyString" />
+                            <xs:element name="dc_identifier_cpid" type="NonEmptyString" />
+                        </xs:all>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="fragments" minOccurs="0" maxOccurs="1"/>
+            </xs:all>
+        </xs:complexType>
+    </xs:element>
+    <xs:simpleType name="NonEmptyString">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1" />
+            <xs:pattern value=".*[^\s].*" />
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

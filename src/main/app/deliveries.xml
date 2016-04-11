@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
+	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd">
+    <sub-flow name="PI_SIP_DELIVERY_VRT">
+        <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
+        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
+        <foreach collection="#[flowVars.files]" doc:name="For Each">
+            <choice doc:name="Choice">
+                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
+                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
+                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
+                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
+                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
+                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
+                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
+                    
+                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true">
+                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
+                    </until-successful>
+                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true" millisBetweenRetries="15000">
+                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    </until-successful>
+                    
+                    <dw:transform-message doc:name="Transform Message">
+                        <dw:input-variable variableName="currentItem"/>
+                        <dw:set-payload><![CDATA[%dw 1.0
+%input payload application/java
+%output application/json
+---
+{
+	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destinationHost": p('ftpDestination.vrt.host'),
+    "destinationPassword": p('ftpDestination.vrt.password'),
+    "destinationPath": p('ftpDestination.vrt.path'),
+    "destinationUser": p('ftpDestination.vrt.username'),
+    "sourceFile": flowVars.sourceFileName,
+    "sourceHost": flowVars.sourceServer,
+    "sourcePassword": flowVars.sourcePassword,
+    "sourcePath": flowVars.sourcePath,
+    "sourceUser": flowVars.sourceUsername
+}]]></dw:set-payload>
+                    </dw:transform-message>
+                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                    <!-- 
+                    <invoke object-ref="requestTransformer" method="Transform" methodArguments="#[payload], #[flowVars.pid], ${ftpDestination.path}, #[flowVars.input.cp_name]" doc:name="Invoke"/>
+                    <set-variable variableName="temppath" value="#[payload.destinationPath + payload.destinationFile]" doc:name="Set file path"/>
+                    <set-variable variableName="locationPath" value="#[payload.destinationPath]" doc:name="Set location path"/>
+                    <json:object-to-json-transformer doc:name="Object to JSON"/>
+                    -->
+                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" doc:name="HTTP" responseTimeout="-1">
+                        <http:request-builder>
+                            <http:query-param paramName="move" value="true"/>
+                        </http:request-builder>
+                        <http:success-status-code-validator values="200"/>
+                    </http:request>
+                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
+                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
+            			<and-filter>
+			                <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]" />
+							<expression-filter expression="#[payload.actie != null]"/>
+			            </and-filter>
+			        </message-filter>
+                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
+                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
+                </when>
+                <otherwise>
+                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
+        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP" passive="false"/>
+        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
+        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_SIP_DELIVERY_RMM">
+        <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
+        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
+        <foreach collection="#[flowVars.files]" doc:name="For Each">
+            <choice doc:name="Choice">
+                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
+                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
+                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
+                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
+                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
+                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
+                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true">
+                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
+                    </until-successful>
+                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true" millisBetweenRetries="15000">
+                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    </until-successful>
+                    <dw:transform-message doc:name="Transform Message">
+                        <dw:input-variable variableName="currentItem"/>
+                        <dw:set-payload><![CDATA[%dw 1.0
+%input payload application/java
+%output application/json
+---
+{
+	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destinationHost": p('ftpDestination.rmm.host'),
+    "destinationPassword": p('ftpDestination.rmm.password'),
+    "destinationPath": p('ftpDestination.rmm.path'),
+    "destinationUser": p('ftpDestination.rmm.username'),
+    "sourceFile": flowVars.sourceFileName,
+    "sourceHost": flowVars.sourceServer,
+    "sourcePassword": flowVars.sourcePassword,
+    "sourcePath": flowVars.sourcePath,
+    "sourceUser": flowVars.sourceUsername
+}]]></dw:set-payload>
+                    </dw:transform-message>
+                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
+                        <http:request-builder>
+                            <http:query-param paramName="move" value="true"/>
+                        </http:request-builder>
+                        <http:success-status-code-validator values="200"/>
+                    </http:request>
+                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
+                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
+                        <and-filter>
+                            <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]"/>
+                            <expression-filter expression="#[payload.actie != null]"/>
+                        </and-filter>
+                    </message-filter>
+                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
+                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
+                </when>
+                <otherwise>
+                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
+        <ftp:outbound-endpoint host="${ftpDestination.rmm.host}" port="21" path="${ftpDestination.rmm.path}" user="${ftpDestination.rmm.username}" password="${ftpDestination.rmm.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
+        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
+        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_SIP_DELIVERY_PROVANT">
+        <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
+        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.CP.equals(&quot;APA&quot;)]">
+                <set-variable variableName="destinationPath" value="#[&quot;/apa&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
+            </when>
+            <when expression="#[flowVars.CP.equals(&quot;FOMU&quot;)]">
+                <set-variable variableName="destinationPath" value="#[&quot;/fomu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
+            </when>
+            <when expression="#[flowVars.CP.equals(&quot;MOMU&quot;)]">
+                <set-variable variableName="destinationPath" value="#[&quot;/momu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
+            </when>
+            <otherwise>
+				<message-filter throwOnUnaccepted="true" doc:name="Error if destinationPath is null">
+                        <and-filter>
+                            <expression-filter expression="#[flowVars.comment = &quot;CP was invalid. No destination folder known.&quot;]"/>
+                            <expression-filter expression="#[payload.destinationPath != null]"/>
+                        </and-filter>
+                    </message-filter>
+            </otherwise>
+        </choice>
+        <foreach collection="#[flowVars.files]" doc:name="For Each">
+            <choice doc:name="Choice">
+                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
+                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
+                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
+                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
+                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
+                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
+                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true">
+                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
+                    </until-successful>
+                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true" millisBetweenRetries="15000">
+                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    </until-successful>
+                    <dw:transform-message doc:name="Transform Message">
+                        <dw:input-variable variableName="currentItem"/>
+                        <dw:set-payload><![CDATA[%dw 1.0
+%input payload application/java
+%output application/json
+---
+{
+	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destinationHost": p('ftpDestination.provant.host'),
+    "destinationPassword": p('ftpDestination.provant.password'),
+    "destinationPath": flowVars.destinationPath,
+    "destinationUser": p('ftpDestination.provant.username'),
+    "sourceFile": flowVars.sourceFileName,
+    "sourceHost": flowVars.sourceServer,
+    "sourcePassword": flowVars.sourcePassword,
+    "sourcePath": flowVars.sourcePath,
+    "sourceUser": flowVars.sourceUsername
+}]]></dw:set-payload>
+                    </dw:transform-message>
+                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
+                        <http:request-builder>
+                            <http:query-param paramName="move" value="false"/>
+                        </http:request-builder>
+                        <http:success-status-code-validator values="200"/>
+                    </http:request>
+                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
+                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
+                        <and-filter>
+                            <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]"/>
+                            <expression-filter expression="#[payload.actie != null]"/>
+                        </and-filter>
+                    </message-filter>
+                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
+                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
+                </when>
+                <otherwise>
+                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
+        <ftp:outbound-endpoint host="${ftpDestination.provant.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.provant.username}" password="${ftpDestination.provant.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
+        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
+        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="while_free_space">
+        <logger message="Checking free space" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" doc:name="HTTP" followRedirects="true">
+            <http:request-builder>
+                <http:query-param paramName="content" value="channels"/>
+                <http:query-param paramName="output" value="xml"/>
+                <http:query-param paramName="columns" value="name,lastvalue_"/>
+                <http:query-param paramName="id" value="${sensor.id}"/>
+                <http:query-param paramName="username" value="${sensor.username}"/>
+                <http:query-param paramName="password" value="${sensor.password}"/>
+            </http:request-builder>
+        </http:request>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="freepercentage" value="#[java.lang.Integer.parseInt(xpath3(&quot;replace(//channels/item[name='Free Space']/lastvalue/text(), ' %', '')&quot;))]" doc:name="Set freepercentage"/>
+        <logger message="#[&quot;Free percentage: &quot; + flowVars.freepercentage + &quot; %&quot;]" level="INFO" doc:name="Logger"/>
+        <message-filter throwOnUnaccepted="true" doc:name="Message">
+            <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
+        </message-filter>
+    </sub-flow>
+    <sub-flow name="while_too_much_active_transfers">
+        <http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" doc:name="Copy_of_HTTP"/>
+        <byte-array-to-string-transformer doc:name="Copy_of_Byte Array to String"/>
+        <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload)]" doc:name="Copy_of_Set activethreads"/>
+        <logger message="#[&quot;# of active FXP transfers: &quot; + flowVars.activethreads]" level="INFO" doc:name="Copy_of_Logger"/>
+        <message-filter throwOnUnaccepted="true" doc:name="Copy_of_Message">
+            <expression-filter expression="#[flowVars.activethreads &lt; '${fxp.maxactivethreads}']"/>
+        </message-filter>
+    </sub-flow>
+</mule>

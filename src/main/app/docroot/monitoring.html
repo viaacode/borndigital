@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <!--Import Google Icon Font-->
+        <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+            <!--Import materialize.css-->
+            <link type="text/css" rel="stylesheet" href="../materialize-min.css/"  media="screen,projection"/>
+            
+            <!--Let browser know website is optimized for mobile-->
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    </head>
+    
+    <body>
+        <!--Import jQuery before materialize.js-->
+        <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="../materialize-min.js/"></script>
+        
+        <div class="container">
+        	<div id="form-div" class="valign-wrapper">
+            <div id="form1">
+                <h2 class="header">ESB deployment status</h2>
+                <div>
+                      <table>
+				        <thead>
+				          <tr>
+				              <th data-field="id">Application Name</th>
+				              <th data-field="name">Status</th>
+				          </tr>
+				        </thead>
+				
+				        <tbody id="tablebody">
+				        </tbody>
+				      </table>
+                </div>
+            </div>
+        </div>
+        </div>
+    </body>
+    <script>
+  $(document).ready(function() {
+	    $('select').material_select();
+	    ajax("https://do-prd-esb-m0.do.viaa.be:8585/mmc/api/deployments").then(function(result) {
+	    	parsedResult = JSON.parse(result);
+	    	var table = document.getElementById("tablebody");
+	    	table.nodeValue = '';
+	    	
+	    	for (i = 0; i < parsedResult.data.length; i++) { 
+	    		table.nodeValue += "<tr><td>" + parsedResult.data[i].name + "</td><td>" + parsedResult.data[i].status + "</td></tr>"	   
+	    	}
+	    })
+	    
+	    /*
+        <tr>
+        <td>Jonathan</td>
+        <td>Lollipop</td>
+        <td>$7.00</td>
+      </tr>
+      */
+	  });
+  </script>
+  
+  	<script type="text/javascript">
+	function ajax(url) {
+		return new Promise(function(resolve, reject) {
+		    var xhr = new XMLHttpRequest();
+		    try {
+				// Opera 8.0+, Firefox, Safari
+				xhr = new XMLHttpRequest();
+			} catch (e) {
+				// Internet Explorer Browsers
+				try {
+					xhr = new ActiveXObject("Msxml2.XMLHTTP");
+				} catch (e) {
+					try {
+						xhr = new ActiveXObject("Microsoft.XMLHTTP");
+					} catch (e) {
+						// Something went wrong
+						alert("Your browser broke!");
+						return false;
+					}
+				}
+			}
+		    xhr.onload = function() {
+		      resolve(this.responseText);
+		    };
+		    xhr.onerror = reject;
+		    xhr.open('GET', url, true);
+		    xhr.setRequestHeader("Authorization", "Basic YWRtaW46YWRtaW4=");
+		    xhr.setRequestHeader("Access-Control-Allow-Origin", "*");
+		    xhr.setRequestHeader("Content-type", "application/json");
+		    xhr.send();
+		  });
+	}
+</script>
+</html>

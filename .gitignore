@@ -1,6 +1,6 @@
 staging.properties
 production.properties
-
+.DS_Store
 # Java defaults (https://github.com/github/gitignore/blob/master/Java.gitignore) #
 # --- #
 *.class

@@ -58,7 +58,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 	{
 		title: flowVars.pid ++ "-" ++ flowVars.mediaId,
 		MDProperties: {
-			CP: "failures",
+			CP: p('cp'),
 			PID: flowVars.pid,
 			dc_identifier_cpid: flowVars.mediaId
 		}

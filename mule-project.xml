@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<mule-project xmlns="http://www.mulesoft.com/tooling/project" runtimeId="org.mule.tooling.server.3.7.2.ee" schemaVersion="3.5.0.0">
-    <name>rmm-ingest</name>
+<mule-project xmlns="http://www.mulesoft.com/tooling/project" runtimeId="org.mule.tooling.server.3.7.3.ee" schemaVersion="5.3.0.0">
+    <name>borndigital</name>
     <description></description>
-    <muleExtension name="AMQP-0-9" qualifier="mule-transport-amqp-contribution"/>
     <muleExtension name="Mule Requester" qualifier="org.mule.tooling.ui.contribution.mulerequester.3.5.0"/>
-    <muleExtension name="APIkit" qualifier="org.mule.tooling.apikit.3.7.0"/>
+    <muleExtension name="AMQP-0-9" qualifier="mule-transport-amqp-contribution"/>
 </mule-project>

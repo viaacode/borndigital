@@ -44,3 +44,5 @@ ftpDestination.rmm.host=
 ftpDestination.rmm.path=
 
 ftp.failuresFolder=
+
+cp=

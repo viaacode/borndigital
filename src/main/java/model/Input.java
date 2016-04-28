@@ -8,7 +8,7 @@ import org.joda.time.DateTime;
 public class Input {
 	public String cp_name;
 	public String flow_id;
-	public CustomFile[] sid_package;
+	public CustomFile[] sip_package;
 	public String username;
 	public String password;
 	public String server;
@@ -16,7 +16,7 @@ public class Input {
 	
 	public Map<String, CustomFile> getAllFiles() {
 		Map<String, CustomFile> files = new HashMap<String, CustomFile>();
-		for (CustomFile file : sid_package) {
+		for (CustomFile file : sip_package) {
 			files.put(file.file_type, file);
 		}
 		return files;

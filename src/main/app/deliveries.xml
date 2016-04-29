@@ -86,7 +86,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
         <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP" passive="false"/>
-        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
+        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + ${ftpDestination.vrt.host} + ${ftpDestination.vrt.path}  + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
         <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>

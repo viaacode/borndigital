@@ -75,7 +75,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         </message-filter>
         -->
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <sub-flow name="PI_METADATA_MAPPING_PROVANT">
@@ -153,6 +153,29 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
             </and-filter>
         </message-filter>
         -->
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_METADATA_MAPPING_MEISE">
+        <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
+            <dw:input-payload doc:sample="content.xml"/>
+            <dw:input-variable variableName="comment"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+	MediaHAVEN_external_metadata: payload.root.MediaHAVEN_external_metadata
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="CP" value="#[xpath3(&quot;//CP/text()&quot;)]" doc:name="Set CP"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>

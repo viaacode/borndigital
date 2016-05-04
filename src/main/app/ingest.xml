@@ -34,10 +34,11 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <http:config useTransportForUris="false"/>
     </configuration>
     <data-mapper:config name="XML_To_XML" transformationGraphPath="xml_to_xml.grf" doc:name="XML_To_XML"/>
+    <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
     
 
     <flow name="moveMP4Flow" processingStrategy="synchronous" initialState="started"> 
-        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound" exchange-pattern="request-response"></amqp:inbound-endpoint>
+        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound" exchange-pattern="request-response" transformer-refs="Byte_Array_to_String"></amqp:inbound-endpoint>
         <json:json-to-object-transformer returnClass="model.Input" doc:name="JSON to Object"/>
   
         <set-variable variableName="input" value="#[payload]" doc:name="Save POJO"></set-variable>
@@ -48,7 +49,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
   
         <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"></flow-ref>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <choice doc:name="Choice">
+        <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;rmm&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_RMM" doc:name="PI_METADATA_MAPPING_RMM"/>
             </when>
@@ -57,6 +58,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_PROVANT" doc:name="PI_METADATA_MAPPING_PROVANT"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                <flow-ref name="PI_METADATA_MAPPING_MEISE" doc:name="PI_METADATA_MAPPING_MEISE"/>
             </when>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -70,16 +74,19 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
                 <flow-ref name="PI_SIP_DELIVERY_PROVANT" doc:name="PI_SIP_DELIVERY_PROVANT"/>
             </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
+            </when>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <exception-strategy ref="globalChoice_Exception_Strategy" doc:name="Reference Exception Strategy"/>        
   
     </flow>
     <sub-flow name="PI_SIP_DETECTED">
-        <set-variable variableName="eventName" value="PI_SIP_DETECTED" doc:name="Set Name"/>
+        <set-variable variableName="eventName" value="PI_SIP_DETECTED" doc:name="Set eventName"/>
         <mulerequester:request
 	        config-ref="Mule_Requester"
-	        resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP"
+	        resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP&amp;autoDelete=false"
 	        doc:name="Get XML file from FTP"
 	        throwExceptionOnTimeout="true"/>
         <byte-array-to-object-transformer doc:name="Byte Array to Object"></byte-array-to-object-transformer>
@@ -100,19 +107,30 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
                 <expression-filter expression="#[!(flowVars.files['essence'].md5.equals(&quot;&quot;))]"/>
             </and-filter>
         </message-filter>
-        <choice doc:name="Choice">
+        <choice doc:name="SIP from VRT, Meise or generic?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <set-variable variableName="correlationid" value="#[xpath3('//correlationId/text()')]" doc:name="Set correlationid"/>
-                <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
-                    <db:parameterized-query><![CDATA[SELECT * FROM ${db.buffer} WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
+                <db:select config-ref="POSTGRESQL_Connection" doc:name="Get info from vrt_message_buffer">
+                    <db:parameterized-query><![CDATA[SELECT * 
+FROM ${db.buffer} 
+WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
                 </db:select>
                 <set-variable variableName="pid" value="#[payload[0].pid]" doc:name="Set pid"/>
                 <set-variable variableName="filename" value="#[flowVars.pid + '.' + String.format(&quot;%03d&quot;, payload.size()) + '.' + flowVars.type + '.' + flowVars.extension]" doc:name="Set filename"/>
                 <set-variable variableName="status" value="#[&quot;New file from VRT&quot;]" doc:name="Set status"/>
             </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                <set-variable variableName="pid" value="#[xpath3('//PID/text()')]" doc:name="Set pid"/>
+                <set-variable variableName="md5" value="#[xpath3('//md5/text()')]" doc:name="Set md5"/>
+                <set-variable variableName="file_path" value="#[xpath3('//file_path/text()')]" doc:name="Set file_path"/>
+                <set-variable variableName="file_name" value="#[xpath3('//file_name/text()')]" doc:name="Set file_name"/>
+                <set-variable variableName="status" value="#[&quot;New file from Meise&quot;]" doc:name="Set status"/>
+            </when>
             <otherwise >
-                <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
-                    <db:parameterized-query><![CDATA[SELECT * FROM ${db.eventstable} WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterized-query>
+                <db:select config-ref="POSTGRESQL_Connection" doc:name="Get info from generic events table">
+                    <db:parameterized-query><![CDATA[SELECT * 
+FROM ${db.eventstable} 
+WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterized-query>
                 </db:select>
                 <choice doc:name="Records exist?">
                     <when expression="#[payload.size() &gt; 0]">

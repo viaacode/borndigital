@@ -46,8 +46,14 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="files" value="#[payload]" doc:name="Save Files metadata"/>
         <flow-ref name="PI_SIP_DETECTED" doc:name="PI_SIP_DETECTED"/>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-  
-        <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"></flow-ref>
+        <choice doc:name="No MD5 check for VRT">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <logger level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"/>
+            </otherwise>
+        </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;rmm&quot;)]">

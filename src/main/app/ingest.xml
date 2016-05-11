@@ -48,7 +48,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <choice doc:name="No MD5 check for VRT">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
-                <logger level="INFO" doc:name="Logger"/>
+                <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+                <set-variable variableName="comment" value="#['No MD5 check.']" doc:name="Set Comment"/>
+                <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
             </when>
             <otherwise>
                 <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"/>

@@ -178,7 +178,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
 

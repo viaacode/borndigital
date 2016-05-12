@@ -46,16 +46,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="files" value="#[payload]" doc:name="Save Files metadata"/>
         <flow-ref name="PI_SIP_DETECTED" doc:name="PI_SIP_DETECTED"/>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <choice doc:name="No MD5 check for VRT">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
-                <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
-                <set-variable variableName="comment" value="#['No MD5 check.']" doc:name="Set Comment"/>
-                <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
-            </when>
-            <otherwise>
-                <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"/>
-            </otherwise>
-        </choice>
+        <flow-ref name="PI_MD5_CHECK" doc:name="PI_MD5_CHECK"/>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;rmm&quot;)]">
@@ -100,21 +91,28 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <byte-array-to-object-transformer doc:name="Byte Array to Object"></byte-array-to-object-transformer>
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Save file XML"/>
         <set-variable variableName="assetId" value="#[flowVars.input.sourceFile]" doc:name="Set assetId"/>
-        <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set First MD5"/>
-        <message-filter throwOnUnaccepted="true" doc:name="Error if MD5 does not exist in sidecar">
-            <and-filter>
-                <expression-filter expression="#[flowVars.comment = &quot;MD5 does not exist in sidecar XML&quot;]" />
-				<expression-filter expression="#[md5Xml != null]"/>
-				<expression-filter expression="#[!(md5Xml.equals(&quot;&quot;))]"/>
-            </and-filter>
-        </message-filter>
+        <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set originalMD5"/>
+        <choice doc:name="No original MD5 available check for VRT">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <logger level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <message-filter throwOnUnaccepted="true" doc:name="Error if MD5 does not exist in sidecar">
+                    <and-filter>
+                        <expression-filter expression="#[flowVars.comment = &quot;MD5 does not exist in sidecar XML&quot;]"/>
+                        <expression-filter expression="#[md5Xml != null]"/>
+                        <expression-filter expression="#[!(md5Xml.equals(&quot;&quot;))]"/>
+                    </and-filter>
+                </message-filter>
                 <message-filter throwOnUnaccepted="true" doc:name="Error if MD5 does not exist">
-            <and-filter>
-                <expression-filter expression="#[flowVars.comment = &quot;MD5 does not exist in Rabbit message&quot;]" />
-                <expression-filter expression="#[flowVars.files['essence'].md5 != null]"/>
-                <expression-filter expression="#[!(flowVars.files['essence'].md5.equals(&quot;&quot;))]"/>
-            </and-filter>
-        </message-filter>
+                    <and-filter>
+                        <expression-filter expression="#[flowVars.comment = &quot;MD5 does not exist in Rabbit message&quot;]"/>
+                        <expression-filter expression="#[flowVars.files['essence'].md5 != null]"/>
+                        <expression-filter expression="#[!(flowVars.files['essence'].md5.equals(&quot;&quot;))]"/>
+                    </and-filter>
+                </message-filter>
+            </otherwise>
+        </choice>
         <choice doc:name="SIP from VRT, Meise or generic?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <set-variable variableName="correlationid" value="#[xpath3('//correlationId/text()')]" doc:name="Set correlationid"/>
@@ -175,16 +173,22 @@ WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterize
     </sub-flow>
     <sub-flow name="PI_MD5_CHECK">
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
-
-        <set-variable variableName="md5Source" value="#[flowVars.files['essence'].md5]" doc:name="Set payload MD5"/>
-        <message-filter throwOnUnaccepted="true" doc:name="Error if MD5's are not equal">
-            <and-filter>
-                <expression-filter expression="#[flowVars.comment = &quot;MD5\'s are not equal\n&quot;  + &quot;calculated MD5: &quot; + md5Source + &quot;\nsidecar MD5: &quot; + flowVars.md5Xml]"/>
-                <expression-filter expression="#[flowVars.md5Source.equals(flowVars.md5Xml)]"/>
-            </and-filter>
-        </message-filter>  
-         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <choice doc:name="No MD5 check for VRT">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <set-variable variableName="comment" value="#['No MD5 check.']" doc:name="Set Comment"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="md5Source" value="#[flowVars.files['essence'].md5]" doc:name="Set payload MD5"/>
+                <message-filter throwOnUnaccepted="true" doc:name="Error if MD5's are not equal">
+                    <and-filter>
+                        <expression-filter expression="#[flowVars.comment = &quot;MD5\'s are not equal\n&quot;  + &quot;calculated MD5: &quot; + md5Source + &quot;\nsidecar MD5: &quot; + flowVars.md5Xml]"/>
+                        <expression-filter expression="#[flowVars.md5Source.equals(flowVars.md5Xml)]"/>
+                    </and-filter>
+                </message-filter>
                 <set-variable variableName="comment" value="#['MD5: ' + md5Source]" doc:name="Set Comment"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
                 <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <sub-flow name="CLEAR_VALUES">

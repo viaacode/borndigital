@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster"
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster"
 	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester"
@@ -15,7 +16,8 @@
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
@@ -34,11 +36,12 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <http:config useTransportForUris="false"/>
     </configuration>
     <data-mapper:config name="XML_To_XML" transformationGraphPath="xml_to_xml.grf" doc:name="XML_To_XML"/>
-    <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
-    
+    <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>    
+	<!-- Special File Connector that does not auto-delete files once read -->
 
     <flow name="moveMP4Flow" processingStrategy="synchronous" initialState="started"> 
         <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound" exchange-pattern="request-response" transformer-refs="Byte_Array_to_String"></amqp:inbound-endpoint>
+        <set-variable variableName="message" value="#[payload]" doc:name="Set message"/>
         <json:json-to-object-transformer returnClass="model.Input" doc:name="JSON to Object"/>
   
         <set-variable variableName="input" value="#[payload]" doc:name="Save POJO"></set-variable>
@@ -85,15 +88,18 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="eventName" value="PI_SIP_DETECTED" doc:name="Set eventName"/>
         <mulerequester:request
 	        config-ref="Mule_Requester"
-	        resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP&amp;autoDelete=false"
+	        resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP"
 	        doc:name="Get XML file from FTP"
 	        throwExceptionOnTimeout="true"/>
         <byte-array-to-object-transformer doc:name="Byte Array to Object"></byte-array-to-object-transformer>
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Save file XML"/>
         <set-variable variableName="assetId" value="#[flowVars.input.sourceFile]" doc:name="Set assetId"/>
         <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set originalMD5"/>
-        <choice doc:name="No original MD5 available check for VRT">
+        <choice doc:name="No original MD5 available check for VRT, plantentuinmeise">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <logger level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <logger level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -173,8 +179,11 @@ WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterize
     </sub-flow>
     <sub-flow name="PI_MD5_CHECK">
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
-        <choice doc:name="No MD5 check for VRT">
+        <choice doc:name="No MD5 check for VRT, plantentuinmeise">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                <set-variable variableName="comment" value="#['No MD5 check.']" doc:name="Set Comment"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <set-variable variableName="comment" value="#['No MD5 check.']" doc:name="Set Comment"/>
             </when>
             <otherwise>

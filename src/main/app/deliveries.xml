@@ -29,13 +29,8 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    
-                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true">
-                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    </until-successful>
-                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true" millisBetweenRetries="15000">
-                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
-                    </until-successful>
+                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
@@ -85,7 +80,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             </choice>
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP" passive="false"/>
+        <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
         <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written:&quot; + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
         <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
@@ -104,12 +99,9 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
-                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true">
-                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    </until-successful>
-                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true" millisBetweenRetries="15000">
-                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
-                    </until-successful>
+                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
+                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
                         <dw:set-payload><![CDATA[%dw 1.0
@@ -152,7 +144,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             </choice>
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <ftp:outbound-endpoint host="${ftpDestination.rmm.host}" port="21" path="${ftpDestination.rmm.path}" user="${ftpDestination.rmm.username}" password="${ftpDestination.rmm.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
+        <flow-ref name="SidecarFTPRMM" doc:name="SidecarFTPRMM"/>
         <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
         <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
@@ -190,12 +182,9 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
-                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true">
-                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    </until-successful>
-                    <until-successful  maxRetries="999999999" doc:name="Until Successful" synchronous="true" millisBetweenRetries="15000">
-                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
-                    </until-successful>
+                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
+                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
                         <dw:set-payload><![CDATA[%dw 1.0
@@ -238,7 +227,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             </choice>
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <ftp:outbound-endpoint host="${ftpDestination.provant.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.provant.username}" password="${ftpDestination.provant.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
+        <flow-ref name="SidecarFTPProvant" doc:name="SidecarFTPProvant"/>
         <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
         <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
@@ -258,16 +247,13 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    <until-successful maxRetries="999999999" synchronous="true" doc:name="Until Successful">
-                        <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    </until-successful>
-                    <until-successful maxRetries="999999999" millisBetweenRetries="15000" synchronous="true" doc:name="Until Successful">
-                        <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
-                    </until-successful>
-                    <dw:transform-message doc:name="Transform Message">
+                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
+                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    <dw:transform-message metadata:id="949d2f2e-d628-4465-b179-e235da46f674" doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
+                        <dw:input-variable doc:sample="double.dwl" variableName="extension"/>
+                        <dw:input-variable doc:sample="string.dwl" variableName="pid"/>
                         <dw:set-payload><![CDATA[%dw 1.0
-%input payload application/java
 %output application/json
 ---
 {
@@ -283,7 +269,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
     "sourceUser": flowVars.sourceUsername
 }]]></dw:set-payload>
                     </dw:transform-message>
-                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                    <object-to-string-transformer doc:name="Object to String"/>
                     <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
                         <http:request-builder>
                             <http:query-param paramName="move" value="true"/>
@@ -306,15 +292,14 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             </choice>
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
+        <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
         <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written:&quot; + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
         <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
-    <sub-flow name="while_free_space">
-        <logger message="Checking free space" level="INFO" doc:name="Logger"/>
-        <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" doc:name="HTTP" followRedirects="true">
+    <flow name="while_free_space">
+    	<http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" followRedirects="true" doc:name="HTTP sensor">
             <http:request-builder>
                 <http:query-param paramName="content" value="channels"/>
                 <http:query-param paramName="output" value="xml"/>
@@ -324,20 +309,81 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                 <http:query-param paramName="password" value="${sensor.password}"/>
             </http:request-builder>
         </http:request>
+        <until-successful maxRetries="999999999" synchronous="true" doc:name="Until Successful">
+            <flow-ref name="while_free_space_sub" doc:name="while_free_space_sub"/>
+        </until-successful>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="No sensor found. Proceeding" level="WARN" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </flow>
+    <sub-flow name="while_free_space_sub">
+        <logger message="Checking free space" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" followRedirects="true" doc:name="HTTP sensor">
+            <http:request-builder>
+                <http:query-param paramName="output" value="xml"/>
+                <http:query-param paramName="id" value="${sensor.id}"/>
+                <http:query-param paramName="username" value="${sensor.username}"/>
+                <http:query-param paramName="password" value="${sensor.password}"/>
+                <http:query-param paramName="content" value="channels"/>
+                <http:query-param paramName="columns" value="name,lastvalue_"/>
+            </http:request-builder>
+        </http:request>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="freepercentage" value="#[java.lang.Integer.parseInt(xpath3(&quot;replace(//channels/item[name='Free Space']/lastvalue/text(), ' %', '')&quot;))]" doc:name="Set freepercentage"/>
+        <set-variable variableName="freepercentage" value="#[java.lang.Integer.parseInt(xpath3(&quot;//channels/item[name='pctfree']/lastvalue/text()&quot;).split(' %')[0])]" doc:name="Set freepercentage"/>
         <logger message="#[&quot;Free percentage: &quot; + flowVars.freepercentage + &quot; %&quot;]" level="INFO" doc:name="Logger"/>
         <message-filter throwOnUnaccepted="true" doc:name="Message">
             <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
         </message-filter>
     </sub-flow>
-    <sub-flow name="while_too_much_active_transfers">
-        <http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" doc:name="HTTP"/>
+    <flow name="while_too_much_active_transfers">
+    	<http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" followRedirects="true" doc:name="HTTP FXP">
+        </http:request>
+        <until-successful maxRetries="999999999" millisBetweenRetries="15000" synchronous="true" doc:name="Until Successful">
+            <flow-ref name="while_too_much_active_transfers_sub" doc:name="while_too_much_active_transfers_sub"/>
+        </until-successful>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="No sensor found. Proceeding" level="INFO" doc:name="Logger"/>
+        </catch-exception-strategy>
+    </flow>
+    <sub-flow name="while_too_much_active_transfers_sub">
+        <http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" doc:name="HTTP FXP"/>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload)]" doc:name="Set activethreads"/>
+        <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload==&quot;&quot;?6:payload)]" doc:name="Set activethreads"/>
         <logger message="#[&quot;# of active FXP transfers: &quot; + flowVars.activethreads]" level="INFO" doc:name="Logger"/>
         <message-filter throwOnUnaccepted="true" doc:name="Message">
             <expression-filter expression="#[flowVars.activethreads &lt; '${fxp.maxactivethreads}']"/>
         </message-filter>
     </sub-flow>
+    <flow name="SidecarFTPMeise" processingStrategy="synchronous">
+        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message=" " level="WARN" doc:name="Logger"/>
+            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
+            <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
+        </catch-exception-strategy>
+    </flow>
+    <flow name="SidecarFTPProvant" processingStrategy="synchronous">
+        <ftp:outbound-endpoint host="${ftpDestination.provant.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.provant.username}" password="${ftpDestination.provant.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
+            <flow-ref name="SidecarFTPProvant" doc:name="SidecarFTPProvant"/>
+        </catch-exception-strategy>
+    </flow>
+    <flow name="SidecarFTPVRT" processingStrategy="synchronous">
+        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
+            <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
+        </catch-exception-strategy>
+    </flow>
+    <flow name="SidecarFTPRMM" processingStrategy="synchronous">
+        <ftp:outbound-endpoint host="${ftpDestination.rmm.host}" port="21" path="${ftpDestination.rmm.path}" user="${ftpDestination.rmm.username}" password="${ftpDestination.rmm.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
+            <flow-ref name="SidecarFTPRMM" doc:name="SidecarFTPRMM"/>
+        </catch-exception-strategy>
+    </flow>
 </mule>

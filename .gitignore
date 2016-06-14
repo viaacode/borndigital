@@ -1,7 +1,7 @@
 staging.properties
 production.properties
 catalog
-mappings
+# mappings
 src/main/app/mule-app.properties
 src/test
 .DS_Store

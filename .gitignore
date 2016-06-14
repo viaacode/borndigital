@@ -1,8 +1,9 @@
 staging.properties
 production.properties
-catalog/*
+catalog
+mappings
 src/main/app/mule-app.properties
-src/test/resources/*
+src/test
 .DS_Store
 # Java defaults (https://github.com/github/gitignore/blob/master/Java.gitignore) #
 # --- #

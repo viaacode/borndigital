@@ -36,11 +36,12 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <http:config useTransportForUris="false"/>
     </configuration>
     <data-mapper:config name="XML_To_XML" transformationGraphPath="xml_to_xml.grf" doc:name="XML_To_XML"/>
-    <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>    
+    <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
+    <asynchronous-processing-strategy name="Asynchronous_Processing_Strategy" maxThreads="4" minThreads="1" doc:name="Asynchronous Processing Strategy"/>    
 	<!-- Special File Connector that does not auto-delete files once read -->
 
-    <flow name="moveMP4Flow" processingStrategy="synchronous" initialState="started"> 
-        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound" exchange-pattern="request-response" transformer-refs="Byte_Array_to_String"></amqp:inbound-endpoint>
+    <flow name="moveMP4Flow" processingStrategy="Asynchronous_Processing_Strategy" initialState="started"> 
+        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="8"></amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message"/>
         <json:json-to-object-transformer returnClass="model.Input" doc:name="JSON to Object"/>
   

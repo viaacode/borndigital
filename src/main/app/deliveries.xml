@@ -355,7 +355,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </message-filter>
     </sub-flow>
     <flow name="SidecarFTPMeise" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message=" " level="WARN" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
@@ -363,7 +363,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPProvant" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.provant.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.provant.username}" password="${ftpDestination.provant.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.provant.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.provant.username}" password="${ftpDestination.provant.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
@@ -371,7 +371,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
@@ -379,7 +379,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPRMM" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.rmm.host}" port="21" path="${ftpDestination.rmm.path}" user="${ftpDestination.rmm.username}" password="${ftpDestination.rmm.password}" passive="false" connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="100000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.rmm.host}" port="21" path="${ftpDestination.rmm.path}" user="${ftpDestination.rmm.username}" password="${ftpDestination.rmm.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>

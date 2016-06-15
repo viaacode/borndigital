@@ -59,6 +59,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 		title: flowVars.pid ++ "-" ++ flowVars.mediaId,
 		MDProperties: {
 			CP: p('cp'),
+			sp_name: 'borndigital',
 			PID: flowVars.pid,
 			dc_identifier_cpid: flowVars.mediaId
 		}

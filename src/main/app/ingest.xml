@@ -129,6 +129,7 @@ FROM ${db.buffer}
 WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
                 </db:select>
                 <set-variable variableName="pid" value="#[payload[0].pid]" doc:name="Set pid"/>
+                <set-variable variableName="origin" value="#[payload[0].origin]" doc:name="Set origin"/>
                 <set-variable variableName="filename" value="#[flowVars.pid + '.' + String.format(&quot;%03d&quot;, payload.size()) + '.' + flowVars.type + '.' + flowVars.extension]" doc:name="Set filename"/>
                 <set-variable variableName="status" value="#[&quot;New file from VRT&quot;]" doc:name="Set status"/>
             </when>

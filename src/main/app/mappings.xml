@@ -49,7 +49,9 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="mediaId" value="#[xpath3(&quot;//mediaId/text()&quot;)]" doc:name="Set mediaId"/>
-        <dw:transform-message doc:name="Transform Message">
+        <dw:transform-message doc:name="Transform Message" metadata:id="ef2d489e-12ad-4b91-8add-659011b32d9a">
+            <dw:input-variable doc:sample="string_1.dwl" variableName="origin"/>
+            <dw:input-variable doc:sample="string_2.dwl" variableName="mediaId"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml
 ---
@@ -59,7 +61,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 		title: flowVars.pid ++ "-" ++ flowVars.mediaId,
 		MDProperties: {
 			CP: p('cp'),
-			sp_name: 'borndigital',
+			sp_name: 'dailies' when flowVars.origin != 'tape' otherwise 'intake_existing',
 			PID: flowVars.pid,
 			dc_identifier_cpid: flowVars.mediaId
 		}

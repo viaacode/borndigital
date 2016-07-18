@@ -249,6 +249,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
+                    <logger message="Continuing transfer after while loops" level="INFO" doc:name="Logger"/>
                     <dw:transform-message metadata:id="949d2f2e-d628-4465-b179-e235da46f674" doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
                         <dw:input-variable doc:sample="double.dwl" variableName="extension"/>
@@ -270,9 +271,9 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <object-to-string-transformer doc:name="Object to String"/>
-                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
+                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="FXP (without delete)">
                         <http:request-builder>
-                            <http:query-param paramName="move" value="true"/>
+                            <http:query-param paramName="move" value="false"/>
                         </http:request-builder>
                         <http:success-status-code-validator values="200"/>
                     </http:request>
@@ -298,7 +299,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
-    <flow name="while_free_space">
+    <flow name="while_free_space" processingStrategy="synchronous">
     	<http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" followRedirects="true" doc:name="HTTP sensor">
             <http:request-builder>
                 <http:query-param paramName="content" value="channels"/>
@@ -335,27 +336,30 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
         </message-filter>
     </sub-flow>
-    <flow name="while_too_much_active_transfers">
+    <flow name="while_too_much_active_transfers" processingStrategy="synchronous">
     	<http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" followRedirects="true" doc:name="HTTP FXP">
         </http:request>
         <until-successful maxRetries="999999999" millisBetweenRetries="15000" synchronous="true" doc:name="Until Successful">
             <flow-ref name="while_too_much_active_transfers_sub" doc:name="while_too_much_active_transfers_sub"/>
         </until-successful>
+        <logger message="Active threads: #[flowVars.activethreads] and maxactivetrheads: #['${fxp.maxactivethreads}']: result  #[flowVars.activethreads &lt; '${fxp.maxactivethreads}']" level="INFO" doc:name="Logger"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="No sensor found. Proceeding" level="INFO" doc:name="Logger"/>
+            <logger message="FXP throw error" level="INFO" doc:name="Logger"/>
         </catch-exception-strategy>
     </flow>
     <sub-flow name="while_too_much_active_transfers_sub">
         <http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" doc:name="HTTP FXP"/>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload==&quot;&quot;?6:payload)]" doc:name="Set activethreads"/>
+        <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload==&quot;&quot;?20:payload)]" doc:name="Set activethreads (default 20)"/>
         <logger message="#[&quot;# of active FXP transfers: &quot; + flowVars.activethreads]" level="INFO" doc:name="Logger"/>
         <message-filter throwOnUnaccepted="true" doc:name="Message">
             <expression-filter expression="#[flowVars.activethreads &lt; '${fxp.maxactivethreads}']"/>
         </message-filter>
     </sub-flow>
     <flow name="SidecarFTPMeise" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP">
+            <reconnect-forever frequency="3000"/>
+        </ftp:outbound-endpoint>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message=" " level="WARN" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>

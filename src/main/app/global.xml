@@ -21,14 +21,14 @@ http://www.mulesoft.org/schema/mule/tcp http://www.mulesoft.org/schema/mule/tcp/
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd">
     <context:property-placeholder location="${mule.env}.properties"></context:property-placeholder>
-    <amqp:connector name="RabbitMQConnector" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" virtualHost="${rabbit.virtualhost}" ackMode="MULE_AUTO" prefetchCount="1" numberOfChannels="8"> 
+    <amqp:connector name="RabbitMQConnector" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" virtualHost="${rabbit.virtualhost}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect-forever></reconnect-forever>  
     </amqp:connector>
     <http:request-config name="Webservice_Configuration" host="${http.host}" port="${http.port}" basePath="${http.basepath}" doc:name="HTTP Request Configuration" responseTimeout="999999999" connectionIdleTimeout="999999999"> 
         <tcp:client-socket-properties connectionTimeout="999999999" timeout="999999999"></tcp:client-socket-properties>  
     </http:request-config>
     <db:generic-config name="POSTGRESQL_Connection" url="jdbc:postgresql://${db.host}:${db.port}/${db.database}?password=${db.password}&amp;user=${db.username}" driverClassName="org.postgresql.Driver" doc:name="Generic Database Configuration"></db:generic-config>
-    <ftp:connector streaming="false" name="FTP" pollingFrequency="1000" validateConnections="true" doc:name="FTP"></ftp:connector>
+    <ftp:connector streaming="true" name="FTP" pollingFrequency="1000" validateConnections="true" doc:name="FTP"></ftp:connector>
     <http:request-config name="Sensor_API_Configuration" host="${sensor.host}" port="${sensor.port}" basePath="${sensor.basepath}" doc:name="HTTP Request Configuration" connectionIdleTimeout="9999999" responseTimeout="9999999" protocol="HTTPS"></http:request-config>
     <spring:beans> 
         <spring:bean id="RequestTransformer" name="requestTransformer" class="utils.RequestTransformer"></spring:bean>  
@@ -44,6 +44,7 @@ http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/
             <set-variable variableName="comment" value="The incoming XML was not valid or could not be read" doc:name="Set Exception message"></set-variable>  
             <set-variable variableName="result" value="#['NOK']" doc:name="Set result ERROR"></set-variable>  
             <flow-ref name="PI_LOG" doc:name="PI_LOG"></flow-ref>  
+            <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"></amqp:acknowledge-message>  
         </catch-exception-strategy>  
         <catch-exception-strategy doc:name="Catch Exception Strategy"> 
             <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"></set-variable>  
@@ -51,10 +52,11 @@ http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/
             <flow-ref name="PI_LOG" doc:name="PI_LOG"></flow-ref>  
             <set-payload value="#[flowVars.message]" doc:name="Set Payload"></set-payload>  
             <amqp:outbound-endpoint queueName="${rabbit.no_xml}" responseTimeout="10000" exchange-pattern="request-response" doc:name="AMQP-0-9"></amqp:outbound-endpoint>  
+            <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"></amqp:acknowledge-message>  
         </catch-exception-strategy>  
     </choice-exception-strategy>
     <sub-flow name="PI_LOG"> 
-        <db:insert config-ref="POSTGRESQL_Connection" doc:name="Log to database">
+        <db:insert config-ref="POSTGRESQL_Connection" doc:name="Log to database"> 
             <db:parameterized-query><![CDATA[INSERT INTO ${db.eventstable}(pid, cp_id, name, outcome, agent, date, comment, cp, flow_id, essence_md5)
 VALUES ((#[flowVars.pid == null ? "UNKNOWN" : flowVars.pid]),
 (#[flowVars.input.sip_package[0].file_name.split("\\.")[0] == null ? "UNKNOWN" : flowVars.input.sip_package[0].file_name.split("\\.")[0]]),
@@ -65,8 +67,7 @@ CAST(#[flowVars.result] as outcome),
 #[flowVars.comment],
 #[flowVars.input.cp_name],
 #[flowVars.input.flow_id],
-(#[flowVars.md5Xml == null ? "UNKNOWN" : flowVars.md5Xml]));]]></db:parameterized-query>
-  
+(#[flowVars.md5Xml == null ? "UNKNOWN" : flowVars.md5Xml]));]]></db:parameterized-query>  
         </db:insert>  
     </sub-flow>
     <sub-flow name="PI_MOVE_TO_FAILURES"> 

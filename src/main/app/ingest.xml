@@ -40,8 +40,10 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <asynchronous-processing-strategy name="Asynchronous_Processing_Strategy" maxThreads="4" minThreads="1" doc:name="Asynchronous Processing Strategy"/>    
 	<!-- Special File Connector that does not auto-delete files once read -->
 
-    <flow name="moveMP4Flow" processingStrategy="Asynchronous_Processing_Strategy" initialState="started"> 
-        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="8"></amqp:inbound-endpoint>
+    <flow name="moveMP4Flow" processingStrategy="synchronous" initialState="started"> 
+        <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="1">
+            <reconnect-forever/>
+        </amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message"/>
         <json:json-to-object-transformer returnClass="model.Input" doc:name="JSON to Object"/>
   
@@ -82,6 +84,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             </when>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+        <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
         <exception-strategy ref="globalChoice_Exception_Strategy" doc:name="Reference Exception Strategy"/>        
   
     </flow>

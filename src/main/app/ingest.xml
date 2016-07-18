@@ -35,7 +35,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <configuration defaultExceptionStrategy-ref="globalChoice_Exception_Strategy" doc:name="Configuration">
         <http:config useTransportForUris="false"/>
     </configuration>
-    <data-mapper:config name="XML_To_XML" transformationGraphPath="xml_to_xml.grf" doc:name="XML_To_XML"/>
     <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
     <asynchronous-processing-strategy name="Asynchronous_Processing_Strategy" maxThreads="4" minThreads="1" doc:name="Asynchronous Processing Strategy"/>    
 	<!-- Special File Connector that does not auto-delete files once read -->
@@ -45,7 +44,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             <reconnect-forever/>
         </amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message"/>
-        <json:json-to-object-transformer returnClass="model.Input" doc:name="JSON to Object"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
   
         <set-variable variableName="input" value="#[payload]" doc:name="Save POJO"></set-variable>
         <component class="utils.Utils" doc:name="Extract files"></component>

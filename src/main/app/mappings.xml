@@ -9,7 +9,6 @@
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
 http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd">
     <and-filter name="And" doc:name="And">
         <expression-filter expression="#[flowVars.comment = &quot;Metadata format was incorrect.&quot;]" nullReturnsTrue="true"/>
@@ -22,12 +21,15 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <invoke object-ref="srtService" method="TransformSrt" methodArguments="#[payload]" doc:name="Invoke"/>
         <set-variable variableName="fragments" value="#[payload]" doc:name="Set Fragments"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
-        <data-mapper:transform config-ref="XML_To_XML" doc:name="XML To XML">
-            <data-mapper:input-arguments>
-                <data-mapper:input-argument key="cp">#[flowVars.input.cp_name]</data-mapper:input-argument>
-                <data-mapper:input-argument key="pid">#[flowVars.pid]</data-mapper:input-argument>
-            </data-mapper:input-arguments>
-        </data-mapper:transform>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+	"cp_name": flowVars.input.cp_name,
+	"pid": flowVars.pid
+}]]></dw:set-payload>
+        </dw:transform-message>
         <mulexml:xslt-transformer xsl-file="transform.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT">
         	<mulexml:context-property key="fragments" value="#[flowVars.fragments]"/>
         </mulexml:xslt-transformer>

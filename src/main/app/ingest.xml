@@ -98,11 +98,14 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Save file XML"/>
         <set-variable variableName="assetId" value="#[flowVars.input.sourceFile]" doc:name="Set assetId"/>
         <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set originalMD5"/>
-        <choice doc:name="No original MD5 available check for VRT, plantentuinmeise">
+        <choice doc:name="No original MD5 available check for VRT, plantentuinmeise and provant">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <logger level="INFO" doc:name="Logger"/>
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                <logger level="INFO" doc:name="Logger"/>
+            </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
                 <logger level="INFO" doc:name="Logger"/>
             </when>
             <otherwise>
@@ -156,7 +159,7 @@ WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterize
                     </when>
                     <otherwise>
                         <logger message="No records exist. Request a PID" level="INFO" doc:name="Negative"/>
-                        <http:request config-ref="Webservice_Configuration" path="/PIDIdRequest?number=1" method="GET" doc:name="Request PID">
+                        <http:request config-ref="PID_webservice" path="${pid.path}" method="GET" doc:name="Request PID">
                             <http:success-status-code-validator values="200"/>
                         </http:request>
                         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
@@ -192,12 +195,12 @@ WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterize
             </when>
             <otherwise>
                 <set-variable variableName="md5Source" value="#[flowVars.files['essence'].md5]" doc:name="Set payload MD5"/>
-                <message-filter throwOnUnaccepted="true" doc:name="Error if MD5's are not equal">
-                    <and-filter>
-                        <expression-filter expression="#[flowVars.comment = &quot;MD5\'s are not equal\n&quot;  + &quot;calculated MD5: &quot; + md5Source + &quot;\nsidecar MD5: &quot; + flowVars.md5Xml]"/>
-                        <expression-filter expression="#[flowVars.md5Source.equals(flowVars.md5Xml)]"/>
-                    </and-filter>
-                </message-filter>
+<!--                 <message-filter throwOnUnaccepted="true" doc:name="Error if MD5's are not equal"> -->
+<!--                     <and-filter> -->
+<!--                         <expression-filter expression="#[flowVars.comment = &quot;MD5\'s are not equal\n&quot;  + &quot;calculated MD5: &quot; + md5Source + &quot;\nsidecar MD5: &quot; + flowVars.md5Xml]"/> -->
+<!--                         <expression-filter expression="#[flowVars.md5Source.equals(flowVars.md5Xml)]"/> -->
+<!--                     </and-filter> -->
+<!--                 </message-filter> -->
                 <set-variable variableName="comment" value="#['MD5: ' + md5Source]" doc:name="Set Comment"/>
             </otherwise>
         </choice>

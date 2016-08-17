@@ -58,7 +58,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="locationPath" value="#[payload.destinationPath]" doc:name="Set location path"/>
                     <json:object-to-json-transformer doc:name="Object to JSON"/>
                     -->
-                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" doc:name="HTTP" responseTimeout="-1">
+                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" doc:name="HTTP" responseTimeout="-1">
                         <http:request-builder>
                             <http:query-param paramName="move" value="true"/>
                         </http:request-builder>
@@ -122,7 +122,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
+                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
                         <http:request-builder>
                             <http:query-param paramName="move" value="true"/>
                         </http:request-builder>
@@ -153,15 +153,18 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
     <sub-flow name="PI_SIP_DELIVERY_PROVANT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <choice doc:name="APA | FOMU | MOMU ?">
-            <when expression="#[flowVars.CP.equals(&quot;APA&quot;)]">
+        <choice doc:name="APA | FOMU | MOMU | museumedelsmeedkunstjuwelenendiamant ?">
+            <when expression="#[flowVars.CP.equals(&quot;apa&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/apa&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
-            <when expression="#[flowVars.CP.equals(&quot;FOMU&quot;)]">
+            <when expression="#[flowVars.CP.equals(&quot;fomu&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/fomu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
-            <when expression="#[flowVars.CP.equals(&quot;MOMU&quot;)]">
+            <when expression="#[flowVars.CP.equals(&quot;momu&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/momu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
+            </when>
+            <when expression="#[flowVars.CP.equals(&quot;museumedelsmeedkunstjuwelenendiamant&quot;)]">
+                <set-variable variableName="destinationPath" value="#[&quot;/museumedelsmeedkunstjuwelenendiamant&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
             <otherwise>
 				<message-filter throwOnUnaccepted="true" doc:name="Error if destinationPath is null">
@@ -205,7 +208,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
+                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="Request FXP transfer without deleting the source">
                         <http:request-builder>
                             <http:query-param paramName="move" value="false"/>
                         </http:request-builder>
@@ -271,7 +274,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <object-to-string-transformer doc:name="Object to String"/>
-                    <http:request config-ref="Webservice_Configuration" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="FXP (without delete)">
+                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="FXP (without delete)">
                         <http:request-builder>
                             <http:query-param paramName="move" value="false"/>
                         </http:request-builder>
@@ -300,7 +303,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <flow name="while_free_space" processingStrategy="synchronous">
-    	<http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" followRedirects="true" doc:name="HTTP sensor">
+    	<http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET"  doc:name="HTTP sensor">
             <http:request-builder>
                 <http:query-param paramName="content" value="channels"/>
                 <http:query-param paramName="output" value="xml"/>
@@ -319,7 +322,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
     </flow>
     <sub-flow name="while_free_space_sub">
         <logger message="Checking free space" level="INFO" doc:name="Logger"/>
-        <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET" followRedirects="true" doc:name="HTTP sensor">
+        <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET"  doc:name="HTTP sensor">
             <http:request-builder>
                 <http:query-param paramName="output" value="xml"/>
                 <http:query-param paramName="id" value="${sensor.id}"/>
@@ -337,7 +340,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </message-filter>
     </sub-flow>
     <flow name="while_too_much_active_transfers" processingStrategy="synchronous">
-    	<http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" followRedirects="true" doc:name="HTTP FXP">
+    	<http:request config-ref="FXP_webservice" path="/ActiveTransfers" method="GET"  doc:name="HTTP FXP">
         </http:request>
         <until-successful maxRetries="999999999" millisBetweenRetries="15000" synchronous="true" doc:name="Until Successful">
             <flow-ref name="while_too_much_active_transfers_sub" doc:name="while_too_much_active_transfers_sub"/>
@@ -348,7 +351,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </catch-exception-strategy>
     </flow>
     <sub-flow name="while_too_much_active_transfers_sub">
-        <http:request config-ref="Webservice_Configuration" path="/ActiveTransfers" method="GET" doc:name="HTTP FXP"/>
+        <http:request config-ref="FXP_webservice" path="/ActiveTransfers" method="GET" doc:name="HTTP FXP"/>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload==&quot;&quot;?20:payload)]" doc:name="Set activethreads (default 20)"/>
         <logger message="#[&quot;# of active FXP transfers: &quot; + flowVars.activethreads]" level="INFO" doc:name="Logger"/>

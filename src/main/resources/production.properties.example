@@ -4,6 +4,7 @@ rabbit.virtualhost=
 rabbit.username=
 rabbit.password=
 rabbit.queuename=
+rabbit.move_requests=
 
 http.port=
 http.host=

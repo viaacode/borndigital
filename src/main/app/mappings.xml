@@ -88,6 +88,8 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="dc_publisher" value="#[xpath3(&quot;//*[local-name() = 'publisher']/text()&quot;)]" doc:name="Set dc_publisher"/>
+        <set-variable variableName="CP" value="#[flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()]" doc:name="Map dc_publisher to CP (for museumedelsmeedkunstjuwelenendiamant tenant)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="content.xml"/>
             <dw:input-variable  variableName="comment"/>
@@ -107,7 +109,8 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 		title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") otherwise payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo,
 		description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
 		MDProperties: {
-			(CP: payload.xml.ns0#content.metadata.ns6#publisher) when payload.xml.ns0#content.metadata.ns6#publisher? and payload.xml.ns0#content.metadata.ns6#publisher != 'null',
+			sp_name: 'borndigital',
+			CP: flowVars.CP,
 			dc_identifier_cpids @(type: "list"): {
 				(dc_identifier_cpid: payload.xml.ns0#uuid) when payload.xml.ns0#uuid?,
 				(dc_identifier_cpid: payload.xml.ns0#content.metadata.ns6#identifier) when payload.xml.ns0#content.metadata.ns6#identifier?,
@@ -126,7 +129,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 			otherwise {
 				dc_subject: {}
 			},
-			dc_publisher: payload.xml.ns0#content.metadata.ns6#publisher when (payload.xml.ns0#content.metadata.ns6#publisher?) otherwise "",
+			dc_publisher: flowVars.dc_publisher,
 			dc_creator: payload.xml.ns0#content.metadata.ns6#creator when (payload.xml.ns0#content.metadata.ns6#creator?) otherwise "",
 			dc_contributor: payload.xml.ns0#content.metadata.ns6#contributor when (payload.xml.ns0#content.metadata.ns6#contributor?) otherwise "",
 			dc_rightslist @(type: "list"): {
@@ -145,11 +148,10 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 }]]></dw:set-payload>
         </dw:transform-message>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="CP" value="#[xpath3(&quot;//CP/text()&quot;)]" doc:name="Set CP"/>
         <set-variable variableName="comment" value="#[&quot;XML failed to validate against the XSD&quot;]" doc:name="Set comment"/>
-        <message-filter throwOnUnaccepted="true" doc:name="Message">
+       <!--  <message-filter throwOnUnaccepted="true" doc:name="Message">
             <filter ref="Provant_Schema_Validation"/>
-        </message-filter>
+        </message-filter> -->
         <!-- 
         <message-filter throwOnUnaccepted="true" doc:name="Message">
             <and-filter>

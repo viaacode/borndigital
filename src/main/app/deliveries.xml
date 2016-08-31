@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
@@ -14,7 +14,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
-http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd">
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
@@ -29,7 +30,6 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     
                     <dw:transform-message doc:name="Transform Message">
@@ -39,40 +39,29 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 %output application/json
 ---
 {
-	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destinationHost": p('ftpDestination.vrt.host'),
-    "destinationPassword": p('ftpDestination.vrt.password'),
-    "destinationPath": p('ftpDestination.vrt.path'),
-    "destinationUser": p('ftpDestination.vrt.username'),
-    "sourceFile": flowVars.sourceFileName,
-    "sourceHost": flowVars.sourceServer,
-    "sourcePassword": flowVars.sourcePassword,
-    "sourcePath": flowVars.sourcePath,
-    "sourceUser": flowVars.sourceUsername
+	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destination_host": p('ftpDestination.vrt.host'),
+    "destination_password": p('ftpDestination.vrt.password'),
+    "destination_path": p('ftpDestination.vrt.path'),
+    "destination_user": p('ftpDestination.vrt.username'),
+    "source_file": flowVars.sourceFileName,
+    "source_host": flowVars.sourceServer,
+    "source_password": flowVars.sourcePassword,
+    "source_path": flowVars.sourcePath,
+    "source_user": flowVars.sourceUsername,
+    "move": true
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
+                        <reconnect-forever/>
+                    </amqp:outbound-endpoint>
                     <!-- 
                     <invoke object-ref="requestTransformer" method="Transform" methodArguments="#[payload], #[flowVars.pid], ${ftpDestination.path}, #[flowVars.input.cp_name]" doc:name="Invoke"/>
-                    <set-variable variableName="temppath" value="#[payload.destinationPath + payload.destinationFile]" doc:name="Set file path"/>
+                    <set-variable variableName="temppath" value="#[payload.destinationPath + payload.destination_file]" doc:name="Set file path"/>
                     <set-variable variableName="locationPath" value="#[payload.destinationPath]" doc:name="Set location path"/>
                     <json:object-to-json-transformer doc:name="Object to JSON"/>
                     -->
-                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" doc:name="HTTP" responseTimeout="-1">
-                        <http:request-builder>
-                            <http:query-param paramName="move" value="true"/>
-                        </http:request-builder>
-                        <http:success-status-code-validator values="200"/>
-                    </http:request>
-                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
-                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
-            			<and-filter>
-			                <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]" />
-							<expression-filter expression="#[payload.actie != null]"/>
-			            </and-filter>
-			        </message-filter>
-                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
-                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
                 </when>
                 <otherwise>
                     <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
@@ -81,9 +70,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
         <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
-        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written:&quot; + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
-        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <sub-flow name="PI_SIP_DELIVERY_RMM">
@@ -100,7 +87,6 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
@@ -109,34 +95,20 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 %output application/json
 ---
 {
-	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destinationHost": p('ftpDestination.rmm.host'),
-    "destinationPassword": p('ftpDestination.rmm.password'),
-    "destinationPath": p('ftpDestination.rmm.path'),
-    "destinationUser": p('ftpDestination.rmm.username'),
-    "sourceFile": flowVars.sourceFileName,
-    "sourceHost": flowVars.sourceServer,
-    "sourcePassword": flowVars.sourcePassword,
-    "sourcePath": flowVars.sourcePath,
-    "sourceUser": flowVars.sourceUsername
+	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destination_host": p('ftpDestination.rmm.host'),
+    "destination_password": p('ftpDestination.rmm.password'),
+    "destination_path": p('ftpDestination.rmm.path'),
+    "destination_user": p('ftpDestination.rmm.username'),
+    "source_file": flowVars.sourceFileName,
+    "source_host": flowVars.sourceServer,
+    "source_password": flowVars.sourcePassword,
+    "source_path": flowVars.sourcePath,
+    "source_user": flowVars.sourceUsername
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="HTTP">
-                        <http:request-builder>
-                            <http:query-param paramName="move" value="true"/>
-                        </http:request-builder>
-                        <http:success-status-code-validator values="200"/>
-                    </http:request>
-                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
-                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
-                        <and-filter>
-                            <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]"/>
-                            <expression-filter expression="#[payload.actie != null]"/>
-                        </and-filter>
-                    </message-filter>
-                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
-                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
+                  	<amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
                 </when>
                 <otherwise>
                     <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
@@ -145,9 +117,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
         <flow-ref name="SidecarFTPRMM" doc:name="SidecarFTPRMM"/>
-        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
-        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <sub-flow name="PI_SIP_DELIVERY_PROVANT">
@@ -186,7 +156,6 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
@@ -195,34 +164,20 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 %output application/json
 ---
 {
-	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destinationHost": p('ftpDestination.provant.host'),
-    "destinationPassword": p('ftpDestination.provant.password'),
-    "destinationPath": flowVars.destinationPath,
-    "destinationUser": p('ftpDestination.provant.username'),
-    "sourceFile": flowVars.sourceFileName,
-    "sourceHost": flowVars.sourceServer,
-    "sourcePassword": flowVars.sourcePassword,
-    "sourcePath": flowVars.sourcePath,
-    "sourceUser": flowVars.sourceUsername
+	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destination_host": p('ftpDestination.provant.host'),
+    "destination_password": p('ftpDestination.provant.password'),
+    "destination_path": flowVars.destinationPath,
+    "destination_user": p('ftpDestination.provant.username'),
+    "source_file": flowVars.sourceFileName,
+    "source_host": flowVars.sourceServer,
+    "source_password": flowVars.sourcePassword,
+    "source_path": flowVars.sourcePath,
+    "source_user": flowVars.sourceUsername
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="Request FXP transfer without deleting the source">
-                        <http:request-builder>
-                            <http:query-param paramName="move" value="false"/>
-                        </http:request-builder>
-                        <http:success-status-code-validator values="200"/>
-                    </http:request>
-                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
-                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
-                        <and-filter>
-                            <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]"/>
-                            <expression-filter expression="#[payload.actie != null]"/>
-                        </and-filter>
-                    </message-filter>
-                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
-                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
+                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
                 </when>
                 <otherwise>
                     <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
@@ -231,9 +186,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
         <flow-ref name="SidecarFTPProvant" doc:name="SidecarFTPProvant"/>
-        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written to: &quot; + flowVars.locationPath + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
-        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="SetResultAndCommentFXP" doc:name="Flow Reference"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <sub-flow name="PI_SIP_DELIVERY_MEISE">
@@ -251,9 +204,8 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    <flow-ref name="while_too_much_active_transfers" doc:name="while_too_much_active_transfers"/>
                     <logger message="Continuing transfer after while loops" level="INFO" doc:name="Logger"/>
-                    <dw:transform-message metadata:id="949d2f2e-d628-4465-b179-e235da46f674" doc:name="Transform Message">
+                    <dw:transform-message metadata:id="949d2f2e-d628-4465-b179-e235da46f674" doc:name="Build FXP requests (move: false)">
                         <dw:input-variable variableName="currentItem"/>
                         <dw:input-variable doc:sample="double.dwl" variableName="extension"/>
                         <dw:input-variable doc:sample="string.dwl" variableName="pid"/>
@@ -261,34 +213,21 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 %output application/json
 ---
 {
-	"destinationFile": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destinationHost": p('ftpDestination.meise.host'),
-    "destinationPassword": p('ftpDestination.meise.password'),
-    "destinationPath": p('ftpDestination.meise.path'),
-    "destinationUser": p('ftpDestination.meise.username'),
-    "sourceFile": flowVars.sourceFileName,
-    "sourceHost": flowVars.sourceServer,
-    "sourcePassword": flowVars.sourcePassword,
-    "sourcePath": flowVars.sourcePath,
-    "sourceUser": flowVars.sourceUsername
+	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
+    "destination_host": p('ftpDestination.meise.host'),
+    "destination_password": p('ftpDestination.meise.password'),
+    "destination_path": p('ftpDestination.meise.path'),
+    "destination_user": p('ftpDestination.meise.username'),
+    "source_file": flowVars.sourceFileName,
+    "source_host": flowVars.sourceServer,
+    "source_password": flowVars.sourcePassword,
+    "source_path": flowVars.sourcePath,
+    "source_user": flowVars.sourceUsername,
+    "move": false
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <object-to-string-transformer doc:name="Object to String"/>
-                    <http:request config-ref="FXP_webservice" path="/AdvancedFxpTransfer" method="POST" responseTimeout="-1" doc:name="FXP (without delete)">
-                        <http:request-builder>
-                            <http:query-param paramName="move" value="false"/>
-                        </http:request-builder>
-                        <http:success-status-code-validator values="200"/>
-                    </http:request>
-                    <json:json-to-object-transformer returnClass="answer.FXPResponse" doc:name="JSON to Object"/>
-                    <message-filter throwOnUnaccepted="true" doc:name="Error if response is null">
-                        <and-filter>
-                            <expression-filter expression="#[flowVars.comment = &quot;Error occured in Webservice. Check webservice logs.&quot;]"/>
-                            <expression-filter expression="#[payload.actie != null]"/>
-                        </and-filter>
-                    </message-filter>
-                    <set-variable variableName="httpResult" value="#[((flowVars.httpResult ==null) ? &quot;&quot; : flowVars.httpResult + &quot;\n&quot;) + payload.toString() + &quot; - Path=&quot; + flowVars.temppath]" doc:name="Set HTTP result"/>
-                    <set-variable variableName="okstatus" value="#[flowVars.okstatus &amp;&amp; payload.status.equals(&quot;OK&quot;)]" doc:name="Update OKstatus"/>
+                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
                 </when>
                 <otherwise>
                     <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
@@ -297,9 +236,7 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
         <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
-        <set-variable variableName="httpResult" value="#[flowVars.httpResult + &quot;\n&quot; + &quot;XML written:&quot; + flowVars.pid + &quot;.xml&quot;]" doc:name="Set HTTP result"/>
-        <set-variable variableName="result" value="#[flowVars.okstatus ? 'OK' : 'NOK']" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <flow name="while_free_space" processingStrategy="synchronous">
@@ -320,6 +257,10 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             <logger message="No sensor found. Proceeding" level="WARN" doc:name="Logger"/>
         </catch-exception-strategy>
     </flow>
+    <sub-flow name="SetResultAndCommentFXP">
+        <set-variable variableName="result" value="#['OK']" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#[&quot;Message has been sent to fxp_requests.\n XML written:&quot; + flowVars.pid + &quot;.xml&quot;]" doc:name="Set Comment"/>
+    </sub-flow>
     <sub-flow name="while_free_space_sub">
         <logger message="Checking free space" level="INFO" doc:name="Logger"/>
         <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET"  doc:name="HTTP sensor">
@@ -339,17 +280,6 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
             <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
         </message-filter>
     </sub-flow>
-    <flow name="while_too_much_active_transfers" processingStrategy="synchronous">
-    	<http:request config-ref="FXP_webservice" path="/ActiveTransfers" method="GET"  doc:name="HTTP FXP">
-        </http:request>
-        <until-successful maxRetries="999999999" millisBetweenRetries="15000" synchronous="true" doc:name="Until Successful">
-            <flow-ref name="while_too_much_active_transfers_sub" doc:name="while_too_much_active_transfers_sub"/>
-        </until-successful>
-        <logger message="Active threads: #[flowVars.activethreads] and maxactivetrheads: #['${fxp.maxactivethreads}']: result  #[flowVars.activethreads &lt; '${fxp.maxactivethreads}']" level="INFO" doc:name="Logger"/>
-        <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="FXP throw error" level="INFO" doc:name="Logger"/>
-        </catch-exception-strategy>
-    </flow>
     <sub-flow name="while_too_much_active_transfers_sub">
         <http:request config-ref="FXP_webservice" path="/ActiveTransfers" method="GET" doc:name="HTTP FXP"/>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>

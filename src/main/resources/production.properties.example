@@ -4,7 +4,19 @@ rabbit.virtualhost=
 rabbit.username=
 rabbit.password=
 rabbit.queuename=
-rabbit.move_requests=
+rabbit.no_xml=
+
+rabbit.move.host=
+rabbit.move.port=
+rabbit.move.username=
+rabbit.move.password=
+rabbit.move.move_requests=
+
+rabbit.fxp.host=
+rabbit.fxp.port=
+rabbit.fxp.username=
+rabbit.fxp.password=
+rabbit.fxp.move_requests=
 
 http.port=
 http.host=

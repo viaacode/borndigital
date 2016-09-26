@@ -97,7 +97,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <byte-array-to-object-transformer doc:name="Byte Array to Object"></byte-array-to-object-transformer>
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Save file XML"/>
         <set-variable variableName="assetId" value="#[flowVars.input.sourceFile]" doc:name="Set assetId"/>
-        <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set originalMD5"/>
+        <set-variable variableName="md5Xml" value="#[xpath3('//md5/text()')]" doc:name="Set md5Xml"/>
         <choice doc:name="No original MD5 available check for VRT, plantentuinmeise and provant">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <logger level="INFO" doc:name="Logger"/>

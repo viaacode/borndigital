@@ -65,7 +65,8 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 			CP: p('cp'),
 			sp_name: 'dailies' when flowVars.origin != 'tape' otherwise 'intake_existing',
 			PID: flowVars.pid,
-			dc_identifier_cpid: flowVars.mediaId
+			dc_identifier_cpid: flowVars.mediaId,
+			(md5: flowVars.md5Xml) when flowVars.md5Xml?
 		}
 	}
 }]]></dw:set-payload>

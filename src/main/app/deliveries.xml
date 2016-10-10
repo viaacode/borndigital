@@ -20,14 +20,15 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <foreach collection="#[flowVars.files]" doc:name="For Each">
+            <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+            <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
+            <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
+            <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
+            <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
+            <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
+            <set-variable variableName="correlation_id" value="#[flowVars.currentItem.correlation_id]" doc:name="Set correlation_id"/>
             <choice doc:name="Choice">
                 <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
-                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
-                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
-                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
-                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
-                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
                     <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
@@ -65,6 +66,23 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
                 </when>
                 <otherwise>
                     <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
+                    <dw:transform-message doc:name="Build delete request">
+                        <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	"file_name": flowVars.sourceFileName,
+	"file_path": flowVars.sourcePath,
+    "host": p('ftpDestination.vrt.host'),
+    "username": p('ftpDestination.vrt.username'),
+    "password": p('ftpDestination.vrt.password'),
+    "correlation_id": flowVars.correlation_id
+}]]></dw:set-payload>
+                    </dw:transform-message>
+                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                    <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" doc:name="Send message to delete_requests" connector-ref="RabbitMQConnectorDelete">
+                        <reconnect-forever/>
+                    </amqp:outbound-endpoint>
                 </otherwise>
             </choice>
         </foreach>

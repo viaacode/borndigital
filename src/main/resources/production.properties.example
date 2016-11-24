@@ -18,11 +18,10 @@ rabbit.fxp.username=
 rabbit.fxp.password=
 rabbit.fxp.move_requests=
 
-http.port=
-http.host=
-http.basepath=
-
-fxp.maxactivethreads=
+pid.host=
+pid.port=
+pid.basepath=
+pid.path=
 
 sensor.host=
 sensor.port=

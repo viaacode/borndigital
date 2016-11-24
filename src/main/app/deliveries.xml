@@ -298,15 +298,6 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
             <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
         </message-filter>
     </sub-flow>
-    <sub-flow name="while_too_much_active_transfers_sub">
-        <http:request config-ref="FXP_webservice" path="/ActiveTransfers" method="GET" doc:name="HTTP FXP"/>
-        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <set-variable variableName="activethreads" value="#[java.lang.Integer.parseInt(payload==&quot;&quot;?20:payload)]" doc:name="Set activethreads (default 20)"/>
-        <logger message="#[&quot;# of active FXP transfers: &quot; + flowVars.activethreads]" level="INFO" doc:name="Logger"/>
-        <message-filter throwOnUnaccepted="true" doc:name="Message">
-            <expression-filter expression="#[flowVars.activethreads &lt; '${fxp.maxactivethreads}']"/>
-        </message-filter>
-    </sub-flow>
     <flow name="SidecarFTPMeise" processingStrategy="synchronous">
         <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP">
             <reconnect-forever frequency="3000"/>

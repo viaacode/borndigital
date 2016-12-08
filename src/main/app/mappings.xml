@@ -107,7 +107,10 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 {
 	MediaHAVEN_external_metadata: {
 		
-		title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") otherwise payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo,
+		(title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") 
+			otherwise (payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo 
+				when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
+				when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,
 		description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
 		MDProperties: {
 			sp_name: 'borndigital',
@@ -137,10 +140,10 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 				(dc_rights: payload.xml.ns0#content.metadata.ns7#copyrightStatus) when payload.xml.ns0#content.metadata.ns7#copyrightStatus?,
 				(dc_rights: payload.xml.ns0#content.metadata.ns12#rightsHolder) when payload.xml.ns0#content.metadata.ns12#rightsHolder?
 			},
-			dc_title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "")
-			otherwise {
-				dc_title: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo
-			},
+			(dc_title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") 
+					otherwise (payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo 
+						when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
+			when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,			
 			dc_description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
 			(md5: payload.xml.md5) when payload.xml.md5?,
 			PID: flowVars.pid 

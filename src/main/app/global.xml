@@ -36,7 +36,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <amqp:connector name="RabbitMQConnectorDelete" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.fxp.host}" password="${rabbit.fxp.password}" port="${rabbit.fxp.port}" username="${rabbit.fxp.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect></reconnect>  
     </amqp:connector>
-    <http:request-config name="PID_webservice" host="${pid.host}" port="${pid.port}" basePath="${pid.basepath}" doc:name="HTTP Request Configuration" responseTimeout="999999999" connectionIdleTimeout="999999999"> 
+    <http:request-config name="PID_webservice" host="${pid.host}" port="${pid.port}" basePath="${pid.basepath}" doc:name="HTTP Request Configuration" responseTimeout="999999999" connectionIdleTimeout="999999999" protocol="HTTP"> 
         <tcp:client-socket-properties connectionTimeout="999999999" timeout="999999999"></tcp:client-socket-properties>  
     </http:request-config>
     <db:generic-config name="POSTGRESQL_Connection" url="jdbc:postgresql://${db.host}:${db.port}/${db.database}?password=${db.password}&amp;user=${db.username}" driverClassName="org.postgresql.Driver" doc:name="Generic Database Configuration"></db:generic-config>

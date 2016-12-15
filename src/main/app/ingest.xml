@@ -31,7 +31,6 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
 
-<mulerequester:config name="Mule_Requester" doc:name="Mule Requester"></mulerequester:config>
     <configuration defaultExceptionStrategy-ref="globalChoice_Exception_Strategy" doc:name="Configuration">
         <http:config useTransportForUris="false"/>
     </configuration>
@@ -90,7 +89,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <sub-flow name="PI_SIP_DETECTED">
         <set-variable variableName="eventName" value="PI_SIP_DETECTED" doc:name="Set eventName"/>
         <mulerequester:request
-	        config-ref="Mule_Requester"
 	        resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP"
 	        doc:name="Get XML file from FTP"
 	        throwExceptionOnTimeout="true"/>

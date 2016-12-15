@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
     <sub-flow name="PI_METADATA_MAPPING_RMM">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
-        <mulerequester:request config-ref="Mule_Requester" resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['collateral'].file_path]/#[flowVars.files['collateral'].file_name]?connector=FTP" doc:name="Get SRT file from FTP" throwExceptionOnTimeout="true"/>
+        <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['collateral'].file_path]/#[flowVars.files['collateral'].file_name]?connector=FTP" doc:name="Get SRT file from FTP" throwExceptionOnTimeout="true"/>
         <invoke object-ref="srtService" method="TransformSrt" methodArguments="#[payload]" doc:name="Invoke"/>
         <set-variable variableName="fragments" value="#[payload]" doc:name="Set Fragments"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
@@ -90,9 +90,9 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="dc_publisher" value="#[xpath3(&quot;//*[local-name() = 'publisher']/text()&quot;)]" doc:name="Set dc_publisher"/>
-        <set-variable variableName="CP" value="#[flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()]" doc:name="Map dc_publisher to CP (for museumedelsmeedkunstjuwelenendiamant tenant)"/>
+        <set-variable variableName="CP" value="#[flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()]" doc:name="Set CP (from dc_publisher museumedelsmeedkunstjuwelenendiamant tenant)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
-            <dw:input-payload doc:sample="content.xml"/>
+            <dw:input-payload doc:sample="sample_data/empty.xml" />
             <dw:input-variable  variableName="comment"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml
@@ -103,10 +103,12 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 %function split(name) name splitBy ", "
 %namespace ns4 http://iptc.org/std/Iptc4xmpExt/2008-02-29/
 %namespace ns7 http://www.loc.gov/standards/premis/v2/premis.xsd
+%namespace ns2 http://ns.useplus.org/ldf/xmp/1.0/
+%namespace ns8 http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/
+%namespace ns9 http://ns.adobe.com/photoshop/1.0/
 ---
 {
 	MediaHAVEN_external_metadata: {
-		
 		(title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") 
 			otherwise (payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo 
 				when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
@@ -115,38 +117,47 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 		MDProperties: {
 			sp_name: 'borndigital',
 			CP: flowVars.CP,
-			dc_identifier_cpids @(type: "list"): {
-				(dc_identifier_cpid: payload.xml.ns0#uuid) when payload.xml.ns0#uuid?,
-				(dc_identifier_cpid: payload.xml.ns0#content.metadata.ns6#identifier) when payload.xml.ns0#content.metadata.ns6#identifier?,
-				(dc_identifier_cpid: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?
-			},
-			dc_format: payload.xml.ns0#content.metadata.ns6#format when (payload.xml.ns0#content.metadata.ns6#format?) otherwise "",
-			dc_source: payload.xml.ns0#content.ns11#name when (payload.xml.ns0#content.ns11#name?) otherwise "",
-			dcterms_created: payload.xml.ns0#create when (payload.xml.ns0#create?) otherwise "",
-			dc_subjects @(type: "list"): {
-				(
-					split(payload.xml.ns0#content.metadata.ns6#subject) map {
-						dc_subject: $
-					}
-				)
-			} when payload.xml.ns0#content.metadata.ns6#subject?
-			otherwise {
-				dc_subject: {}
-			},
-			dc_publisher: flowVars.dc_publisher,
-			dc_creator: payload.xml.ns0#content.metadata.ns6#creator when (payload.xml.ns0#content.metadata.ns6#creator?) otherwise "",
-			dc_contributor: payload.xml.ns0#content.metadata.ns6#contributor when (payload.xml.ns0#content.metadata.ns6#contributor?) otherwise "",
-			dc_rightslist @(type: "list"): {
-				(dc_rights: payload.xml.ns0#content.metadata.ns7#copyrightStatus) when payload.xml.ns0#content.metadata.ns7#copyrightStatus?,
-				(dc_rights: payload.xml.ns0#content.metadata.ns12#rightsHolder) when payload.xml.ns0#content.metadata.ns12#rightsHolder?
-			},
+			PID: flowVars.pid,
+			CreationDate: payload.xml.ns0#content.metadata.ns6#date when payload.xml.ns0#content.metadata.ns6#date? otherwise "",
 			(dc_title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") 
 					otherwise (payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo 
 						when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
-			when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,			
+					when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,
+			dcterms_created: payload.xml.ns0#content.metadata.ns6#date when payload.xml.ns0#content.metadata.ns6#date? otherwise "",
+			dc_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
+			dc_identifier_localids @(type: "list"): {
+				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?,
+				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo?
+			},
+			dc_rights_rightsOwners @(type: "list"): {
+				(rechtenhouder: payload.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName) when payload.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName?,
+				(rechtenhouder: payload.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName) when payload.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName?
+			},
+			dc_contributors @(type: "list"): {
+				(contributor: payload.xml.ns0#content.metadata.ns6#contributor) when payload.xml.ns0#content.metadata.ns6#contributor?	
+			},
+			dc_creators @(type: "list"): {
+				(creator: payload.xml.ns0#content.metadata.ns6#creator) when payload.xml.ns0#content.metadata.ns6#creator?
+			},
+			(dc_subjects @(type: "list"): {
+				(
+					split(payload.xml.ns0#content.metadata.ns6#subject) map {
+						trefwoord: $
+					}
+				)
+			}) when payload.xml.ns0#content.metadata.ns6#subject?,
+			(dc_coverages @(type: "list"): {
+				(
+					split(payload.xml.ns0#content.metadata.ns8#Location) map {
+						ruimte: $
+					}
+				)
+			}) when payload.xml.ns0#content.metadata.ns8#Location?,
+			(dc_rights_credit: payload.xml.ns0#content.metadata.ns9#credit) when payload.xml.ns0#content.metadata.ns9#credit?,
 			dc_description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
-			(md5: payload.xml.md5) when payload.xml.md5?,
-			PID: flowVars.pid 
+			// Not found:
+			(dc_rights_comment: payload.xml.ns0#content.metadata.ns2#OtherImageInfo) when payload.xml.ns0#content.metadata.ns2#OtherImageInfo?,
+			(md5: payload.xml.md5) when payload.xml.md5?
 		}
 	}
 }]]></dw:set-payload>

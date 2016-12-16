@@ -91,6 +91,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="dc_publisher" value="#[xpath3(&quot;//*[local-name() = 'publisher']/text()&quot;)]" doc:name="Set dc_publisher"/>
         <set-variable variableName="CP" value="#[flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()]" doc:name="Set CP (from dc_publisher museumedelsmeedkunstjuwelenendiamant tenant)"/>
+        <set-variable variableName="credits" value="#[xpath3(&quot;//*[local-name() = 'Credit']/text()&quot;)]" doc:name="Set credits"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml" />
             <dw:input-variable  variableName="comment"/>
@@ -124,7 +125,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 						when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
 					when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,
 			dcterms_created: payload.xml.ns0#content.metadata.ns6#date when payload.xml.ns0#content.metadata.ns6#date? otherwise "",
-			dc_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
+			dc_identifier_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
 			dc_identifier_localids @(type: "list"): {
 				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?,
 				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo?
@@ -153,7 +154,8 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 					}
 				)
 			}) when payload.xml.ns0#content.metadata.ns8#Location?,
-			(dc_rights_credit: payload.xml.ns0#content.metadata.ns9#credit) when payload.xml.ns0#content.metadata.ns9#credit?,
+			(dc_rights_credit: flowVars.credits) when flowVars.credits?,
+			//(dc_rights_credit: payload.xml.ns0#content.metadata.ns9#credit) when payload.xml.ns0#content.metadata.ns9#credit?,
 			dc_description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
 			// Not found:
 			(dc_rights_comment: payload.xml.ns0#content.metadata.ns2#OtherImageInfo) when payload.xml.ns0#content.metadata.ns2#OtherImageInfo?,

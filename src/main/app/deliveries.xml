@@ -254,6 +254,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         </foreach>
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
         <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
+        <logger message="Success FTP" level="INFO" doc:name="Success FTP"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
@@ -299,11 +300,12 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         </message-filter>
     </sub-flow>
     <flow name="SidecarFTPMeise" processingStrategy="synchronous">
+        <logger message="Start FTP meise" level="INFO" doc:name="Start FTP meise"/>
         <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP">
             <reconnect-forever frequency="3000"/>
         </ftp:outbound-endpoint>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message=" " level="WARN" doc:name="Logger"/>
+            <logger message=" Failed to FTP for Meise" level="WARN" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
             <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
         </catch-exception-strategy>

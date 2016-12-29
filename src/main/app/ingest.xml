@@ -40,7 +40,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 
     <flow name="moveMP4Flow" processingStrategy="synchronous" initialState="started"> 
         <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="1">
-            <reconnect-forever/>
+            <reconnect/>
         </amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message"/>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
@@ -147,7 +147,8 @@ WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
                 <db:select config-ref="POSTGRESQL_Connection" doc:name="Get info from generic events table">
                     <db:parameterized-query><![CDATA[SELECT * 
 FROM ${db.eventstable} 
-WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN';]]></db:parameterized-query>
+WHERE Essence_MD5 = #[flowVars.md5Xml] AND Pid != 'UNKNOWN'
+limit 1;]]></db:parameterized-query>
                 </db:select>
                 <choice doc:name="Records exist?">
                     <when expression="#[payload.size() &gt; 0]">

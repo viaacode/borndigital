@@ -16,6 +16,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+    <http:request-config name="mimetype2extensionAPI" host="${mime2ext.host}" port="${mime2ext.port}" basePath="/" responseTimeout="30000" doc:name="HTTP Request Configuration"/>
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
@@ -172,7 +173,22 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
                     <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
                     <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <set-variable variableName="mime_type" value="#[xpath3('//original/*[local-name()=&quot;content&quot;]/*[local-name()=&quot;mimeType&quot;]', flowVars.incomingXml)]" doc:name="Set mime_type from metadata"/>
+                    <http:request config-ref="mimetype2extensionAPI" path="/api/extension" method="GET" doc:name="Get extension">
+                        <http:request-builder>
+                            <http:query-param paramName="mimetype" value="#[flowVars.mime_type]"/>
+                        </http:request-builder>
+                    </http:request>
+                    <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                    <choice doc:name="Status == success?">
+                        <when expression="#[payload.status != &quot;success&quot;]">
+                            <logger message="Extension not found." level="INFO" doc:name="Extension not found."/>
+                            <set-variable variableName="extension" value="#[&quot;&quot;]" doc:name="Set extension empty"/>
+                        </when>
+                        <otherwise>
+                            <set-variable variableName="extension" value="#[payload['data'].extension]" doc:name="Set extension"/>
+                        </otherwise>
+                    </choice>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <dw:transform-message doc:name="Transform Message">
@@ -182,7 +198,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 %output application/json
 ---
 {
-	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
+	"destination_file": flowVars.pid ++ flowVars.extension,
     "destination_host": p('ftpDestination.provant.host'),
     "destination_password": p('ftpDestination.provant.password'),
     "destination_path": flowVars.destinationPath,

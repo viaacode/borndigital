@@ -58,3 +58,6 @@ ftpDestination.rmm.path=
 ftp.failuresFolder=
 
 cp=
+
+mime2ext.host=
+mime2ext.port=

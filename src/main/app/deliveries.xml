@@ -143,9 +143,6 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <choice doc:name="APA | FOMU | MOMU | museumedelsmeedkunstjuwelenendiamant ?">
-            <when expression="#[flowVars.CP.equals(&quot;apa&quot;)]">
-                <set-variable variableName="destinationPath" value="#[&quot;/apa&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
-            </when>
             <when expression="#[flowVars.CP.equals(&quot;fomu&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/fomu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
@@ -157,10 +154,10 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
             </when>
             <otherwise>
 				<message-filter throwOnUnaccepted="true" doc:name="Error if destinationPath is null">
-                        <and-filter>
-                            <expression-filter expression="#[flowVars.comment = &quot;CP was invalid. No destination folder known.&quot;]"/>
-                            <expression-filter expression="#[payload.destinationPath != null]"/>
-                        </and-filter>
+                    <and-filter>
+                        <expression-filter expression="#[payload.destinationPath != null]"/>
+                        <expression-filter expression="#[flowVars.comment = &quot;CP was invalid (&quot; + flowVars.CP + &quot;). No destination folder known.&quot;]"/>
+                    </and-filter>
                     </message-filter>
             </otherwise>
         </choice>

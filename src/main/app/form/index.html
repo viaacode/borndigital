@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description"
+	content="CSV importer makes archiving with metadata in a CSV possible">
+<meta name="keywords" content="CSV, importer">
+<meta name="dct:creator" resource="http://twitter.com/brechtvdv">
+<meta property="og:title" content="CSV importer" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="http://archive.viaa.be/csv-importer" />
+<meta property="og:image"
+	content="https://archief.viaa.be/assets/customer/viaa//img/logo.png" />
+<meta property="og:description"
+	content="CSV importer makes archiving with metadata in a CSV possible" />
+<meta name="twitter:card" content="summary">
+<meta name="twitter:site" content="@viaa_be">
+<meta name="twitter:title" content="CSV importer">
+<meta name="twitter:description"
+	content="CSV importer makes archiving with metadata in a CSV possible">
+<meta name="twitter:image"
+	content="https://archief.viaa.be/assets/customer/viaa//img/logo.png" />
+<meta name="twitter:url" content="http://archive.viaa.be/csv-importer" />
+<title>CSV importer</title>
+
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+	integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+	crossorigin="anonymous">
+<link rel="stylesheet" href="css/main.css"></link>
+<link rel="stylesheet"
+	href="https://institut-de-genomique.github.io/Ultimate-DataTable/js/font-awesome/css/font-awesome.min.css">
+<link rel="stylesheet"
+	href="https://institut-de-genomique.github.io/Ultimate-DataTable/css/ultimate-datatable-3.3.1-SNAPSHOT.css">
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+   	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>	
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+	<script type="text/javascript" src="js/main.js"></script>
+	<script type="text/javascript" src="js/table.js"></script>
+</head>
+<body ng-app="ngAppDemo" ng-controller="ngAppDemoController">
+	<div class="container">
+
+		<div class="row page-header">
+			<div class="col-lg-8">
+				<h1>
+					Importeer metadata <small>in CSV formaat</small>
+				</h1>
+			</div>
+			<div class="col-lg-4">
+				<a href="#" class="pull-right"><img id="logo" alt="VIAA"
+					src="images/logo.png"></a>
+			</div>
+		</div>
+
+		<!-- Nav tabs -->
+		<ul class="nav nav-tabs" role="tablist">
+			<li role="presentation" class="active"><a href="#upload"
+				aria-controls="upload" role="tab" data-toggle="tab">Upload</a></li>
+			<li role="presentation"><a href="#reference"
+				aria-controls="reference" role="tab" data-toggle="tab">Reference</a></li>
+			<li role="presentation"><a href="#reporting"
+			aria-controls="reporting" role="tab" data-toggle="tab">Reporting</a></li>
+		</ul>
+
+		<div class="tab-content">
+			<!-- Tab panes -->
+			<div role="tabpanel" class="tab-pane active" id="upload">
+				<form>
+					<div class="form-group">
+						<div class="alert alert-info" role="alert" id="labelInputAPIKey">Klik op "Bladeren..." om uw CSV bestand te uploaden. Bij fouten wordt dit hieronder getoond.</div>
+						
+						<input type="file" id="uploadFile">
+						
+						<input type="text" id="cp" placeholder="Content Partner name (no capital letters and no spaces)">
+						
+						<div id="ultimateTable">
+							<div class="col-md-12 col-lg-12" ultimate-datatable="datatable">
+							</div>
+						</div>
+ 					</div>
+
+					<button type="submit" style="visibility: hidden;" class="btn btn-success" id="uploadBtn">Upload	to VIAA</button>
+					<div class="alert alert-success" id="succesMsg" style="visibility: hidden; padding-top: 19px; margin-top: 20px;">
+						<p>Uw data wordt verwerkt.</p>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<footer class="footer">
+			<p>&copy; 2013 - 2016 VIAA</p>
+		</footer>
+
+	</div>
+	<!--  /container -->
+	<script	type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<script type="text/javascript" type="text/javascript" src="js/papaparse.min.js"></script>
+	<script type="text/javascript" src="js/moment.min.js" charset="utf-8"></script>
+	<script	type="text/javascript" src="https://institut-de-genomique.github.io/Ultimate-DataTable/js/ultimate-datatable-3.3.1-SNAPSHOT.js"></script>
+</body>
+</html>

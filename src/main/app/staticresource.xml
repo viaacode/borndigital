@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <flow name="static_resources">
-        <http:listener config-ref="Form_listener" path="/*" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="MonitoringListener" path="/*" allowedMethods="GET" doc:name="HTTP"/>
         <http:static-resource-handler resourceBase="${app.home}/docroot" doc:name="HTTP Static Resource Handler"/>
         <exception-strategy ref="Ignore_Errors" doc:name="Reference Exception Strategy"/>
     </flow>
@@ -20,7 +20,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <logger message="Unknown Exception in staticresource.xml" level="INFO" doc:name="Logger"/>
     </catch-exception-strategy>
     <flow name="pid">
-        <http:listener config-ref="Form_listener" path="/pid" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="MonitoringListener" path="/pid" allowedMethods="GET" doc:name="HTTP"/>
         <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
             <db:parameterized-query><![CDATA[SELECT * FROM ${db.eventstable} WHERE pid = #[message.inboundProperties.'http.query.params'.pid] LIMIT 50;]]></db:parameterized-query>
         </db:select>
@@ -28,7 +28,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <exception-strategy ref="Ignore_Errors" doc:name="Reference Exception Strategy"/>
     </flow>
     <flow name="count">
-        <http:listener config-ref="Form_listener" path="/count" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="MonitoringListener" path="/count" allowedMethods="GET" doc:name="HTTP"/>
         <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
             <db:parameterized-query><![CDATA[SELECT count(*) FROM ${db.eventstable} WHERE name = 'PI_SIP_DELIVERY';]]></db:parameterized-query>
         </db:select>
@@ -37,7 +37,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <exception-strategy ref="Ignore_Errors" doc:name="Reference Exception Strategy"/>
     </flow>
     <flow name="paginated">
-        <http:listener config-ref="Form_listener" path="/getpids" doc:name="HTTP"/>
+        <http:listener config-ref="MonitoringListener" path="/getpids" doc:name="HTTP"/>
         <set-variable variableName="startIndex" value="#[message.inboundProperties.'http.query.params'.start]" doc:name="Copy_of_Set startIndex"/>
         <choice doc:name="Choice">
             <when expression="#[flowVars.startIndex != null &amp;&amp; !flowVars.startIndex.equals(&quot;&quot;) &amp;&amp; !flowVars.startIndex.equals(&quot;NaN&quot;)]">
@@ -55,7 +55,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <exception-strategy ref="Ignore_Errors" doc:name="Reference Exception Strategy"/>
     </flow>
     <flow name="query">
-        <http:listener config-ref="Form_listener" path="/search" allowedMethods="GET" doc:name="HTTP"/>
+        <http:listener config-ref="MonitoringListener" path="/search" allowedMethods="GET" doc:name="HTTP"/>
         <set-variable variableName="tempStartIndex" value="#[message.inboundProperties.'http.query.params'.start]" doc:name="Set tempStartIndex"/>
         <set-variable variableName="fromDate" value="#[message.inboundProperties.'http.query.params'.fromDate == null ? &quot;&quot; : message.inboundProperties.'http.query.params'.fromDate]" doc:name="Set fromDate"/>
         <set-variable variableName="toDate" value="#[message.inboundProperties.'http.query.params'.toDate == null ? &quot;&quot; : message.inboundProperties.'http.query.params'.toDate]" doc:name="Set toDate"/>

@@ -50,7 +50,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     </spring:beans>
     <mulexml:schema-validation-filter name="xsdValidator" schemaLocations="mediahaven_output_schema.xsd" doc:name="Check output format" returnResult="true"></mulexml:schema-validation-filter>
     <mulexml:schema-validation-filter schemaLocations="provant_output_schema.xsd" returnResult="false" name="Provant_Schema_Validation" doc:name="Schema Validation"></mulexml:schema-validation-filter>
-    <http:listener-config name="Form_listener" host="0.0.0.0" port="8062" doc:name="HTTP Listener Configuration"></http:listener-config>
+    <http:listener-config name="InputCSVListener" host="0.0.0.0" port="8063" doc:name="HTTP Listener Configuration"></http:listener-config>
+    <http:listener-config name="MonitoringListener" host="0.0.0.0" port="8062" doc:name="HTTP Listener Configuration"></http:listener-config>
     <choice-exception-strategy name="globalChoice_Exception_Strategy"> 
         <catch-exception-strategy when="#[exception.causedBy(org.mule.api.transformer.TransformerMessagingException)]" doc:name="Catch Exception Strategy Transformer, no XML"> 
             <set-variable variableName="comment" value="The incoming XML was not valid or could not be read" doc:name="Set Exception message"></set-variable>  

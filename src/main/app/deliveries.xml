@@ -74,9 +74,9 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 {
 	"file_name": flowVars.sourceFileName,
 	"file_path": flowVars.sourcePath,
-    "host": p('ftpDestination.vrt.host'),
-    "username": p('ftpDestination.vrt.username'),
-    "password": p('ftpDestination.vrt.password'),
+    "host": flowVars.sourceServer,
+    "username": flowVars.sourceUsername,
+    "password": flowVars.sourcePassword,
     "correlation_id": flowVars.correlation_id
 }]]></dw:set-payload>
                     </dw:transform-message>

@@ -15,7 +15,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <reconnect/>
     </ftp:connector>
     <flow name="Form">
-        <http:listener config-ref="InputCSVListener" path="/*" allowedMethods="GET, POST" doc:name="HTTP"/>
+        <http:listener config-ref="InputCSVListener" path="/*" allowedMethods="GET, POST" doc:name="HTTP :8063"/>
         <choice doc:name="Check HTTP method">
             <when expression="#[message.inboundProperties.'http.method' == 'POST']">
                 <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
@@ -49,7 +49,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 	MediaHAVEN_external_metadata: {
 		MDProperties: {
 			CP: flowVars.cp,
-			dc_identifier_cpid: flowVars.id,
+			sp_name: 'borndigital',
+			dc_identifier_localid: flowVars.id,
+			dc_source: flowVars.filename,
 			md5: payload.md5
 		}
 	}

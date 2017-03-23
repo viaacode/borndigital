@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
@@ -9,12 +9,15 @@
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd">
+http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <and-filter name="And" doc:name="And">
         <expression-filter expression="#[flowVars.comment = &quot;Metadata format was incorrect.&quot;]" nullReturnsTrue="true"/>
         <filter ref="Provant_Schema_Validation"/>
     </and-filter>
-    <sub-flow name="PI_METADATA_MAPPING_RMM">
+    <http:request-config name="vlaamsparlementportaal" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration"/>
+    <sub-flow name="PI_METADATA_MAPPING_MHEM">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['collateral'].file_path]/#[flowVars.files['collateral'].file_name]?connector=FTP" doc:name="Get SRT file from FTP" throwExceptionOnTimeout="true"/>
@@ -50,7 +53,6 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="mediaId" value="#[xpath3(&quot;//mediaId/text()&quot;)]" doc:name="Set mediaId"/>
         <dw:transform-message doc:name="Transform Message" metadata:id="ef2d489e-12ad-4b91-8add-659011b32d9a">
             <dw:input-variable doc:sample="string_1.dwl" variableName="origin"/>
             <dw:input-variable doc:sample="string_2.dwl" variableName="mediaId"/>
@@ -65,8 +67,8 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
 			CP: p('cp'),
 			sp_name: 'dailies' when flowVars.origin != 'tape' otherwise 'intake_existing',
 			PID: flowVars.pid,
-			dc_identifier_cpid: flowVars.mediaId,
-			(md5: flowVars.md5Xml) when flowVars.md5Xml?
+			dc_identifier_localid: flowVars.local_id,
+			(md5: flowVars.md5metadata) when flowVars.md5metadata?
 		}
 	}
 }]]></dw:set-payload>
@@ -187,6 +189,7 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="content.xml"/>
             <dw:input-variable variableName="comment"/>
@@ -200,6 +203,91 @@ http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="CP" value="#[xpath3(&quot;//CP/text()&quot;)]" doc:name="Set CP"/>
         <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT">
+        <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
+        <http:request config-ref="vlaamsparlementportaal" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
+            <http:request-builder>
+                <http:header headerName="Accept" value="application/json"/>
+            </http:request-builder>
+        </http:request>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <json:json-to-object-transformer  doc:name="JSON to Object"/>
+        <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(1,20)]" doc:name="Set datumBegin"/>
+        <set-variable variableName="dcterms_created" value="#[flowVars.datumBegin.substring(0,10)]" doc:name="Set dcterms_created (datumBegin as yyyy-mm-dd)"/>
+        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != "" ?  ("DEEL " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + " ") : "" ]]]></expression-component>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
+        <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item">
+            <set-variable variableName="titel" value="#[payload['agenda-lijn'][0].titel != null ? payload['agenda-lijn'][0].titel + &quot;\n&quot; : &quot;&quot;]" doc:name="Set titel"/>
+            <set-variable variableName="omschrijving" value="#[payload['agenda-lijn'][0].omschrijving != null ? payload['agenda-lijn'][0].omschrijving + &quot;\n&quot; : &quot;&quot;]" doc:name="Set omschrijving"/>
+            <set-variable variableName="vragenInterpellatie" value="#[payload['agenda-lijn'][0].vrageninterpellatie.size() &gt; 0 ? payload['agenda-lijn'][0].vrageninterpellatie[0].titel + &quot;\n&quot; : &quot;&quot;]" doc:name="Set vragenInterpellatie"/>
+            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counter + &quot;: &quot; + flowVars.titel + flowVars.omschrijving + flowVars.vragenInterpellatie + &quot;\n&quot;]" doc:name="Set dc_description_lang by concat"/>
+        </foreach>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
+            <dw:input-payload doc:sample="sample_data/json.json"/>
+            <dw:input-variable variableName="comment"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+{
+	MediaHAVEN_external_metadata: {
+		title: payload.vergadering.commissie[0].titel ++ " " ++ flowVars.deel ++ flowVars.dcterms_created,
+		description: flowVars.dc_description_lang ++ "\n\n" ++ 		
+					"Voorzitter: " ++ payload.vergadering.voorzitter.voornaam ++ " " ++
+							payload.vergadering.voorzitter.naam ++ " (" ++
+							 payload.vergadering.voorzitter.fractie.naam ++ ")" ++ "\n\n" ++
+					"Vergaderzaal: " ++ payload.vergadering.vergaderzaal.naam,
+		MDProperties: {
+			PID: flowVars.pid,
+			CP: flowVars.cp,
+			CP_id: 'OR-7h1dk9t',
+			sp_name: 'borndigital',
+			dc_source: flowVars.filenameEssence,
+			dc_identifier_localid: flowVars.local_id,
+			dc_identifier_localids @(type: "list"): {
+				pdf: payload.vergadering.commissiehandelingen.pdffilewebpath
+			},
+			dc_titles @(type: "list"): {
+				reeks: payload.vergadering.commissie[0].titel
+			},
+			CreationDate: flowVars.datumBegin,
+			dcterms_issued: flowVars.datumBegin,
+			dcterms_created: flowVars.dcterms_created,
+			dc_contributors @(type: "list"): {
+				bijdrager: payload.vergadering.voorzitter.voornaam ++ " " ++
+							payload.vergadering.voorzitter.naam ++ " (" ++
+							 payload.vergadering.voorzitter.fractie.naam ++ ")",
+				(payload.vergadering.aanwezigheid[0].persoon map {
+					bijdrager: ($.voornaam ++ " " ++ $.naam ++ " (" ++ $.fractie.naam ++ ") ")
+					}
+				)
+			},
+			dc_description_lang: flowVars.dc_description_lang,
+			dc_rights_licenses @(type: "list"): {
+				licentie: "CCBY"
+			},
+			dc_rights_rightsOwners @(type: "list"): {
+				auteursrechthouder: "Vlaams Parlement"
+			},
+			dc_rights_rightsHolders @(type: "list"): {
+				licentiehouder: "Vlaams Parlement"
+			},
+			md5: flowVars.md5metadata			
+		}
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>

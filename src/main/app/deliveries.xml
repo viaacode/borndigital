@@ -92,22 +92,15 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
-    <sub-flow name="PI_SIP_DELIVERY_RMM">
+    <sub-flow name="PI_SIP_DELIVERY_SIDECAR">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <foreach collection="#[flowVars.files]" doc:name="For Each">
             <choice doc:name="Choice">
                 <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
-                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
-                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
-                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
-                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
-                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
-                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
+                    <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP/TAPE-SHARE-EVENTS"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    <dw:transform-message doc:name="Transform Message">
+                    <dw:transform-message doc:name="Build fxp request">
                         <dw:input-variable variableName="currentItem"/>
                         <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/java
@@ -115,15 +108,16 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 ---
 {
 	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destination_host": p('ftpDestination.rmm.host'),
-    "destination_password": p('ftpDestination.rmm.password'),
-    "destination_path": p('ftpDestination.rmm.path'),
-    "destination_user": p('ftpDestination.rmm.username'),
-    "source_file": flowVars.sourceFileName,
-    "source_host": flowVars.sourceServer,
+    "destination_host": p('ftpDestination.host'),
+    "destination_password": p('ftpDestination.password'),
+    "destination_path": flowVars.destinationPath,
+    "destination_user": p('ftpDestination.username'),
+    "source_file": flowVars.filenameEssence,
+    "source_host": flowVars.host,
     "source_password": flowVars.sourcePassword,
-    "source_path": flowVars.sourcePath,
-    "source_user": flowVars.sourceUsername
+    "source_path": flowVars.filepath,
+    "source_user": flowVars.sourceUsername,
+    "move": false
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
@@ -134,8 +128,8 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
                 </otherwise>
             </choice>
         </foreach>
-        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <flow-ref name="SidecarFTPRMM" doc:name="SidecarFTPRMM"/>
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
+        <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
@@ -339,12 +333,12 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
             <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
         </catch-exception-strategy>
     </flow>
-    <flow name="SidecarFTPRMM" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.rmm.host}" port="21" path="${ftpDestination.rmm.path}" user="${ftpDestination.rmm.username}" password="${ftpDestination.rmm.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
+    <flow name="SidecarFTPGeneric" processingStrategy="synchronous">
+        <ftp:outbound-endpoint host="${ftpDestination.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.username}" password="${ftpDestination.password}"   outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP" connector-ref="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
-            <flow-ref name="SidecarFTPRMM" doc:name="SidecarFTPRMM"/>
+            <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPRMM"/>
         </catch-exception-strategy>
     </flow>
 </mule>

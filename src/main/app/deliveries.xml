@@ -338,7 +338,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
-            <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPRMM"/>
+            <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
         </catch-exception-strategy>
     </flow>
 </mule>

@@ -223,7 +223,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <json:json-to-object-transformer  doc:name="JSON to Object"/>
         <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(1,20)]" doc:name="Set datumBegin"/>
         <set-variable variableName="dcterms_created" value="#[flowVars.datumBegin.substring(0,10)]" doc:name="Set dcterms_created (datumBegin as yyyy-mm-dd)"/>
-        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != "" ?  ("DEEL " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + " ") : "" ]]]></expression-component>
+        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  ("DEEL " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + " ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
         <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item">

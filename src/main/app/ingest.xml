@@ -97,7 +97,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <db:update config-ref="POSTGRESQL_Connection" doc:name="Set preingest_status to OK">
+        <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
             <db:parameterized-query><![CDATA[update sips
 set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM'
 where organisation = #[flowVars.cp] and md5 = #[flowVars.md5metadata]]]></db:parameterized-query>
@@ -106,7 +106,7 @@ where organisation = #[flowVars.cp] and md5 = #[flowVars.md5metadata]]]></db:par
         <logger message="Done with local_id #[flowVars.local_id] and pid #[flowVars.pid]" level="INFO" doc:name="Done"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <flow-ref name="sendErrorMessage" doc:name="sendErrorMessage"/>
-            <db:select config-ref="POSTGRESQL_Connection" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
+            <db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
                 <db:parameterized-query><![CDATA[select *
 from sips
 where organisation = #[flowVars.cp]
@@ -117,14 +117,14 @@ where organisation = #[flowVars.cp]
             </db:select>
             <choice doc:name="Record found?">
                 <when expression="#[payload.size() &gt; 0]">
-                    <db:update config-ref="POSTGRESQL_Connection" doc:name="Update existing record">
+                    <db:update config-ref="borndigital" doc:name="Update existing record">
                         <db:parameterized-query><![CDATA[update sips
 set "preingest_status" = 'NOK', comment = #[flowVars.comment]
 where id = #[payload[0].id]]]></db:parameterized-query>
                     </db:update>
                 </when>
                 <otherwise>
-                    <db:insert config-ref="POSTGRESQL_Connection" doc:name="Insert into sips table as NOK">
+                    <db:insert config-ref="borndigital" doc:name="Insert into sips table as NOK">
                         <db:parameterized-query><![CDATA[INSERT INTO sips
 (organisation, local_id, pid, md5, filename, filepath, host, comment, "preingest_status")
 VALUES (#[flowVars.cp], #[flowVars.local_id], #[flowVars.pid], #[flowVars.md5metadata], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.comment], 'NOK')]]></db:parameterized-query>
@@ -151,7 +151,7 @@ VALUES (#[flowVars.cp], #[flowVars.local_id], #[flowVars.pid], #[flowVars.md5met
         <choice doc:name="SIP from VRT, Meise or generic?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <set-variable variableName="correlationid" value="#[xpath3('//correlationId/text()')]" doc:name="Set correlationid"/>
-                <db:select config-ref="POSTGRESQL_Connection" doc:name="Get info from vrt_message_buffer">
+                <db:select config-ref="borndigital" doc:name="Get info from vrt_message_buffer">
                     <db:parameterized-query><![CDATA[SELECT * 
 FROM ${db.buffer} 
 WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
@@ -169,7 +169,7 @@ WHERE correlation_id = #[flowVars.correlationid];]]></db:parameterized-query>
                 <set-variable variableName="status" value="#[&quot;New file from Meise&quot;]" doc:name="Set status"/>
             </when>
             <otherwise >
-                <db:select config-ref="POSTGRESQL_Connection" doc:name="Check if record already exists for this md5 (and cp)">
+                <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 (and cp)">
                     <db:parameterized-query><![CDATA[select *
 from sips
 where organisation = #[flowVars.cp]
@@ -228,7 +228,7 @@ where organisation = #[flowVars.cp]
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <set-variable variableName="comment" value="#[&quot;Failed to read sidecar&quot;]" doc:name="Set comment (Failed to read sidecar)"/>
-            <db:insert config-ref="POSTGRESQL_Connection" doc:name="Insert into sips table as NOK">
+            <db:insert config-ref="borndigital" doc:name="Insert into sips table as NOK">
                 <db:parameterized-query><![CDATA[INSERT INTO sips
 (organisation, filename, filepath, host, comment, preingest_status)
 VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.comment], 'NOK')]]></db:parameterized-query>
@@ -266,7 +266,7 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
                 <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <flow name="ADD_TO_SIPS">
-    	<db:select config-ref="POSTGRESQL_Connection" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
+    	<db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
             <db:parameterized-query><![CDATA[select *
 from sips
 where organisation = #[flowVars.cp]
@@ -277,7 +277,7 @@ where organisation = #[flowVars.cp]
                         </db:select>
                         <choice doc:name="Found?">
                             <when expression="#[payload.size()&gt;0]">
-                                <db:update config-ref="POSTGRESQL_Connection" doc:name="Update existing record">
+                                <db:update config-ref="borndigital" doc:name="Update existing record">
                     <db:parameterized-query><![CDATA[update sips
 set filename = #[flowVars.filenameEssence], host = #[flowVars.host], filepath = #[flowVars.filepath], 
 	local_id = #[flowVars.local_id], md5 = #[flowVars.md5metadata], pid = #[flowVars.pid]
@@ -285,7 +285,7 @@ where id = #[payload[0].id]]]></db:parameterized-query>
                                 </db:update>
                             </when>
                             <otherwise>
-                                <db:insert config-ref="POSTGRESQL_Connection" doc:name="Insert new record into sips table">
+                                <db:insert config-ref="borndigital" doc:name="Insert new record into sips table">
                     <db:parameterized-query><![CDATA[INSERT INTO sips
 (local_id, md5, organisation, pid, filename, filepath, host)
 VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVars.pid], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host])]]></db:parameterized-query>

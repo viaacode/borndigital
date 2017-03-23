@@ -24,6 +24,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <amqp:connector name="RabbitMQConnector" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect></reconnect>  
     </amqp:connector>
+    <amqp:connector name="RabbitMQConnectorPoller" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
+        <reconnect></reconnect>  
+    </amqp:connector>
     <amqp:connector name="RabbitMQConnectorError" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect></reconnect>  
     </amqp:connector>
@@ -39,7 +42,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <http:request-config name="PID_webservice" host="${pid.host}" port="${pid.port}" basePath="${pid.basepath}" doc:name="HTTP Request Configuration" responseTimeout="999999999" connectionIdleTimeout="999999999" > 
         <tcp:client-socket-properties connectionTimeout="999999999" timeout="999999999"></tcp:client-socket-properties>  
     </http:request-config>
-    <db:generic-config name="POSTGRESQL_Connection" url="jdbc:postgresql://${db.host}:${db.port}/${db.database}?password=${db.password}&amp;user=${db.username}" driverClassName="org.postgresql.Driver" doc:name="Generic Database Configuration"></db:generic-config>
+    <db:generic-config name="borndigital" url="jdbc:postgresql://${db.host}:${db.port}/${db.database}?password=${db.password}&amp;user=${db.username}" driverClassName="org.postgresql.Driver" doc:name="Generic Database Configuration"></db:generic-config>
+    <db:generic-config name="mediahaven" url="jdbc:postgresql://${db.zeticon.host}:${db.zeticon.port}/${db.zeticon.database}?password=${db.zeticon.password}&amp;user=${db.zeticon.username}" driverClassName="org.postgresql.Driver" doc:name="Mediahaven config"></db:generic-config>
     <ftp:connector streaming="true" name="FTP" pollingFrequency="1000" validateConnections="true" doc:name="FTP">
         <reconnect/>
     </ftp:connector>
@@ -64,7 +68,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         </amqp:outbound-endpoint>
     </sub-flow>
     <sub-flow name="PI_LOG"> 
-        <db:insert config-ref="POSTGRESQL_Connection" doc:name="Log to database">
+        <db:insert config-ref="borndigital" doc:name="Log to database">
             <db:parameterized-query><![CDATA[INSERT INTO ${db.eventstable}(pid, cp_id, name, outcome, agent, date, comment, cp, flow_id, essence_md5)
 VALUES ((#[flowVars.pid == null ? "UNKNOWN" : flowVars.pid]),
 (#[flowVars.input.sip_package[0].file_name.split("\\.")[0] == null ? "UNKNOWN" : flowVars.input.sip_package[0].file_name.split("\\.")[0]]),

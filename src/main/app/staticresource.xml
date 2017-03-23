@@ -21,7 +21,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     </catch-exception-strategy>
     <flow name="pid">
         <http:listener config-ref="MonitoringListener" path="/pid" allowedMethods="GET" doc:name="HTTP"/>
-        <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
+        <db:select config-ref="borndigital" doc:name="Database">
             <db:parameterized-query><![CDATA[SELECT * FROM ${db.eventstable} WHERE pid = #[message.inboundProperties.'http.query.params'.pid] LIMIT 50;]]></db:parameterized-query>
         </db:select>
         <json:object-to-json-transformer doc:name="Object to JSON"/>
@@ -29,7 +29,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     </flow>
     <flow name="count">
         <http:listener config-ref="MonitoringListener" path="/count" allowedMethods="GET" doc:name="HTTP"/>
-        <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
+        <db:select config-ref="borndigital" doc:name="Database">
             <db:parameterized-query><![CDATA[SELECT count(*) FROM ${db.eventstable} WHERE name = 'PI_SIP_DELIVERY';]]></db:parameterized-query>
         </db:select>
         <set-payload value="#[payload[0]]" doc:name="Set Payload"/>
@@ -41,12 +41,12 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="startIndex" value="#[message.inboundProperties.'http.query.params'.start]" doc:name="Copy_of_Set startIndex"/>
         <choice doc:name="Choice">
             <when expression="#[flowVars.startIndex != null &amp;&amp; !flowVars.startIndex.equals(&quot;&quot;) &amp;&amp; !flowVars.startIndex.equals(&quot;NaN&quot;)]">
-                <db:select config-ref="POSTGRESQL_Connection" doc:name="Select_Paginated">
+                <db:select config-ref="borndigital" doc:name="Select_Paginated">
                     <db:parameterized-query><![CDATA[SELECT pid, date, cp, outcome FROM ${db.eventstable} WHERE name = 'PI_SIP_DELIVERY' ORDER BY date DESC OFFSET #[flowVars.startIndex] LIMIT 25;]]></db:parameterized-query>
                 </db:select>
             </when>
             <otherwise>
-                <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
+                <db:select config-ref="borndigital" doc:name="Database">
                     <db:parameterized-query><![CDATA[SELECT pid, date, cp, outcome FROM ${db.eventstable} WHERE name = 'PI_SIP_DELIVERY' ORDER BY date DESC LIMIT 25;]]></db:parameterized-query>
                 </db:select>
             </otherwise>
@@ -68,7 +68,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="cp" value="#[message.inboundProperties.'http.query.params'.cp == null ? &quot;&quot; : message.inboundProperties.'http.query.params'.cp]" doc:name="Set cp"/>
         <set-variable variableName="orderByField" value="#[message.inboundProperties.'http.query.params'.orderByField == null ? &quot;date&quot; : message.inboundProperties.'http.query.params'.orderByField]" doc:name="Set orderByField"/>
         <set-variable variableName="reverseSort" value="#[message.inboundProperties.'http.query.params'.reverseSort]" doc:name="Set reverseSort"/>
-        <db:select config-ref="POSTGRESQL_Connection" doc:name="Database">
+        <db:select config-ref="borndigital" doc:name="Database">
             <db:dynamic-query><![CDATA[SELECT COUNT(*)
 FROM #['${db.eventstable}'] WHERE name = 'PI_SIP_DELIVERY'#[flowVars.pid.equals("") ? "" : " AND pid LIKE('%" + flowVars.pid + "%')"]#[flowVars.outcome.equals("") ? "" : " AND outcome = '" + flowVars.outcome + "'"]#[flowVars.cp.equals("") ? "" : " AND cp LIKE('%" + flowVars.cp + "%')"]#[flowVars.fromDate.equals("") ? "" : (" AND date >= '" + flowVars.fromDate + "'")]#[flowVars.toDate.equals("") ? "" : " AND date <= '" + flowVars.toDate + "'"]
 GROUP BY pid, date, cp, outcome
@@ -76,7 +76,7 @@ ORDER BY #[flowVars.orderByField.equals("") ? "date" : flowVars.orderByField] #[
         </db:select>
         <set-variable variableName="count" value="#[payload.size()]" doc:name="Set count"/>
         <logger message="SELECT pid, date, cp, outcome FROM #['${db.eventstable}'] WHERE name = 'PI_SIP_DELIVERY'#[flowVars.pid.equals(&quot;&quot;) ? &quot;&quot; : &quot; AND pid LIKE('%&quot; + flowVars.pid + &quot;%')&quot;]#[flowVars.outcome.equals(&quot;&quot;) ? &quot;&quot; : &quot; AND outcome = '&quot; + flowVars.outcome + &quot;'&quot;]#[flowVars.cp.equals(&quot;&quot;) ? &quot;&quot; : &quot; AND cp LIKE('%&quot; + flowVars.cp + &quot;%')&quot;]#[flowVars.fromDate.equals(&quot;&quot;) ? &quot;&quot; : (&quot; AND date &gt;= '&quot; + flowVars.fromDate + &quot;'&quot;)]#[flowVars.toDate.equals(&quot;&quot;) ? &quot;&quot; : &quot; AND date &lt;= '&quot; + flowVars.toDate + &quot;'&quot;] ORDER BY #[flowVars.orderByField.equals(&quot;&quot;) ? &quot;date&quot; : flowVars.orderByField] #[flowVars.reverseSort == true ? &quot;ASC&quot; : &quot;DESC&quot;] #[flowVars.startIndex.equals(&quot;&quot;) ? &quot;OFFSET 0&quot; : &quot;OFFSET &quot; + flowVars.startIndex] LIMIT 20;" level="INFO" doc:name="Logger"/>
-        <db:select config-ref="POSTGRESQL_Connection" doc:name="Query">
+        <db:select config-ref="borndigital" doc:name="Query">
             <db:dynamic-query><![CDATA[SELECT pid, date, cp, outcome
 FROM #['${db.eventstable}'] WHERE name = 'PI_SIP_DELIVERY'#[flowVars.pid.equals("") ? "" : " AND pid LIKE('%" + flowVars.pid + "%')"]#[flowVars.outcome.equals("") ? "" : " AND outcome = '" + flowVars.outcome + "'"]#[flowVars.cp.equals("") ? "" : " AND cp LIKE('%" + flowVars.cp + "%')"]#[flowVars.fromDate.equals("") ? "" : (" AND date >= '" + flowVars.fromDate + "'")]#[flowVars.toDate.equals("") ? "" : " AND date <= '" + flowVars.toDate + "'"]
 ORDER BY #[flowVars.orderByField.equals("") ? "date" : flowVars.orderByField] #[flowVars.reverseSort == true ? "ASC" : "DESC"]

@@ -23,7 +23,7 @@ public class Utils implements Callable {
 			file.file_name = file_entry.get("file_name").toString();
 			file.file_path = file_entry.get("file_path").toString();
 			file.file_type = file_entry.get("file_type").toString();
-			file.md5 = file_entry.get("md5").toString();
+			file.md5 = file_entry.get("md5") == null ? null : file_entry.get("md5").toString();
 			file.timestamp = DateTime.now(); // DateTime.parse(file_entry.get("timestamp").toString());
 			
 			files.put(file.file_type, file);

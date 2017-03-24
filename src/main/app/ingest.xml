@@ -41,8 +41,42 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <reconnect/>
         </amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message"/>
-        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <flow-ref name="ingestByMessage" doc:name="ingestByMessage"/>
+        
+        <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <flow-ref name="sendErrorMessage" doc:name="sendErrorMessage"/>
+            <db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
+                <db:parameterized-query><![CDATA[select *
+from sips
+where organisation = #[flowVars.cp]
+	and ((local_id = #[flowVars.local_id] and md5 is null)
+		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
+		or md5 = #[flowVars.md5metadata]
+	)]]></db:parameterized-query>
+            </db:select>
+            <choice doc:name="Record found?">
+                <when expression="#[payload.size() &gt; 0]">
+                    <db:update config-ref="borndigital" doc:name="Update existing record">
+                        <db:parameterized-query><![CDATA[update sips
+set "preingest_status" = 'NOK', comment = #[flowVars.comment], message = #[flowVars.message]
+where id = #[payload[0].id]]]></db:parameterized-query>
+                    </db:update>
+                </when>
+                <otherwise>
+                    <db:insert config-ref="borndigital" doc:name="Insert into sips table as NOK">
+                        <db:parameterized-query><![CDATA[INSERT INTO sips
+(organisation, local_id, pid, md5, filename, filepath, host, comment, "preingest_status", message)
+VALUES (#[flowVars.cp], #[flowVars.local_id], #[flowVars.pid], #[flowVars.md5metadata], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.comment], 'NOK', #[flowVars.message])]]></db:parameterized-query>
+                    </db:insert>
+                </otherwise>
+            </choice>
+        </catch-exception-strategy>
+        
   
+    </flow>
+    <sub-flow name="ingestByMessage">
+    <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="input" value="#[payload]" doc:name="Save POJO"></set-variable>
         <component class="utils.Utils" doc:name="Extract files"></component>
         <set-variable variableName="files" value="#[payload]" doc:name="Set files (with message metadata)"/>
@@ -99,42 +133,12 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
             <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM'
+set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message]
 where organisation = #[flowVars.cp] and md5 = #[flowVars.md5metadata]]]></db:parameterized-query>
         </db:update>
-        <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
-        <logger message="Done with local_id #[flowVars.local_id] and pid #[flowVars.pid]" level="INFO" doc:name="Done"/>
-        <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <flow-ref name="sendErrorMessage" doc:name="sendErrorMessage"/>
-            <db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
-                <db:parameterized-query><![CDATA[select *
-from sips
-where organisation = #[flowVars.cp]
-	and ((local_id = #[flowVars.local_id] and md5 is null)
-		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
-		or md5 = #[flowVars.md5metadata]
-	)]]></db:parameterized-query>
-            </db:select>
-            <choice doc:name="Record found?">
-                <when expression="#[payload.size() &gt; 0]">
-                    <db:update config-ref="borndigital" doc:name="Update existing record">
-                        <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'NOK', comment = #[flowVars.comment]
-where id = #[payload[0].id]]]></db:parameterized-query>
-                    </db:update>
-                </when>
-                <otherwise>
-                    <db:insert config-ref="borndigital" doc:name="Insert into sips table as NOK">
-                        <db:parameterized-query><![CDATA[INSERT INTO sips
-(organisation, local_id, pid, md5, filename, filepath, host, comment, "preingest_status")
-VALUES (#[flowVars.cp], #[flowVars.local_id], #[flowVars.pid], #[flowVars.md5metadata], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.comment], 'NOK')]]></db:parameterized-query>
-                    </db:insert>
-                </otherwise>
-            </choice>
-        </catch-exception-strategy>
+                <logger message="Done with local_id #[flowVars.local_id] and pid #[flowVars.pid]" level="INFO" doc:name="Done"/>
         
-  
-    </flow>
+    </sub-flow>
     <sub-flow name="init_variables">
         <set-variable variableName="cp" value="#[flowVars.input.cp_name]" doc:name="Set cp"/>
         <set-variable variableName="filenameWithoutExtension" value="#[flowVars.files.essence.file_name.split(&quot;\\.&quot;)[0]]" doc:name="Set filenameWithoutExtension"/>

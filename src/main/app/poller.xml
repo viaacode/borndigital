@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
     <quartz:connector name="Quartz" validateConnections="true" doc:name="Quartz"/>
-    <flow name="paullerFlow" processingStrategy="synchronous">
+    <flow name="pollerFlow" processingStrategy="synchronous">
         <amqp:inbound-endpoint queueName="borndigital_poller_token" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorPoller" doc:name="Receive from borndigital_poller_token" numberOfChannels="1">
             <reconnect/>
         </amqp:inbound-endpoint>
@@ -42,15 +42,23 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
                         <otherwise>
                             <set-session-variable variableName="mh_result" value="#[payload[0]]" doc:name="Set mh_result"/>
                             <set-variable variableName="fragment_id" value="#[sessionVars.mh_result.fragment_id]" doc:name="Set fragment_id"/>
-                            <choice doc:name="Mediahaven status?">
-                                <when expression="#[sessionVars.mh_result.archive_status.equals('on_tape')]">
-                                    <logger message="Ingest date: #[sessionVars.ingest_date]" level="INFO" doc:name="Logger"/>
+                            <choice doc:name="Archived, deleted or uknown?">
+                                <when expression="#[sessionVars.mh_result.archive_status.equals('on_tape') || sessionVars.mh_result.archive_status.equals('on_disk')]">
+                                    <logger message="Essence is archived on tape or disk" level="INFO" doc:name="Essence is archived on tape or disk"/>
                                     <db:update config-ref="borndigital" doc:name="Set archive_status OK, fragment_id">
                                         <db:parameterized-query><![CDATA[update sips
 set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'File is correct gearchiveerd'
 where id = #[sessionVars.file.id]]]></db:parameterized-query>
                                     </db:update>
                                     <logger level="INFO" doc:name="TODO: delete file from source"/>
+                                </when>
+                                <when expression="#[sessionVars.mh_result.is_deleted &gt; 0]">
+                                    <logger message="Essence is deleted" level="INFO" doc:name="Essence is deleted"/>
+                                    <db:update config-ref="borndigital" doc:name="Essence is deleted; set archive_status NOK">
+                                        <db:parameterized-query><![CDATA[update sips
+set is_deleted = true, archive_status = 'NOK', fragment_id = #[flowVars.fragment_id], comment = 'Essence has been deleted.'
+where id = #[flowVars.file.id]]]></db:parameterized-query>
+                                    </db:update>
                                 </when>
                                 <otherwise>
                                     <logger message="mediahaven status = NULL ('file wordt nog verwerkt')" level="INFO" doc:name="NULL, do nothing"/>
@@ -72,7 +80,7 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
                     </choice>
                 </when>
                 <otherwise>
-                    <db:update config-ref="borndigital" doc:name="Update with archive_status NOK">
+                    <db:update config-ref="borndigital" doc:name="Update with archive_status NOK; preingest failed">
                         <db:parameterized-query><![CDATA[update sips
 set archive_status = 'NOK', comment = 'Preingest failed.'
 where id = #[payload.id]]]></db:parameterized-query>
@@ -81,7 +89,7 @@ where id = #[payload.id]]]></db:parameterized-query>
             </choice>
         </foreach>
         <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(30000);]]></expression-component>
-        <amqp:outbound-endpoint queueName="borndigital_poller_token" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorPoller" doc:name="Send to meise_poller">
+        <amqp:outbound-endpoint queueName="borndigital_poller_token" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorPoller" doc:name="Send to borndigital_poller_token">
             <reconnect/>
         </amqp:outbound-endpoint>
         <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
@@ -93,17 +101,23 @@ where id = #[payload.id]]]></db:parameterized-query>
         <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="7000" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <db:select config-ref="borndigital" doc:name="Records with last_modified &gt; 48 hours and no archive_status are disappeared">
+        <db:select config-ref="borndigital" doc:name="Retry records that have archive_status !OK and aren't modified for X hours OR have preingest_status TODO (for manual retry)">
             <db:parameterized-query><![CDATA[select *
 from sips
-WHERE preingest_status != 'OK' and archive_status is null and (last_event_date > (now() - interval '72 hours'))
+WHERE (archive_status != 'OK' and (last_event_date > (now() - interval '100 hours')))
+	OR preingest_status = 'TODO'
 LIMIT 100;]]></db:parameterized-query>
         </db:select>
         <foreach doc:name="For Each">
-            <logger level="INFO" doc:name="Redo ++"/>
-            <logger level="INFO" doc:name="Check  Rabbit queue size"/>
-            <logger level="INFO" doc:name="Check in MH ingested"/>
-            <logger level="INFO" doc:name="MH has manual to correct files (metadata tiff)?"/>
+            <logger level="INFO" doc:name="Retry" message="Retrying #[flowVars.id] with pid #[flowVars.pid]"/>
+            <set-variable variableName="retry_count" value="#[payload.retry_count+1]" doc:name="Set retry_count++"/>
+            <db:update config-ref="borndigital" doc:name="update retry_count">
+                <db:parameterized-query><![CDATA[update sips
+set retry_count = #[flowVars.retry_count]
+where id = #[payload.id]]]></db:parameterized-query>
+            </db:update>
+            <set-variable variableName="message" value="#[payload.message]" doc:name="Set message"/>
+            <flow-ref name="ingestByMessage" doc:name="ingestByMessage"/>
         </foreach>
     </flow>
 </mule>

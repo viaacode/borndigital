@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="get_cp_id" processingStrategy="synchronous">
+        <choice doc:name="Choice">
+<when expression="#[flowVars.cp == &quot;vrt&quot;]">
+<set-payload doc:name="Set Payload" value="OR-rf5kf25"/>
+</when>
+<when expression="#[flowVars.cp == &quot;avs&quot;]">
+<set-payload doc:name="Set Payload" value="OR-h41jm06"/>
+</when>
+<when expression="#[flowVars.cp == &quot;viaa&quot;]">
+<set-payload doc:name="Set Payload" value="OR-w66976m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;rtv&quot;]">
+<set-payload doc:name="Set Payload" value="OR-sf2mb2h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tvoost&quot;]">
+<set-payload doc:name="Set Payload" value="OR-8g8fg94"/>
+</when>
+<when expression="#[flowVars.cp == &quot;atv&quot;]">
+<set-payload doc:name="Set Payload" value="OR-mw28d4m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tvlimburg&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4q7qp5p"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kca&quot;]">
+<set-payload doc:name="Set Payload" value="OR-vd6p425"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kadoc&quot;]">
+<set-payload doc:name="Set Payload" value="OR-3x83k1b"/>
+</when>
+<when expression="#[flowVars.cp == &quot;middelheim&quot;]">
+<set-payload doc:name="Set Payload" value="OR-z60c169"/>
+</when>
+<when expression="#[flowVars.cp == &quot;letterenhuis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-kw57h48"/>
+</when>
+<when expression="#[flowVars.cp == &quot;provincialebibliotheeklimburg&quot;]">
+<set-payload doc:name="Set Payload" value="OR-z31nn3s"/>
+</when>
+<when expression="#[flowVars.cp == &quot;amvb&quot;]">
+<set-payload doc:name="Set Payload" value="OR-wd3q12h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;ugent&quot;]">
+<set-payload doc:name="Set Payload" value="OR-0z70w1b"/>
+</when>
+<when expression="#[flowVars.cp == &quot;packed&quot;]">
+<set-payload doc:name="Set Payload" value="OR-ns0kx1f"/>
+</when>
+<when expression="#[flowVars.cp == &quot;amsab&quot;]">
+<set-payload doc:name="Set Payload" value="OR-154dn75"/>
+</when>
+<when expression="#[flowVars.cp == &quot;mas&quot;]">
+<set-payload doc:name="Set Payload" value="OR-6q1sg5c"/>
+</when>
+<when expression="#[flowVars.cp == &quot;vlaamsparlement&quot;]">
+<set-payload doc:name="Set Payload" value="OR-7h1dk9t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;rmm&quot;]">
+<set-payload doc:name="Set Payload" value="OR-222r544"/>
+</when>
+<when expression="#[flowVars.cp == &quot;gms&quot;]">
+<set-payload doc:name="Set Payload" value="OR-qj77x56"/>
+</when>
+<when expression="#[flowVars.cp == &quot;evs&quot;]">
+<set-payload doc:name="Set Payload" value="OR-x921h9b"/>
+</when>
+<when expression="#[flowVars.cp == &quot;monitor&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4t6f286"/>
+</when>
+<when expression="#[flowVars.cp == &quot;ams&quot;]">
+<set-payload doc:name="Set Payload" value="OR-8k74w2m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;inuits&quot;]">
+<set-payload doc:name="Set Payload" value="OR-db7vp6z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;bull&quot;]">
+<set-payload doc:name="Set Payload" value="OR-9k45s2z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;storageteam&quot;]">
+<set-payload doc:name="Set Payload" value="OR-j09w387"/>
+</when>
+<when expression="#[flowVars.cp == &quot;zeticon&quot;]">
+<set-payload doc:name="Set Payload" value="OR-5t3fz8d"/>
+</when>
+<when expression="#[flowVars.cp == &quot;videohouse&quot;]">
+<set-payload doc:name="Set Payload" value="OR-sj19q5w"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tvbxl&quot;]">
+<set-payload doc:name="Set Payload" value="OR-d79593p"/>
+</when>
+<when expression="#[flowVars.cp == &quot;skryv&quot;]">
+<set-payload doc:name="Set Payload" value="OR-w950m90"/>
+</when>
+<when expression="#[flowVars.cp == &quot;advn&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4x54g1p"/>
+</when>
+<when expression="#[flowVars.cp == &quot;argos&quot;]">
+<set-payload doc:name="Set Payload" value="OR-rn30682"/>
+</when>
+<when expression="#[flowVars.cp == &quot;campo&quot;]">
+<set-payload doc:name="Set Payload" value="OR-pr7mt1r"/>
+</when>
+<when expression="#[flowVars.cp == &quot;compagniececilia&quot;]">
+<set-payload doc:name="Set Payload" value="OR-th8bm56"/>
+</when>
+<when expression="#[flowVars.cp == &quot;damagedgoods&quot;]">
+<set-payload doc:name="Set Payload" value="OR-z892d9n"/>
+</when>
+<when expression="#[flowVars.cp == &quot;designmuseumgent&quot;]">
+<set-payload doc:name="Set Payload" value="OR-cc0ts6n"/>
+</when>
+<when expression="#[flowVars.cp == &quot;huisvanalijn&quot;]">
+<set-payload doc:name="Set Payload" value="OR-1v5bc86"/>
+</when>
+<when expression="#[flowVars.cp == &quot;iff&quot;]">
+<set-payload doc:name="Set Payload" value="OR-7p8tc5p"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kasteelvangaasbeek&quot;]">
+<set-payload doc:name="Set Payload" value="OR-057cr7t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kuleuven&quot;]">
+<set-payload doc:name="Set Payload" value="OR-qn5z98m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kunstenfestivaldesarts&quot;]">
+<set-payload doc:name="Set Payload" value="OR-k06x07c"/>
+</when>
+<when expression="#[flowVars.cp == &quot;liberaalarchief&quot;]">
+<set-payload doc:name="Set Payload" value="OR-g44hq0v"/>
+</when>
+<when expression="#[flowVars.cp == &quot;mhka&quot;]">
+<set-payload doc:name="Set Payload" value="OR-bg2h89t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;memnon&quot;]">
+<set-payload doc:name="Set Payload" value="OR-h12v67q"/>
+</when>
+<when expression="#[flowVars.cp == &quot;memorialmuseumpasschendaele1917&quot;]">
+<set-payload doc:name="Set Payload" value="OR-ks6j41w"/>
+</when>
+<when expression="#[flowVars.cp == &quot;momu&quot;]">
+<set-payload doc:name="Set Payload" value="OR-td9n72t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;msk&quot;]">
+<set-payload doc:name="Set Payload" value="OR-pn8xd88"/>
+</when>
+<when expression="#[flowVars.cp == &quot;museabrugge&quot;]">
+<set-payload doc:name="Set Payload" value="OR-jw86m4x"/>
+</when>
+<when expression="#[flowVars.cp == &quot;museumdrguislain&quot;]">
+<set-payload doc:name="Set Payload" value="OR-f766631"/>
+</when>
+<when expression="#[flowVars.cp == &quot;muzee&quot;]">
+<set-payload doc:name="Set Payload" value="OR-9g5gc9g"/>
+</when>
+<when expression="#[flowVars.cp == &quot;provincialebibliotheektolhuis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-g15t97c"/>
+</when>
+<when expression="#[flowVars.cp == &quot;ringtv&quot;]">
+<set-payload doc:name="Set Payload" value="OR-1z41s1p"/>
+</when>
+<when expression="#[flowVars.cp == &quot;rob&quot;]">
+<set-payload doc:name="Set Payload" value="OR-x63b46z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;smak&quot;]">
+<set-payload doc:name="Set Payload" value="OR-np1wh8z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;sonim&quot;]">
+<set-payload doc:name="Set Payload" value="OR-c824d3c"/>
+</when>
+<when expression="#[flowVars.cp == &quot;sportimonium&quot;]">
+<set-payload doc:name="Set Payload" value="OR-j09w371"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stam&quot;]">
+<set-payload doc:name="Set Payload" value="OR-5h7bs94"/>
+</when>
+<when expression="#[flowVars.cp == &quot;theateraanzee&quot;]">
+<set-payload doc:name="Set Payload" value="OR-319s24f"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kunstenpunt&quot;]">
+<set-payload doc:name="Set Payload" value="OR-ms3k117"/>
+</when>
+<when expression="#[flowVars.cp == &quot;picturae&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4x54g2w"/>
+</when>
+<when expression="#[flowVars.cp == &quot;vectracom&quot;]">
+<set-payload doc:name="Set Payload" value="OR-183420s"/>
+</when>
+<when expression="#[flowVars.cp == &quot;miat&quot;]">
+<set-payload doc:name="Set Payload" value="OR-2z12p11"/>
+</when>
+<when expression="#[flowVars.cp == &quot;felixarchief&quot;]">
+<set-payload doc:name="Set Payload" value="OR-jw86m54"/>
+</when>
+<when expression="#[flowVars.cp == &quot;c4j&quot;]">
+<set-payload doc:name="Set Payload" value="OR-3r0ps6k"/>
+</when>
+<when expression="#[flowVars.cp == &quot;testbeeld&quot;]">
+<set-payload doc:name="Set Payload" value="OR-h41jm1d"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tempvrt&quot;]">
+<set-payload doc:name="Set Payload" value="OR-kp7tq88"/>
+</when>
+<when expression="#[flowVars.cp == &quot;cegesoma&quot;]">
+<set-payload doc:name="Set Payload" value="OR-fx73x4x"/>
+</when>
+<when expression="#[flowVars.cp == &quot;provant&quot;]">
+<set-payload doc:name="Set Payload" value="OR-t727f6z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;fomu&quot;]">
+<set-payload doc:name="Set Payload" value="OR-pg1hn2h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;apa&quot;]">
+<set-payload doc:name="Set Payload" value="OR-jq0st8z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;bokrijk&quot;]">
+<set-payload doc:name="Set Payload" value="OR-5h7bt0f"/>
+</when>
+<when expression="#[flowVars.cp == &quot;cinenova&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4j09w9t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;dewereldvankina&quot;]">
+<set-payload doc:name="Set Payload" value="OR-6h4cq0s"/>
+</when>
+<when expression="#[flowVars.cp == &quot;erfgoedbibliotheekhendrikconscience&quot;]">
+<set-payload doc:name="Set Payload" value="OR-v97zq9j"/>
+</when>
+<when expression="#[flowVars.cp == &quot;denast&quot;]">
+<set-payload doc:name="Set Payload" value="OR-x63b475"/>
+</when>
+<when expression="#[flowVars.cp == &quot;felixartmuseum&quot;]">
+<set-payload doc:name="Set Payload" value="OR-2r3nw67"/>
+</when>
+<when expression="#[flowVars.cp == &quot;jenevermuseum&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4m9193m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;modemuseumhasselt&quot;]">
+<set-payload doc:name="Set Payload" value="OR-8c9r36r"/>
+</when>
+<when expression="#[flowVars.cp == &quot;museaizegem&quot;]">
+<set-payload doc:name="Set Payload" value="OR-np1wh95"/>
+</when>
+<when expression="#[flowVars.cp == &quot;museumdhondt-dhaenens&quot;]">
+<set-payload doc:name="Set Payload" value="OR-sf2mb3q"/>
+</when>
+<when expression="#[flowVars.cp == &quot;museumvandeinzeendeleiestreek&quot;]">
+<set-payload doc:name="Set Payload" value="OR-hx15q4m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;rosas&quot;]">
+<set-payload doc:name="Set Payload" value="OR-1r6n05t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefenhidocdendermonde&quot;]">
+<set-payload doc:name="Set Payload" value="OR-d50fx06"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefdiest&quot;]">
+<set-payload doc:name="Set Payload" value="OR-mp4vm8m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefgent&quot;]">
+<set-payload doc:name="Set Payload" value="OR-f47gt0h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefieper&quot;]">
+<set-payload doc:name="Set Payload" value="OR-x05xc02"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefkortrijk&quot;]">
+<set-payload doc:name="Set Payload" value="OR-9c6s063"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefsint-niklaas&quot;]">
+<set-payload doc:name="Set Payload" value="OR-c53f100"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefturnhout&quot;]">
+<set-payload doc:name="Set Payload" value="OR-7d2q67n"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefwaregem&quot;]">
+<set-payload doc:name="Set Payload" value="OR-b56d41v"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsmuseumlokeren&quot;]">
+<set-payload doc:name="Set Payload" value="OR-hq3rx9t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kbr&quot;]">
+<set-payload doc:name="Set Payload" value="OR-r785n68"/>
+</when>
+<when expression="#[flowVars.cp == &quot;apogado&quot;]">
+<set-payload doc:name="Set Payload" value="OR-mg7fv31"/>
+</when>
+<when expression="#[flowVars.cp == &quot;nedbox&quot;]">
+<set-payload doc:name="Set Payload" value="OR-gt5ff23"/>
+</when>
+<when expression="#[flowVars.cp == &quot;proact&quot;]">
+<set-payload doc:name="Set Payload" value="OR-c24qm8k"/>
+</when>
+<when expression="#[flowVars.cp == &quot;larhra&quot;]">
+<set-payload doc:name="Set Payload" value="OR-0r9m35g"/>
+</when>
+<when expression="#[flowVars.cp == &quot;provinciaalarchiefwestvlaanderen&quot;]">
+<set-payload doc:name="Set Payload" value="OR-ft8dj2r"/>
+</when>
+<when expression="#[flowVars.cp == &quot;sbs&quot;]">
+<set-payload doc:name="Set Payload" value="OR-7940t31"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefbrugge&quot;]">
+<set-payload doc:name="Set Payload" value="OR-cv4br1w"/>
+</when>
+<when expression="#[flowVars.cp == &quot;plantentuinmeise&quot;]">
+<set-payload doc:name="Set Payload" value="OR-vx0628j"/>
+</when>
+<when expression="#[flowVars.cp == &quot;focus&quot;]">
+<set-payload doc:name="Set Payload" value="OR-r49g843"/>
+</when>
+<when expression="#[flowVars.cp == &quot;wtv&quot;]">
+<set-payload doc:name="Set Payload" value="OR-mc8rf9b"/>
+</when>
+<when expression="#[flowVars.cp == &quot;museumedelsmeedkunstjuwelenendiamant&quot;]">
+<set-payload doc:name="Set Payload" value="OR-d21rh8x"/>
+</when>
+<when expression="#[flowVars.cp == &quot;operaballetvanvlaanderen&quot;]">
+<set-payload doc:name="Set Payload" value="OR-cr5nb9m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;cultureelerfgoedannuntiaten&quot;]">
+<set-payload doc:name="Set Payload" value="OR-gx44t48"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefmechelen&quot;]">
+<set-payload doc:name="Set Payload" value="OR-tx35586"/>
+</when>
+<when expression="#[flowVars.cp == &quot;testmaster&quot;]">
+<set-payload doc:name="Set Payload" value="OR-b853h31"/>
+</when>
+<when expression="#[flowVars.cp == &quot;cinematek&quot;]">
+<set-payload doc:name="Set Payload" value="OR-w08wg0q"/>
+</when>
+<when expression="#[flowVars.cp == &quot;limecraft&quot;]">
+<set-payload doc:name="Set Payload" value="OR-m61bp4s"/>
+</when>
+<when expression="#[flowVars.cp == &quot;ntgent&quot;]">
+<set-payload doc:name="Set Payload" value="OR-0c4sj4x"/>
+</when>
+<when expression="#[flowVars.cp == &quot;moovly&quot;]">
+<set-payload doc:name="Set Payload" value="OR-br8mf98"/>
+</when>
+<when expression="#[flowVars.cp == &quot;bloet&quot;]">
+<set-payload doc:name="Set Payload" value="OR-tq5rd13"/>
+</when>
+<when expression="#[flowVars.cp == &quot;ciedekoe&quot;]">
+<set-payload doc:name="Set Payload" value="OR-pz51k8v"/>
+</when>
+<when expression="#[flowVars.cp == &quot;compagnietartaren&quot;]">
+<set-payload doc:name="Set Payload" value="OR-k93157z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;deroovers&quot;]">
+<set-payload doc:name="Set Payload" value="OR-fj29c3h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;dewerf&quot;]">
+<set-payload doc:name="Set Payload" value="OR-9s1kj8r"/>
+</when>
+<when expression="#[flowVars.cp == &quot;desingel&quot;]">
+<set-payload doc:name="Set Payload" value="OR-610vr4b"/>
+</when>
+<when expression="#[flowVars.cp == &quot;eastman&quot;]">
+<set-payload doc:name="Set Payload" value="OR-2804z00"/>
+</when>
+<when expression="#[flowVars.cp == &quot;fabuleus&quot;]">
+<set-payload doc:name="Set Payload" value="OR-xg9f96d"/>
+</when>
+<when expression="#[flowVars.cp == &quot;hetkip&quot;]">
+<set-payload doc:name="Set Payload" value="OR-sq8qh2z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;hetgevolg&quot;]">
+<set-payload doc:name="Set Payload" value="OR-p26q312"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kaaitheater&quot;]">
+<set-payload doc:name="Set Payload" value="OR-j96087m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kopergietery&quot;]">
+<set-payload doc:name="Set Payload" value="OR-dj58g2z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kwaadbloed&quot;]">
+<set-payload doc:name="Set Payload" value="OR-513tv40"/>
+</when>
+<when expression="#[flowVars.cp == &quot;laika&quot;]">
+<set-payload doc:name="Set Payload" value="OR-1834210"/>
+</when>
+<when expression="#[flowVars.cp == &quot;lesballetscdelab&quot;]">
+<set-payload doc:name="Set Payload" value="OR-wh2dd63"/>
+</when>
+<when expression="#[flowVars.cp == &quot;lod&quot;]">
+<set-payload doc:name="Set Payload" value="OR-rv0d055"/>
+</when>
+<when expression="#[flowVars.cp == &quot;luxemburg&quot;]">
+<set-payload doc:name="Set Payload" value="OR-n29p61q"/>
+</when>
+<when expression="#[flowVars.cp == &quot;marthatentatief&quot;]">
+<set-payload doc:name="Set Payload" value="OR-h98zc6z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;miramiro&quot;]">
+<set-payload doc:name="Set Payload" value="OR-cj87k2m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;muziektheatertransparant&quot;]">
+<set-payload doc:name="Set Payload" value="OR-7s7hr82"/>
+</when>
+<when expression="#[flowVars.cp == &quot;needcompany&quot;]">
+<set-payload doc:name="Set Payload" value="OR-416sz5v"/>
+</when>
+<when expression="#[flowVars.cp == &quot;sering&quot;]">
+<set-payload doc:name="Set Payload" value="OR-vm42w94"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stan&quot;]">
+<set-payload doc:name="Set Payload" value="OR-qv3c35t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stuk&quot;]">
+<set-payload doc:name="Set Payload" value="OR-m32n906"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tarsenaal&quot;]">
+<set-payload doc:name="Set Payload" value="OR-gb1xg6n"/>
+</when>
+<when expression="#[flowVars.cp == &quot;theaterdespiegel&quot;]">
+<set-payload doc:name="Set Payload" value="OR-bk16p29"/>
+</when>
+<when expression="#[flowVars.cp == &quot;theatermalpertuis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-6t0gv9z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;theaterstap&quot;]">
+<set-payload doc:name="Set Payload" value="OR-348gf81"/>
+</when>
+<when expression="#[flowVars.cp == &quot;theaterteater&quot;]">
+<set-payload doc:name="Set Payload" value="OR-zc7rt37"/>
+</when>
+<when expression="#[flowVars.cp == &quot;theaterzuidpool&quot;]">
+<set-payload doc:name="Set Payload" value="OR-tm7209x"/>
+</when>
+<when expression="#[flowVars.cp == &quot;toneelhuis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-pv6b648"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tristero&quot;]">
+<set-payload doc:name="Set Payload" value="OR-k35md0v"/>
+</when>
+<when expression="#[flowVars.cp == &quot;ultimavez&quot;]">
+<set-payload doc:name="Set Payload" value="OR-9k45s35"/>
+</when>
+<when expression="#[flowVars.cp == &quot;victoriadeluxe&quot;]">
+<set-payload doc:name="Set Payload" value="OR-5x25c27"/>
+</when>
+<when expression="#[flowVars.cp == &quot;walpurgis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-251fj8q"/>
+</when>
+<when expression="#[flowVars.cp == &quot;wpzimmer&quot;]">
+<set-payload doc:name="Set Payload" value="OR-xd0qx2q"/>
+</when>
+<when expression="#[flowVars.cp == &quot;hetpaleis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-sn0138d"/>
+</when>
+<when expression="#[flowVars.cp == &quot;antigone&quot;]">
+<set-payload doc:name="Set Payload" value="OR-j38kh0h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;atwodogscompany&quot;]">
+<set-payload doc:name="Set Payload" value="OR-db7vp75"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchieftielt&quot;]">
+<set-payload doc:name="Set Payload" value="OR-8p5v867"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsarchiefroeselare&quot;]">
+<set-payload doc:name="Set Payload" value="OR-4x54g33"/>
+</when>
+<when expression="#[flowVars.cp == &quot;demaan&quot;]">
+<set-payload doc:name="Set Payload" value="OR-154dn8c"/>
+</when>
+<when expression="#[flowVars.cp == &quot;departementmobiliteitenopenbarewerken&quot;]">
+<set-payload doc:name="Set Payload" value="OR-rn30698"/>
+</when>
+<when expression="#[flowVars.cp == &quot;vlaamselandmaatschappij&quot;]">
+<set-payload doc:name="Set Payload" value="OR-mw28d5t"/>
+</when>
+<when expression="#[flowVars.cp == &quot;departementkanselarijenbestuur&quot;]">
+<set-payload doc:name="Set Payload" value="OR-h41jm2m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;departementlandbouwenvisserij&quot;]">
+<set-payload doc:name="Set Payload" value="OR-cf9j60f"/>
+</when>
+<when expression="#[flowVars.cp == &quot;departementonderwijsenvorming&quot;]">
+<set-payload doc:name="Set Payload" value="OR-7p8tc73"/>
+</when>
+<when expression="#[flowVars.cp == &quot;departementcultuurjeugdenmedia&quot;]">
+<set-payload doc:name="Set Payload" value="OR-3x83k2j"/>
+</when>
+<when expression="#[flowVars.cp == &quot;departementleefmilieunatuurenenergie&quot;]">
+<set-payload doc:name="Set Payload" value="OR-057cr81"/>
+</when>
+<when expression="#[flowVars.cp == &quot;sdnsquare&quot;]">
+<set-payload doc:name="Set Payload" value="OR-6q1sg6k"/>
+</when>
+<when expression="#[flowVars.cp == &quot;grep&quot;]">
+<set-payload doc:name="Set Payload" value="OR-z60c17h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;mediaconch&quot;]">
+<set-payload doc:name="Set Payload" value="OR-k06x08k"/>
+</when>
+<when expression="#[flowVars.cp == &quot;tothepoint&quot;]">
+<set-payload doc:name="Set Payload" value="OR-f76665f"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stedelijkmuseumhoogstraten&quot;]">
+<set-payload doc:name="Set Payload" value="OR-9g5gd0s"/>
+</when>
+<when expression="#[flowVars.cp == &quot;villanella&quot;]">
+<set-payload doc:name="Set Payload" value="OR-5q4rk67"/>
+</when>
+<when expression="#[flowVars.cp == &quot;navigo&quot;]">
+<set-payload doc:name="Set Payload" value="OR-x63b48c"/>
+</when>
+<when expression="#[flowVars.cp == &quot;troubleynjanfabre&quot;]">
+<set-payload doc:name="Set Payload" value="OR-sf2mb4x"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kunst-werk&quot;]">
+<set-payload doc:name="Set Payload" value="OR-ns0kx2n"/>
+</when>
+<when expression="#[flowVars.cp == &quot;stadsbibliotheekkortrijk&quot;]">
+<set-payload doc:name="Set Payload" value="OR-kk94b7d"/>
+</when>
+<when expression="#[flowVars.cp == &quot;algemeenrijksarchief&quot;]">
+<set-payload doc:name="Set Payload" value="OR-fx73x54"/>
+</when>
+<when expression="#[flowVars.cp == &quot;koninklijkebibliotheek&quot;]">
+<set-payload doc:name="Set Payload" value="OR-b56d422"/>
+</when>
+<when expression="#[flowVars.cp == &quot;koninklijkmuseumvanhetlegerendekrijgsgeschiedenis&quot;]">
+<set-payload doc:name="Set Payload" value="OR-6d5p979"/>
+</when>
+<when expression="#[flowVars.cp == &quot;denwetijd&quot;]">
+<set-payload doc:name="Set Payload" value="OR-5d8nd7z"/>
+</when>
+<when expression="#[flowVars.cp == &quot;kaap&quot;]">
+<set-payload doc:name="Set Payload" value="OR-1n7xm3h"/>
+</when>
+<when expression="#[flowVars.cp == &quot;medialaan&quot;]">
+<set-payload doc:name="Set Payload" value="OR-gq6r19m"/>
+</when>
+<when expression="#[flowVars.cp == &quot;viaaarchief&quot;]">
+<set-payload doc:name="Set Payload" value="OR-bz61758"/>
+</when>
+            <otherwise>
+                <expression-component doc:name="Expression"><![CDATA[throw new java.lang.RuntimeException("No OR-ID was found for this CP");]]></expression-component>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

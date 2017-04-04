@@ -69,17 +69,17 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     </sub-flow>
     <sub-flow name="PI_LOG"> 
         <db:insert config-ref="borndigital" doc:name="Log to database">
-            <db:parameterized-query><![CDATA[INSERT INTO ${db.eventstable}(pid, cp_id, name, outcome, agent, date, comment, cp, flow_id, essence_md5)
+            <db:parameterized-query><![CDATA[INSERT INTO ${db.eventstable}(pid, "local_id", filename, md5, organisation, "organisation_id", "type", outcome, "date", "comment")
 VALUES ((#[flowVars.pid == null ? "UNKNOWN" : flowVars.pid]),
-(#[flowVars.input.sip_package[0].file_name.split("\\.")[0] == null ? "UNKNOWN" : flowVars.input.sip_package[0].file_name.split("\\.")[0]]),
+(#[flowVars.'local_id' == null ? "UNKNOWN" : flowVars.'local_id']),
+(#[flowVars.filenameEssence == null ? "UNKNOWN" : flowVars.filenameEssence]),
+(#[flowVars.md5metadata == null ? "UNKNOWN" : flowVars.md5metadata]),
+#[flowVars.cp],
+#[flowVars.'cp_id'],
 (#[flowVars.eventName == null ? "UNKNOWN" : flowVars.eventName]),
 CAST(#[flowVars.result] as outcome),
-'PI',
 #[server.dateTime.format("yyyy-MM-dd HH:mm:ss")],
-#[flowVars.comment],
-#[flowVars.input.cp_name],
-#[flowVars.input.flow_id],
-(#[flowVars.md5metadata == null ? "UNKNOWN" : flowVars.md5metadata]));]]></db:parameterized-query>
+#[flowVars.comment]);]]></db:parameterized-query>
   
         </db:insert>  
     </sub-flow>

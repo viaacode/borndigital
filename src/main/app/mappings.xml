@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
@@ -11,7 +11,9 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
     <and-filter name="And" doc:name="And">
         <expression-filter expression="#[flowVars.comment = &quot;Metadata format was incorrect.&quot;]" nullReturnsTrue="true"/>
         <filter ref="Provant_Schema_Validation"/>
@@ -62,9 +64,10 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 {
 	MediaHAVEN_external_metadata: 
 	{
-		title: flowVars.pid ++ "-" ++ flowVars.mediaId,
+		title: flowVars.pid ++ "-" ++ flowVars.local_id,
 		MDProperties: {
 			CP: p('cp'),
+			CP_id: flowVars.cp_id,
 			sp_name: 'dailies' when flowVars.origin != 'tape' otherwise 'intake_existing',
 			PID: flowVars.pid,
 			dc_identifier_localid: flowVars.local_id,
@@ -73,8 +76,8 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 	}
 }]]></dw:set-payload>
         </dw:transform-message>
-        <object-to-string-transformer doc:name="Object to String"/>
-        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set mappedXml"/>
         <!--
         <message-filter throwOnUnaccepted="true" doc:name="Check output format">
             <and-filter>
@@ -92,18 +95,62 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="dc_publisher" value="#[xpath3(&quot;//*[local-name() = 'publisher']/text()&quot;)]" doc:name="Set dc_publisher"/>
-        <set-variable variableName="CP" value="#[flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()]" doc:name="Set CP (from dc_publisher museumedelsmeedkunstjuwelenendiamant tenant)"/>
-        <set-variable variableName="credits" value="#[xpath3(&quot;//*[local-name() = 'Credit']/text()&quot;)]" doc:name="Set credits"/>
+        <choice doc:name="dc_publisher != null?">
+            <when expression="#[flowVars.dc_publisher == null]">
+                <validation:is-true config-ref="Validation_Configuration" expression="#[false]" doc:name="Throw exception because publisher is null"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="cp" value="#[flowVars.dc_publisher != 'null' ? (flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()) : flowVars.cp]" doc:name="Set cp (from dc_publisher museumedelsmeedkunstjuwelenendiamant tenant)"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="credits" value="#[xpath3(&quot;//*[local-name() = 'credit']/text()&quot;) == &quot;&quot; ? xpath3(&quot;//*[local-name() = 'Credit']/text()&quot;) : xpath3(&quot;//*[local-name() = 'credit']/text()&quot;)]" doc:name="Set credits"/>
+        <set-variable variableName="relation" value="#[xpath3(&quot;//*[local-name() = 'relation']/text()&quot;)]" doc:name="Set relation (with a collection)"/>
+        <set-variable variableName="relationDescription" value="#[xpath3(&quot;//*[local-name() = 'relation']/text()&quot;) != &quot;&quot; ? &quot;\nCollectie: &quot; + xpath3(&quot;//*[local-name() = 'relation']/text()&quot;) : &quot;&quot;]" doc:name="Set relationDescription"/>
+        <set-variable variableName="description" value="#[xpath3(&quot;//*[local-name() = 'description']/text()&quot;) + flowVars.relationDescription]" doc:name="Set description"/>
+        <set-variable variableName="title" value="#[xpath3(&quot;//*[local-name() = 'title']/text()&quot;) == &quot;&quot; ? xpath3(&quot;//*[local-name() = 'AOSourceInvNo']/text()&quot;) : xpath3(&quot;//*[local-name() = 'title']/text()&quot;) ]" doc:name="Set title"/>
+        <set-variable variableName="termsAndConditionsText" value="#[xpath3(&quot;//*[local-name() = 'TermsAndConditionsText']/text()&quot;)]" doc:name="Set termsAndConditionsText"/>
+        <choice doc:name="Which license?">
+            <when expression="#[flowVars.termsAndConditionsText == &quot;Public domain&quot;]">
+                <set-variable variableName="license" value="#[&quot;Publiek domein&quot;]" doc:name="Set license (Publiek domein)"/>
+            </when>
+            <when expression="#[flowVars.termsAndConditionsText == &quot;http://creativecommons.org/licenses/by/3.0/&quot;]">
+                <set-variable variableName="license" value="#[&quot;CC-BY&quot;]" doc:name="Set license (CC-BY)"/>
+            </when>
+            <when expression="#[flowVars.termsAndConditionsText == &quot;allRightsReserved&quot;]">
+                <set-variable variableName="license" value="#[&quot;VIAA licentie&quot;]" doc:name="Set license (VIAA licentie)"/>
+            </when>
+            <otherwise>
+                <expression-component doc:name="do nothing"><![CDATA[// do nothing]]></expression-component>
+            </otherwise>
+        </choice>
+        <set-variable variableName="dctermsCreated" value="#[xpath3(&quot;//*[name()='dcterms:created']/text()&quot;)]" doc:name="Set dctermsCreated"/>
+        <set-variable variableName="dateCreated" value="#[xpath3(&quot;//*[local-name() = 'date']/text()&quot;)]" doc:name="Set dateCreated"/>
+        <set-variable variableName="otherImageInfo" value="#[xpath3(&quot;//*[local-name() = 'OtherImageInfo']/text()&quot;)]" doc:name="Set otherImageInfo"/>
+        <set-variable variableName="licenseHolder" value="#[xpath3(&quot;//*[local-name() = 'LicensorName']/text()&quot;)]" doc:name="Set licenseHolder"/>
+        <choice doc:name="Set cp_id">
+            <when expression="#[flowVars.cp == 'fomu']">
+                <set-variable variableName="cp_id" value="#['OR-pg1hn2h']" doc:name="Set cp_id for fomu"/>
+            </when>
+            <when expression="#[flowVars.cp == 'momu']">
+                <set-variable variableName="cp_id" value="#['OR-td9n72t']" doc:name="Set cp_id for momu"/>
+            </when>
+            <when expression="#[flowVars.cp == 'museumedelsmeedkunstjuwelenendiamant']">
+                <set-variable variableName="cp_id" value="#['OR-d21rh8x']" doc:name="Set cp_id for museumedelsmeedkunstjuwelenendiamant"/>
+            </when>
+            <otherwise>
+                <validation:is-true config-ref="Validation_Configuration" expression="#[false]" doc:name="Throw exception because not valid cp"/>
+            </otherwise>
+        </choice>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml" />
             <dw:input-variable  variableName="comment"/>
             <dw:set-payload><![CDATA[%dw 1.0
-%output application/xml
+%output application/xml skipNullOn="everywhere"
 %namespace ns0 http://www.jcp.org/jcr/1.0
 %namespace ns6 http://purl.org/dc/elements/1.1/
 %namespace ns11 http://www.day.com/jcr/cq/1.0
 %namespace ns12 http://dublincore.org/documents/dcmi-terms/
-%function split(name) name splitBy ", "
+%function split(name) name splitBy ","
 %namespace ns4 http://iptc.org/std/Iptc4xmpExt/2008-02-29/
 %namespace ns7 http://www.loc.gov/standards/premis/v2/premis.xsd
 %namespace ns2 http://ns.useplus.org/ldf/xmp/1.0/
@@ -112,29 +159,33 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 ---
 {
 	MediaHAVEN_external_metadata: {
-		(title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") 
-			otherwise (payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo 
-				when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
-				when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,
-		description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
+		title: flowVars.title,
+		description: flowVars.description,
 		MDProperties: {
 			sp_name: 'borndigital',
-			CP: flowVars.CP,
+			CP: flowVars.cp,
+			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
-			CreationDate: payload.xml.ns0#content.metadata.ns6#date when payload.xml.ns0#content.metadata.ns6#date? otherwise "",
-			(dc_title: payload.xml.ns0#content.metadata.ns6#title when (payload.xml.ns0#content.metadata.ns6#title? and payload.xml.ns0#content.metadata.ns6#title != "") 
-					otherwise (payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo 
-						when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo? otherwise ""))
-					when payload.xml.ns0#content.metadata.ns6#title != null or payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo != null,
-			dcterms_created: payload.xml.ns0#content.metadata.ns6#date when payload.xml.ns0#content.metadata.ns6#date? otherwise "",
+			CreationDate: flowVars.dctermsCreated,
+			dc_title: flowVars.title,
+			dc_titles @(type: "list"): {
+				reeks: flowVars.relation
+			},
+			dc_source: flowVars.filenameEssence,
+			dcterms_issued: flowVars.dctermsCreated,
+			dcterms_created: flowVars.dctermsCreated,
+			(Licentie: flowVars.license) when flowVars.license?,
 			dc_identifier_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
 			dc_identifier_localids @(type: "list"): {
 				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?,
 				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo?
 			},
 			dc_rights_rightsOwners @(type: "list"): {
-				(rechtenhouder: payload.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName) when payload.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName?,
-				(rechtenhouder: payload.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName) when payload.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName?
+				(rechtenhouder: payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName) when payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName?,
+				(rechtenhouder: payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName) when payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName?
+			},
+			dc_rights_rightsHolders @(type: "list"): {
+				(Licentiehouder: flowVars.licenseHolder) when flowVars.licenseHolder?
 			},
 			dc_contributors @(type: "list"): {
 				(contributor: payload.xml.ns0#content.metadata.ns6#contributor) when payload.xml.ns0#content.metadata.ns6#contributor?	
@@ -149,19 +200,22 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 					}
 				)
 			}) when payload.xml.ns0#content.metadata.ns6#subject?,
-			(dc_coverages @(type: "list"): {
-				(
-					split(payload.xml.ns0#content.metadata.ns8#Location) map {
+			dc_coverages @(type: "list"): {
+				(split(payload.xml.ns0#content.metadata.ns8#Location)  map {
 						ruimte: $
 					}
-				)
-			}) when payload.xml.ns0#content.metadata.ns8#Location?,
+				),
+				tijd: flowVars.dateCreated
+			} when payload.xml.ns0#content.metadata.ns8#Location? 
+			otherwise 
+			(dc_coverages @(type: "list"): {
+				tijd: flowVars.dateCreated
+			}),	
 			(dc_rights_credit: flowVars.credits) when flowVars.credits?,
-			//(dc_rights_credit: payload.xml.ns0#content.metadata.ns9#credit) when payload.xml.ns0#content.metadata.ns9#credit?,
-			dc_description: payload.xml.ns0#content.metadata.ns6#description when (payload.xml.ns0#content.metadata.ns6#description?) otherwise "",
-			// Not found:
-			(dc_rights_comment: payload.xml.ns0#content.metadata.ns2#OtherImageInfo) when payload.xml.ns0#content.metadata.ns2#OtherImageInfo?,
-			(md5: payload.xml.md5) when payload.xml.md5?
+			dc_description: flowVars.description,
+			dc_publisher: flowVars.dc_publisher,
+			dc_rights_comment: flowVars.termsAndConditionsText ++ "\n" ++ flowVars.otherImageInfo,
+			(md5: flowVars.md5metadata) when flowVars.md5metadata != null
 		}
 	}
 }]]></dw:set-payload>
@@ -189,7 +243,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="content.xml"/>
             <dw:input-variable variableName="comment"/>
@@ -213,7 +266,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
         <http:request config-ref="vlaamsparlementportaal" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
             <http:request-builder>
                 <http:header headerName="Accept" value="application/json"/>

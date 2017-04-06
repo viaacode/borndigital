@@ -89,7 +89,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <foreach collection="#[flowVars.files]" doc:name="For Each">
             <choice doc:name="Choice">
                 <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP/TAPE-SHARE-EVENTS"/>
+                    <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <dw:transform-message doc:name="Build fxp request">
                         <dw:input-variable variableName="currentItem"/>

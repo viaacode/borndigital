@@ -23,92 +23,48 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <set-variable variableName="copy_xml" value="#[flowVars.incomingXml.substring(flowVars.incomingXml.indexOf('MediaHAVEN_external_metadata&gt;') + 30, flowVars.incomingXml.indexOf('&lt;/MediaHAVEN_external_metadata&gt;')-1)]" doc:name="Set copy_xml"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="dc_description" value="#[xpath3(&quot;//*[local-name() = 'dc_description']/text()&quot;)]" doc:name="Set dc_description"/>
+        <set-variable variableName="dcterms_created" value="#[xpath3(&quot;//*[local-name() = 'dcterms_created']/text()&quot;)]" doc:name="Set dcterms_created"/>
+        <set-variable variableName="CreationDate" value="#[flowVars.dcterms_created + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_created (from EDTF to EXIF)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml"/>
             <dw:input-variable variableName="comment"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml skipNullOn="everywhere"
-%namespace ns0 http://www.jcp.org/jcr/1.0
-%namespace ns6 http://purl.org/dc/elements/1.1/
-%namespace ns11 http://www.day.com/jcr/cq/1.0
-%namespace ns12 http://dublincore.org/documents/dcmi-terms/
 %function split(name) name splitBy ","
-%namespace ns4 http://iptc.org/std/Iptc4xmpExt/2008-02-29/
-%namespace ns7 http://www.loc.gov/standards/premis/v2/premis.xsd
-%namespace ns2 http://ns.useplus.org/ldf/xmp/1.0/
-%namespace ns8 http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/
-%namespace ns9 http://ns.adobe.com/photoshop/1.0/
 ---
 {
 	MediaHAVEN_external_metadata: {
-		title: flowVars.title,
-		description: flowVars.description,
+		title: flowVars.filenameWithoutExtension,
+		description: flowVars.dc_description,
 		MDProperties: {
 			sp_name: 'borndigital',
 			CP: flowVars.cp,
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
-			CreationDate: flowVars.dctermsCreated,
-			dc_title: flowVars.title,
-			dc_titles @(type: "list"): {
-				reeks: flowVars.relation
-			},
+			CreationDate: flowVars.CreationDate,
 			dc_source: flowVars.filenameEssence,
-			dcterms_issued: flowVars.dctermsCreated,
-			dcterms_created: flowVars.dctermsCreated,
-			dc_rights_licenses @(type: "list"): {
-				(licentie: flowVars.license) when flowVars.license?
-			},
-			dc_identifier_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
-			dc_identifier_localids @(type: "list"): {
-				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?,
-				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo?
-			},
-			dc_rights_rightsOwners @(type: "list"): {
-				(rechtenhouder: payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName) when payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName?,
-				(rechtenhouder: payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName) when payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName?
-			},
-			dc_rights_rightsHolders @(type: "list"): {
-				(Licentiehouder: flowVars.licenseHolder) when flowVars.licenseHolder?
-			},
-			dc_contributors @(type: "list"): {
-				(contributor: payload.xml.ns0#content.metadata.ns6#contributor) when payload.xml.ns0#content.metadata.ns6#contributor?	
-			},
-			dc_creators @(type: "list"): {
-				(creator: payload.xml.ns0#content.metadata.ns6#creator) when payload.xml.ns0#content.metadata.ns6#creator?
-			},
-			(dc_subjects @(type: "list"): {
-				(
-					split(payload.xml.ns0#content.metadata.ns6#subject) map {
-						trefwoord: $
-					}
-				)
-			}) when payload.xml.ns0#content.metadata.ns6#subject?,
-			dc_coverages @(type: "list"): {
-				(split(payload.xml.ns0#content.metadata.ns8#Location)  map {
-						ruimte: $
-					}
-				),
-				(tijd: flowVars.dateCreated) when flowVars.dateCreated != ""
-			} when payload.xml.ns0#content.metadata.ns8#Location?
-			otherwise 
-			{
-				(tijd: flowVars.dateCreated) when flowVars.dateCreated != ""
-			},	
-			(dc_rights_credit: flowVars.credits) when flowVars.credits?,
-			dc_description: flowVars.description,
-			dc_publisher: flowVars.dc_publisher,
-			dc_rights_comment: flowVars.termsAndConditionsText ++ "\n" ++ flowVars.otherImageInfo,
-			(md5: flowVars.md5metadata) when flowVars.md5metadata != null
+			// Default VIAA license?
+			//dc_rights_licenses @(type: "list"): {
+			//	(licentie: flowVars.license) when flowVars.license?
+			//}
+			(lookup('get_sidecar', flowVars.incomingXml))
 		}
 	}
 }]]></dw:set-payload>
         </dw:transform-message>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set mappedXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="get_sidecar">
+        <logger message="Start get_sidecar: #[payload]" level="INFO" doc:name="Start get_sidecar"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <logger message="After: #[payload]" level="INFO" doc:name="Logger"/>
     </sub-flow>
         <sub-flow name="PI_METADATA_MAPPING_VRT">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>

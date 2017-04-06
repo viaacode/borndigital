@@ -104,6 +104,15 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+        <choice doc:name="SIP contains subtitle file?">
+            <when expression="">
+                <logger message="Contains subtitles" level="INFO" doc:name="Contains subtitles; TODO"/>
+            </when>
+            <otherwise>
+                <expression-component doc:name="No subtitles, do nothing"><![CDATA[// No subtitles, do nothing]]></expression-component>
+            </otherwise>
+        </choice>
+        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
@@ -277,6 +286,10 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <logger message="Local id Meise" level="INFO" doc:name="Meise"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_cpid/text()&quot;)]" doc:name="Set local_id from dc_identifier_cpid (legacy)"/>
+            </when>
+            <when expression="#[flowVars.cp.equals(&quot;RMM&quot;) || flowVars.cp.equals(&quot;rmm&quot;)]">
+                <logger message="Local id RMM" level="INFO" doc:name="RMM"/>
+                <set-variable variableName="local_id" value="#[flowVars.filenameWithoutExtension]" doc:name="Set local_id with filenameWithoutExtension"/>
             </when>
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>

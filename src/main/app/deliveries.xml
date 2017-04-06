@@ -128,13 +128,13 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <choice doc:name="APA | FOMU | MOMU | museumedelsmeedkunstjuwelenendiamant ?">
-            <when expression="#[flowVars.CP.equals(&quot;fomu&quot;)]">
+            <when expression="#[flowVars.cp.equals(&quot;FoMu&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/fomu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
-            <when expression="#[flowVars.CP.equals(&quot;momu&quot;)]">
+            <when expression="#[flowVars.cp.equals(&quot;MoMu&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/momu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
-            <when expression="#[flowVars.CP.equals(&quot;museumedelsmeedkunstjuwelenendiamant&quot;)]">
+            <when expression="#[flowVars.cp.equals(&quot;Museum Edelsmeedkunst, Juwelen en Diamant&quot;)]">
                 <set-variable variableName="destinationPath" value="#[&quot;/museumedelsmeedkunstjuwelenendiamant&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
             </when>
             <otherwise>

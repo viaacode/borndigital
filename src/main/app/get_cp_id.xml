@@ -143,7 +143,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 <when expression="#[flowVars.cp == &quot;memorialmuseumpasschendaele1917&quot;]">
 <set-payload doc:name="Set Payload" value="OR-ks6j41w"/>
 </when>
-<when expression="#[flowVars.cp == &quot;momu&quot;]">
+<when expression="#[flowVars.cp == &quot;MoMu&quot;]">
 <set-payload doc:name="Set Payload" value="OR-td9n72t"/>
 </when>
 <when expression="#[flowVars.cp == &quot;msk&quot;]">
@@ -212,7 +212,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 <when expression="#[flowVars.cp == &quot;provant&quot;]">
 <set-payload doc:name="Set Payload" value="OR-t727f6z"/>
 </when>
-<when expression="#[flowVars.cp == &quot;fomu&quot;]">
+<when expression="#[flowVars.cp == &quot;FoMu&quot;]">
 <set-payload doc:name="Set Payload" value="OR-pg1hn2h"/>
 </when>
 <when expression="#[flowVars.cp == &quot;apa&quot;]">
@@ -314,7 +314,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 <when expression="#[flowVars.cp == &quot;wtv&quot;]">
 <set-payload doc:name="Set Payload" value="OR-mc8rf9b"/>
 </when>
-<when expression="#[flowVars.cp == &quot;museumedelsmeedkunstjuwelenendiamant&quot;]">
+<when expression="#[flowVars.cp == &quot;Museum Edelsmeedkunst, Juwelen en Diamant&quot;]">
 <set-payload doc:name="Set Payload" value="OR-d21rh8x"/>
 </when>
 <when expression="#[flowVars.cp == &quot;operaballetvanvlaanderen&quot;]">

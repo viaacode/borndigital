@@ -22,30 +22,90 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <sub-flow name="PI_METADATA_MAPPING_MHEM">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
-        <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['collateral'].file_path]/#[flowVars.files['collateral'].file_name]?connector=FTP" doc:name="Get SRT file from FTP" throwExceptionOnTimeout="true"/>
-        <invoke object-ref="srtService" method="TransformSrt" methodArguments="#[payload]" doc:name="Invoke"/>
-        <set-variable variableName="fragments" value="#[payload]" doc:name="Set Fragments"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
-        <dw:transform-message doc:name="Transform Message">
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
+            <dw:input-payload doc:sample="sample_data/empty.xml"/>
+            <dw:input-variable variableName="comment"/>
             <dw:set-payload><![CDATA[%dw 1.0
-%output application/xml
+%output application/xml skipNullOn="everywhere"
+%namespace ns0 http://www.jcp.org/jcr/1.0
+%namespace ns6 http://purl.org/dc/elements/1.1/
+%namespace ns11 http://www.day.com/jcr/cq/1.0
+%namespace ns12 http://dublincore.org/documents/dcmi-terms/
+%function split(name) name splitBy ","
+%namespace ns4 http://iptc.org/std/Iptc4xmpExt/2008-02-29/
+%namespace ns7 http://www.loc.gov/standards/premis/v2/premis.xsd
+%namespace ns2 http://ns.useplus.org/ldf/xmp/1.0/
+%namespace ns8 http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/
+%namespace ns9 http://ns.adobe.com/photoshop/1.0/
 ---
 {
-	"cp_name": flowVars.input.cp_name,
-	"pid": flowVars.pid
+	MediaHAVEN_external_metadata: {
+		title: flowVars.title,
+		description: flowVars.description,
+		MDProperties: {
+			sp_name: 'borndigital',
+			CP: flowVars.cp,
+			CP_id: flowVars.cp_id,
+			PID: flowVars.pid,
+			CreationDate: flowVars.dctermsCreated,
+			dc_title: flowVars.title,
+			dc_titles @(type: "list"): {
+				reeks: flowVars.relation
+			},
+			dc_source: flowVars.filenameEssence,
+			dcterms_issued: flowVars.dctermsCreated,
+			dcterms_created: flowVars.dctermsCreated,
+			dc_rights_licenses @(type: "list"): {
+				(licentie: flowVars.license) when flowVars.license?
+			},
+			dc_identifier_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
+			dc_identifier_localids @(type: "list"): {
+				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?,
+				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0032_".ns4#AOSourceInvNo?
+			},
+			dc_rights_rightsOwners @(type: "list"): {
+				(rechtenhouder: payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName) when payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0031_".ns2#CopyrightOwnerName?,
+				(rechtenhouder: payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName) when payload.xml.ns0#content.metadata.ns2#CopyrightOwner."_x0032_".ns2#CopyrightOwnerName?
+			},
+			dc_rights_rightsHolders @(type: "list"): {
+				(Licentiehouder: flowVars.licenseHolder) when flowVars.licenseHolder?
+			},
+			dc_contributors @(type: "list"): {
+				(contributor: payload.xml.ns0#content.metadata.ns6#contributor) when payload.xml.ns0#content.metadata.ns6#contributor?	
+			},
+			dc_creators @(type: "list"): {
+				(creator: payload.xml.ns0#content.metadata.ns6#creator) when payload.xml.ns0#content.metadata.ns6#creator?
+			},
+			(dc_subjects @(type: "list"): {
+				(
+					split(payload.xml.ns0#content.metadata.ns6#subject) map {
+						trefwoord: $
+					}
+				)
+			}) when payload.xml.ns0#content.metadata.ns6#subject?,
+			dc_coverages @(type: "list"): {
+				(split(payload.xml.ns0#content.metadata.ns8#Location)  map {
+						ruimte: $
+					}
+				),
+				(tijd: flowVars.dateCreated) when flowVars.dateCreated != ""
+			} when payload.xml.ns0#content.metadata.ns8#Location?
+			otherwise 
+			{
+				(tijd: flowVars.dateCreated) when flowVars.dateCreated != ""
+			},	
+			(dc_rights_credit: flowVars.credits) when flowVars.credits?,
+			dc_description: flowVars.description,
+			dc_publisher: flowVars.dc_publisher,
+			dc_rights_comment: flowVars.termsAndConditionsText ++ "\n" ++ flowVars.otherImageInfo,
+			(md5: flowVars.md5metadata) when flowVars.md5metadata != null
+		}
+	}
 }]]></dw:set-payload>
         </dw:transform-message>
-        <mulexml:xslt-transformer xsl-file="transform.xsl" maxIdleTransformers="2" maxActiveTransformers="5" doc:name="XSLT">
-        	<mulexml:context-property key="fragments" value="#[flowVars.fragments]"/>
-        </mulexml:xslt-transformer>
-        <object-to-string-transformer doc:name="Object to String"/>
-        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
-        <message-filter throwOnUnaccepted="true" doc:name="Check output format">
-        <and-filter>
-        	<expression-filter expression="#[flowVars.comment = &quot;Output format is incorrect.&quot;]" />
-        	<filter ref="xsdValidator"/>
-        </and-filter>
-        </message-filter>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
@@ -100,7 +160,25 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <validation:is-true config-ref="Validation_Configuration" expression="#[false]" doc:name="Throw exception because publisher is null"/>
             </when>
             <otherwise>
-                <set-variable variableName="cp" value="#[flowVars.dc_publisher != 'null' ? (flowVars.dc_publisher.equals(&quot;Museum voor edelsmeedkunst juwelen en diamant&quot;) ? &quot;museumedelsmeedkunstjuwelenendiamant&quot; : flowVars.dc_publisher.toLowerCase()) : flowVars.cp]" doc:name="Set cp (from dc_publisher museumedelsmeedkunstjuwelenendiamant tenant)"/>
+                <set-variable variableName="dc_publisher_lower" value="#[flowVars.dc_publisher.toLowerCase()]" doc:name="Set dc_publisher in lowercase"/>
+                <choice doc:name="Set cp">
+                    <when expression="flowVars.dc_publisher_lower.equals(&quot;fomu&quot;)">
+                        <logger message="FoMu" level="INFO" doc:name="CP is FoMu"/>
+                        <set-variable variableName="cp" value="#[&quot;FoMu&quot;]" doc:name="Set cp as FoMu"/>
+                    </when>
+                    <when expression="flowVars.dc_publisher_lower.equals(&quot;momu&quot;)">
+                        <logger message="CP is MoMu" level="INFO" doc:name="CP is MoMu"/>
+                        <set-variable variableName="cp" value="#[&quot;MoMu&quot;]" doc:name="Set cp as MoMu"/>
+                    </when>
+                    <when expression="flowVars.dc_publisher_lower.equals(&quot;museum voor edelsmeedkunst juwelen en diamant&quot;)">
+                        <logger message="CP is Museum Edelsmeedkunst, Juwelen en Diamant" level="INFO" doc:name="CP is Museum Edelsmeedkunst, Juwelen en Diamant"/>
+                        <set-variable variableName="cp" value="#[&quot;Museum Edelsmeedkunst, Juwelen en Diamant&quot;]" doc:name="Set cp as Museum Edelsmeedkunst, Juwelen en Diamant"/>
+                    </when>
+                    <otherwise>
+                        <logger message="Unknown dc_publisher" level="WARN" doc:name="Unknown dc_publisher"/>
+                        <set-variable variableName="cp" value="#[flowVars.cp]" doc:name="Set cp as provant"/>
+                    </otherwise>
+                </choice>
             </otherwise>
         </choice>
         <set-variable variableName="credits" value="#[xpath3(&quot;//*[local-name() = 'credit']/text()&quot;) == &quot;&quot; ? xpath3(&quot;//*[local-name() = 'Credit']/text()&quot;) : xpath3(&quot;//*[local-name() = 'credit']/text()&quot;)]" doc:name="Set credits"/>
@@ -114,7 +192,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="license" value="#[&quot;Publiek domein&quot;]" doc:name="Set license (Publiek domein)"/>
             </when>
             <when expression="#[flowVars.termsAndConditionsText == &quot;http://creativecommons.org/licenses/by/3.0/&quot;]">
-                <set-variable variableName="license" value="#[&quot;CC-BY&quot;]" doc:name="Set license (CC-BY)"/>
+                <set-variable variableName="license" value="#[&quot;CC BY&quot;]" doc:name="Set license (CC-BY)"/>
             </when>
             <when expression="#[flowVars.termsAndConditionsText == &quot;allRightsReserved&quot;]">
                 <set-variable variableName="license" value="#[&quot;VIAA licentie&quot;]" doc:name="Set license (VIAA licentie)"/>
@@ -125,16 +203,17 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         </choice>
         <set-variable variableName="dctermsCreated" value="#[xpath3(&quot;//*[name()='dcterms:created']/text()&quot;)]" doc:name="Set dctermsCreated"/>
         <set-variable variableName="dateCreated" value="#[xpath3(&quot;//*[local-name() = 'date']/text()&quot;)]" doc:name="Set dateCreated"/>
+        <set-variable variableName="CreationDate" value="#[flowVars.dctermsCreated != &quot;&quot; ? (flowVars.dctermsCreated + &quot; 00:00:00&quot;) : &quot;&quot;]" doc:name="Set CreationDate (MH)"/>
         <set-variable variableName="otherImageInfo" value="#[xpath3(&quot;//*[local-name() = 'OtherImageInfo']/text()&quot;)]" doc:name="Set otherImageInfo"/>
         <set-variable variableName="licenseHolder" value="#[xpath3(&quot;//*[local-name() = 'LicensorName']/text()&quot;)]" doc:name="Set licenseHolder"/>
         <choice doc:name="Set cp_id">
-            <when expression="#[flowVars.cp == 'fomu']">
+            <when expression="#[flowVars.cp == 'FoMu']">
                 <set-variable variableName="cp_id" value="#['OR-pg1hn2h']" doc:name="Set cp_id for fomu"/>
             </when>
-            <when expression="#[flowVars.cp == 'momu']">
+            <when expression="#[flowVars.cp == 'MoMu']">
                 <set-variable variableName="cp_id" value="#['OR-td9n72t']" doc:name="Set cp_id for momu"/>
             </when>
-            <when expression="#[flowVars.cp == 'museumedelsmeedkunstjuwelenendiamant']">
+            <when expression="#[flowVars.cp == 'Museum Edelsmeedkunst, Juwelen en Diamant']">
                 <set-variable variableName="cp_id" value="#['OR-d21rh8x']" doc:name="Set cp_id for museumedelsmeedkunstjuwelenendiamant"/>
             </when>
             <otherwise>
@@ -166,7 +245,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			CP: flowVars.cp,
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
-			CreationDate: flowVars.dctermsCreated,
+			(CreationDate: flowVars.CreationDate) when flowVars.CreationDate != "",
 			dc_title: flowVars.title,
 			dc_titles @(type: "list"): {
 				reeks: flowVars.relation
@@ -174,7 +253,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_source: flowVars.filenameEssence,
 			dcterms_issued: flowVars.dctermsCreated,
 			dcterms_created: flowVars.dctermsCreated,
-			(Licentie: flowVars.license) when flowVars.license?,
+			dc_rights_licenses @(type: "list"): {
+				(licentie: flowVars.license) when flowVars.license?
+			},
 			dc_identifier_localid: payload.xml.ns0#content.metadata.custom_uuid when payload.xml.ns0#content.metadata.custom_uuid? otherwise "",
 			dc_identifier_localids @(type: "list"): {
 				(SourceInvNo: payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo) when payload.xml.ns0#content.metadata.ns4#ArtworkOrObject."_x0031_".ns4#AOSourceInvNo?,
@@ -205,12 +286,12 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 						ruimte: $
 					}
 				),
-				tijd: flowVars.dateCreated
-			} when payload.xml.ns0#content.metadata.ns8#Location? 
+				(tijd: flowVars.dateCreated) when flowVars.dateCreated != ""
+			} when payload.xml.ns0#content.metadata.ns8#Location?
 			otherwise 
-			(dc_coverages @(type: "list"): {
-				tijd: flowVars.dateCreated
-			}),	
+			{
+				(tijd: flowVars.dateCreated) when flowVars.dateCreated != ""
+			},	
 			(dc_rights_credit: flowVars.credits) when flowVars.credits?,
 			dc_description: flowVars.description,
 			dc_publisher: flowVars.dc_publisher,
@@ -275,6 +356,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <json:json-to-object-transformer  doc:name="JSON to Object"/>
         <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(1,20)]" doc:name="Set datumBegin"/>
         <set-variable variableName="dcterms_created" value="#[flowVars.datumBegin.substring(0,10)]" doc:name="Set dcterms_created (datumBegin as yyyy-mm-dd)"/>
+        <set-variable variableName="CreationDate" value="#[flowVars.dcterms_created + &quot; 00:00:00&quot;]" doc:name="Set CreationDate (MH)"/>
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  ("DEEL " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + " ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
@@ -312,7 +394,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_titles @(type: "list"): {
 				reeks: payload.vergadering.commissie[0].titel
 			},
-			CreationDate: flowVars.datumBegin,
+			CreationDate: flowVars.CreationDate,
 			dcterms_issued: flowVars.datumBegin,
 			dcterms_created: flowVars.dcterms_created,
 			dc_contributors @(type: "list"): {

@@ -44,12 +44,12 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
                         <otherwise>
                             <set-variable variableName="mh_result" value="#[payload[0]]" doc:name="Set mh_result"/>
                             <set-variable variableName="fragment_id" value="#[flowVars.mh_result.fragment_id]" doc:name="Set fragment_id"/>
-                            <choice doc:name="Archived, deleted or uknown?">
+                            <choice doc:name="Archived, deleted or something else?">
                                 <when expression="#[flowVars.mh_result.archive_status.equals('on_tape') || flowVars.mh_result.archive_status.equals('on_disk')]">
                                     <logger message="Essence is archived on tape or disk (#[flowVars.file.pid])" level="INFO" doc:name="Essence is archived on tape or disk"/>
                                     <db:update config-ref="borndigital" doc:name="Set archive_status OK, fragment_id">
                                         <db:parameterized-query><![CDATA[update sips
-set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'File is correct gearchiveerd'
+set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'File is correct gearchiveerd', is_deleted = false
 where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </db:update>
                                     <logger level="INFO" doc:name="Deleting source essence" message="Deleting source essence"/>
@@ -92,7 +92,7 @@ set preingest_status = 'TODO', is_deleted = true, fragment_id = #[flowVars.fragm
 where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </db:update>
                                 </when>
-                                <when expression="">
+                                <when expression="#[flowVars.mh_result.archive_status.equals('failed')]">
                                     <logger message="Essence has failed (#[flowVars.file.pid])" level="INFO" doc:name="Essence has failed"/>
                                     <db:update config-ref="borndigital" doc:name="Set to failed; mark as TODO to retry">
                                         <db:parameterized-query><![CDATA[update sips
@@ -101,7 +101,7 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </db:update>
                                 </when>
                                 <otherwise>
-                                    <logger message="mediahaven status = NULL ('file wordt nog verwerkt') (#[flowVars.file.pid])" level="INFO" doc:name="NULL, do nothing"/>
+                                    <logger message="mediahaven status = #[flowVars.mh_result.archive_status] (#[flowVars.file.pid])" level="INFO" doc:name="something else, do nothing"/>
                                     <choice doc:name="Fragment_id filled in?">
                                         <when expression="#[flowVars.file.fragment_id == &quot;&quot; || flowVars.file.fragment_id == null]">
                                             <db:update config-ref="borndigital" doc:name="Update fragment_id">
@@ -138,28 +138,29 @@ where id = #[payload.id]]]></db:parameterized-query>
         </catch-exception-strategy>
     </flow>
     <flow name="Redo" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="700000" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
+        <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="0" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <set-variable variableName="MAX_RETRIES" value="#[3]" doc:name="Set MAX_RETRIES (3)"/>
         <db:select config-ref="borndigital" doc:name="Retry records that have (archive_status !OK AND aren't modified for X hours AND has retry_count &lt; 3) OR have preingest_status TODO (for manual retry)">
             <db:parameterized-query><![CDATA[select *
 from sips
-WHERE (archive_status != 'OK' and (last_event_date > (now() - interval '100 hours')))
+WHERE (archive_status = 'in_progress' and (last_event_date < (now() - interval '100 hours')))
 	OR preingest_status = 'TODO'
 LIMIT 100;]]></db:parameterized-query>
         </db:select>
         <foreach doc:name="For Each">
-            <logger level="INFO" doc:name="Retry" message="Retrying #[flowVars.id] with pid #[flowVars.pid]"/>
-            <choice doc:name="Amount of retries == MAX_RETRIES?">
+            <logger level="INFO" doc:name="Retry" message="Retrying #[payload.id] with pid #[payload.pid]"/>
+            <choice doc:name="Amount of retries &lt; MAX_RETRIES?">
                 <when expression="#[payload.retry_count &lt; flowVars.MAX_RETRIES]">
                     <set-variable variableName="retry_count" value="#[payload.retry_count+1]" doc:name="Set retry_count++"/>
+                    <set-variable variableName="message" value="#[payload.message]" doc:name="Set message"/>
                     <db:update config-ref="borndigital" doc:name="update retry_count">
                         <db:parameterized-query><![CDATA[update sips
 set retry_count = #[flowVars.retry_count], archive_status = 'in_progress'
 where id = #[payload.id]]]></db:parameterized-query>
                     </db:update>
-                    <set-variable variableName="message" value="#[payload.message]" doc:name="Set message"/>
+                    <set-payload value="#[flowVars.message]" doc:name="Set Payload with message"/>
                     <flow-ref name="ingestByMessage" doc:name="ingestByMessage"/>
                 </when>
                 <otherwise>

@@ -170,7 +170,7 @@ where filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath]
         <set-variable variableName="eventName" value="PI_SET_PID" doc:name="Set eventName"/>
         <choice doc:name="SIP from VRT, Meise or generic?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
-                <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
+                <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>
                 <set-variable variableName="correlation_id" value="#[xpath3('//correlationId/text()')]" doc:name="Set correlation_id"/>
                 <db:select config-ref="borndigital" doc:name="Get info from vrt_message_buffer">
                     <db:parameterized-query><![CDATA[SELECT * 
@@ -182,7 +182,7 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
                 <set-variable variableName="status" value="#[&quot;New file from VRT&quot;]" doc:name="Set status"/>
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
+                <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>
                 <set-variable variableName="pid" value="#[xpath3('//PID/text()')]" doc:name="Set pid"/>
                 <set-variable variableName="md5" value="#[xpath3('//md5/text()')]" doc:name="Set md5"/>
                 <set-variable variableName="filepath" value="#[xpath3('//file_path/text()')]" doc:name="Set filepath"/>
@@ -263,7 +263,7 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
     </flow>
     <flow name="PI_SET_LOCAL_ID">
         <set-variable variableName="eventName" value="PI_SET_LOCAL_ID" doc:name="Set eventName"/>
-        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <logger message="local_id VRT" level="INFO" doc:name="VRT"/>

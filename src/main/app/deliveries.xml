@@ -99,10 +99,10 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 ---
 {
 	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destination_host": p('ftpDestination.host'),
-    "destination_password": p('ftpDestination.password'),
+    "destination_host": p('ftpDestinationSidecar.host'),
+    "destination_password": p('ftpDestinationSidecar.password'),
     "destination_path": flowVars.destinationPath,
-    "destination_user": p('ftpDestination.username'),
+    "destination_user": p('ftpDestinationSidecar.username'),
     "source_file": flowVars.filenameEssence,
     "source_host": flowVars.host,
     "source_password": flowVars.sourcePassword,
@@ -325,7 +325,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPGeneric" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.username}" password="${ftpDestination.password}"   outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP" connector-ref="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestinationSidecar.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestinationSidecar.username}" password="${ftpDestinationSidecar.password}"   outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP" connector-ref="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>

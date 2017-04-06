@@ -23,7 +23,6 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
-        <set-variable variableName="copy_xml" value="#[flowVars.incomingXml.substring(flowVars.incomingXml.indexOf('MediaHAVEN_external_metadata&gt;') + 30, flowVars.incomingXml.indexOf('&lt;/MediaHAVEN_external_metadata&gt;')-1)]" doc:name="Set copy_xml"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="dc_description" value="#[xpath3(&quot;//*[local-name() = 'dc_description']/text()&quot;)]" doc:name="Set dc_description"/>
         <set-variable variableName="dcterms_created" value="#[xpath3(&quot;//*[local-name() = 'dcterms_created']/text()&quot;)]" doc:name="Set dcterms_created"/>
@@ -44,6 +43,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			CP: flowVars.cp,
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
+			(dc_relations: {
+				bevat: flowVars.pid_collateral 
+			}) when flowVars.pid_collateral?,
 			CreationDate: flowVars.CreationDate,
 			dc_source: flowVars.filenameEssence,
 			// Default VIAA license?
@@ -61,11 +63,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
-    <sub-flow name="get_sidecar">
+    <flow name="get_sidecar">
         <logger message="Start get_sidecar: #[payload]" level="INFO" doc:name="Start get_sidecar"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <logger message="After: #[payload]" level="INFO" doc:name="Logger"/>
-    </sub-flow>
+    </flow>
         <sub-flow name="PI_METADATA_MAPPING_VRT">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>

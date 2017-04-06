@@ -104,12 +104,12 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <choice doc:name="SIP contains subtitle file?">
-            <when expression="">
-                <logger message="Contains subtitles" level="INFO" doc:name="Contains subtitles; TODO"/>
+        <choice doc:name="SIP contains collateral (e.g. subtitle)?">
+            <when expression="flowVars.files.get(&quot;collateral&quot;) != null">
+                <flow-ref name="SEND_COLLATERAL" doc:name="Flow Reference"/>
             </when>
             <otherwise>
-                <expression-component doc:name="No subtitles, do nothing"><![CDATA[// No subtitles, do nothing]]></expression-component>
+                <expression-component doc:name="No collateral, do nothing"><![CDATA[// No collateral, do nothing]]></expression-component>
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -342,6 +342,36 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
     <sub-flow name="CLEAR_VALUES">
         <remove-variable variableName="comment" doc:name="Clear Comment"/>
         <remove-variable variableName="result" doc:name="Clear result"/>
+    </sub-flow>
+    <sub-flow name="SEND_COLLATERAL">
+        <set-variable variableName="filenameCollateral" value="#[flowVars.files.collateral.file_name]" doc:name="Set filenameCollateral"/>
+        <logger message="Contains subtitles" level="INFO" doc:name="Contains collateral"/>
+        <set-variable variableName="extension_collateral" value="#[flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension_collateral"/>
+        <set-variable variableName="pid_collateral" value="#[flowVars.pid + '_' + flowVars.extension_collateral]" doc:name="Set pid_collateral"/>
+        <set-variable variableName="cp_mediahaven" value="#[flowVars.cp.toLowerCase()]" doc:name="Set cp_mediahaven"/>
+        <dw:transform-message doc:name="Build fxp request">
+            <dw:input-variable variableName="currentItem"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%input payload application/java
+%output application/json
+---
+{
+	"destination_file": flowVars.pid_collateral ++ '.' ++ flowVars.extension_collateral,
+    "destination_host": p('ftpDestinationCollateral.host'),
+    "destination_password": p('ftpDestinationCollateral.password'),
+    "destination_path": "/" ++ flowVars.cp_mediahaven ++ "/DISK-SHARE-EVENTS",
+    "destination_user": p('ftpDestinationCollateral.username'),
+    "source_file": flowVars.filenameCollateral,
+    "source_host": flowVars.host,
+    "source_password": flowVars.sourcePassword,
+    "source_path": flowVars.filepath,
+    "source_user": flowVars.sourceUsername,
+    "move": false
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
+        <logger message="Done sending subtitle with pid #[flowVars.pid_collateral] and local_id #[flowVars.local_id]" level="INFO" doc:name="Done sending subtitle"/>
     </sub-flow>
 
 </mule>

@@ -62,7 +62,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 <when expression="#[flowVars.cp == &quot;vlaamsparlement&quot;]">
 <set-payload doc:name="Set Payload" value="OR-7h1dk9t"/>
 </when>
-<when expression="#[flowVars.cp == &quot;rmm&quot;]">
+<when expression="#[flowVars.cp == &quot;RMM&quot;]">
 <set-payload doc:name="Set Payload" value="OR-222r544"/>
 </when>
 <when expression="#[flowVars.cp == &quot;gms&quot;]">

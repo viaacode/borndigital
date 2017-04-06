@@ -49,7 +49,7 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
                                     <logger message="Essence is archived on tape or disk (#[flowVars.file.pid])" level="INFO" doc:name="Essence is archived on tape or disk"/>
                                     <db:update config-ref="borndigital" doc:name="Set archive_status OK, fragment_id">
                                         <db:parameterized-query><![CDATA[update sips
-set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'File is correct gearchiveerd', is_deleted = false
+set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'File is correct gearchiveerd', is_deleted = false, retry_count = 0, reported = false
 where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </db:update>
                                     <logger level="INFO" doc:name="Deleting source essence" message="Deleting source essence"/>

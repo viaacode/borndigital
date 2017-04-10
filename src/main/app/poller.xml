@@ -44,7 +44,10 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
                         <otherwise>
                             <set-variable variableName="mh_result" value="#[payload[0]]" doc:name="Set mh_result"/>
                             <set-variable variableName="fragment_id" value="#[flowVars.mh_result.fragment_id]" doc:name="Set fragment_id"/>
-                            <choice doc:name="Archived, deleted or something else?">
+                            <choice doc:name="Last event of MH happened after last event preingest? (retry)">
+                            	<when expression="#[flowVars.mh_result.last_event_date &gt;= flowVars.file.last_event_date)]">
+                                    <logger message="Last event MH happened after preingest" level="INFO" doc:name="Last event MH happened after preingest"/>
+                            		                            <choice doc:name="Archived, deleted or something else?">
                                 <when expression="#[flowVars.mh_result.archive_status.equals('on_tape') || flowVars.mh_result.archive_status.equals('on_disk')]">
                                     <logger message="Essence is archived on tape or disk (#[flowVars.file.pid])" level="INFO" doc:name="Essence is archived on tape or disk"/>
                                     <db:update config-ref="borndigital" doc:name="Set archive_status OK, fragment_id">
@@ -116,6 +119,11 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </choice>
                                 </otherwise>
                             </choice>
+                            	</when>
+                                <otherwise>
+                                    <expression-component doc:name="Do nothing"><![CDATA[// Do nothing]]></expression-component>
+                                </otherwise>
+                            </choice>
                         </otherwise>
                     </choice>
                 </when>
@@ -165,9 +173,9 @@ where id = #[payload.id]]]></db:parameterized-query>
                 </when>
                 <otherwise>
                     <logger message="Max amount of retries reached. Set archive_status NOK" level="INFO" doc:name="Max amount of retries reached. Set archive_status NOK"/>
-                    <db:update config-ref="borndigital" doc:name="Set archive_status NOK">
+                    <db:update config-ref="borndigital" doc:name="Set archive_status NOK, preingest_status OK">
                         <db:parameterized-query><![CDATA[update sips
-set archive_status = 'NOK', comment = 'Ingest failed.'
+set archive_status = 'NOK', comment = 'Ingest failed.', preingest_status = 'OK'
 where id = #[payload.id]]]></db:parameterized-query>
                     </db:update>
                 </otherwise>

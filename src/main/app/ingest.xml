@@ -63,7 +63,7 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
                         <when expression="#[payload.size() &gt; 0]">
                             <db:update config-ref="borndigital" doc:name="Update existing record">
                                 <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'NOK', comment = #[flowVars.comment], message = #[flowVars.message], organisation_id = #[flowVars.cp_id], "archive_status" = 'in_progress'
+set "preingest_status" = 'NOK', comment = #[flowVars.comment], message = #[flowVars.message], organisation_id = #[flowVars.cp_id], "archive_status" = 'in_progress', retry_count = 0
 where id = #[payload[0].id]]]></db:parameterized-query>
                             </db:update>
                         </when>
@@ -154,7 +154,7 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             <otherwise>
                 <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
                     <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress'
+set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress', retry_count = 0
 where filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath] and host = #[flowVars.host] and md5 = #[flowVars.md5metadata]]]></db:parameterized-query>
                 </db:update>
             </otherwise>
@@ -323,7 +323,7 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
                                 <db:update config-ref="borndigital" doc:name="Update existing record">
                     <db:parameterized-query><![CDATA[update sips
 set filename = #[flowVars.filenameEssence], host = #[flowVars.host], filepath = #[flowVars.filepath], 
-	local_id = #[flowVars.local_id], md5 = #[flowVars.md5metadata], pid = #[flowVars.pid], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress'
+	local_id = #[flowVars.local_id], md5 = #[flowVars.md5metadata], pid = #[flowVars.pid], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress', retry_count = 0
 where id = #[payload[0].id]]]></db:parameterized-query>
                                 </db:update>
                             </when>

@@ -313,16 +313,36 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <json:json-to-object-transformer  doc:name="JSON to Object"/>
         <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(1,20)]" doc:name="Set datumBegin"/>
-        <set-variable variableName="dcterms_created" value="#[flowVars.datumBegin.substring(0,10)]" doc:name="Set dcterms_created (datumBegin as yyyy-mm-dd)"/>
-        <set-variable variableName="CreationDate" value="#[flowVars.dcterms_created + &quot; 00:00:00&quot;]" doc:name="Set CreationDate (MH)"/>
+        <set-variable variableName="CreationDate" value="#[flowVars.datumBegin.substring(0, 10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate (MH)"/>
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  ("DEEL " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + " ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
         <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item">
             <set-variable variableName="titel" value="#[payload['agenda-lijn'][0].titel != null ? payload['agenda-lijn'][0].titel + &quot;\n&quot; : &quot;&quot;]" doc:name="Set titel"/>
             <set-variable variableName="omschrijving" value="#[payload['agenda-lijn'][0].omschrijving != null ? payload['agenda-lijn'][0].omschrijving + &quot;\n&quot; : &quot;&quot;]" doc:name="Set omschrijving"/>
-            <set-variable variableName="vragenInterpellatie" value="#[payload['agenda-lijn'][0].vrageninterpellatie.size() &gt; 0 ? payload['agenda-lijn'][0].vrageninterpellatie[0].titel + &quot;\n&quot; : &quot;&quot;]" doc:name="Set vragenInterpellatie"/>
-            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counter + &quot;: &quot; + flowVars.titel + flowVars.omschrijving + flowVars.vragenInterpellatie + &quot;\n&quot;]" doc:name="Set dc_description_lang by concat"/>
+            <set-variable variableName="parlementair_initiatieven" value="#[null]" doc:name="Reset parlementair_initiatieven"/>
+            <choice doc:name="Parlementaire initieven &gt; 0?">
+                <when expression="#[payload['agenda-lijn'][0].'parlementair-initiatief'.size() &gt; 0]">
+                    <foreach collection="#[payload['agenda-lijn'][0].'parlementair-initiatief']" doc:name="For Each parlementaire initiatief">
+                        <set-variable variableName="parlementair_initiatieven" value="#[flowVars.'parlementair_initiatieven' != null ? (flowVars.'parlementair_initiatieven' + payload.titel + &quot;\n&quot;) : (payload.titel + &quot;\n&quot;)]" doc:name="Set parlementair_initiatieven"/>
+                    </foreach>
+                </when>
+                <otherwise>
+                    <set-variable variableName="parlementair_initiatieven" value="#[&quot;&quot;]" doc:name="Set parlementair_initiatieven empty"/>
+                </otherwise>
+            </choice>
+            <set-variable variableName="vrageninterpellatie" value="#[null]" doc:name="Reset vrageninterpellatie"/>
+            <choice doc:name="Vrageninterpellaties &gt; 0?">
+                <when expression="#[payload['agenda-lijn'][0].vrageninterpellatie.size() &gt; 0]">
+                    <foreach collection="#[payload['agenda-lijn'][0].vrageninterpellatie]" doc:name="For Each vrageninterpellatie">
+                        <set-variable variableName="vrageninterpellatie" value="#[flowVars.vrageninterpellatie != null ? (flowVars.vrageninterpellatie + payload.titel + &quot;\n&quot;) : (payload.titel + &quot;\n&quot;)]" doc:name="Set vrageninterpellatie"/>
+                    </foreach>
+                </when>
+                <otherwise>
+                    <set-variable variableName="vrageninterpellatie" value="#[&quot;&quot;]" doc:name="Set vrageninterpellatie empty"/>
+                </otherwise>
+            </choice>
+            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counter + &quot;: &quot; + flowVars.'parlementair_initiatieven' + flowVars.vrageninterpellatie + flowVars.titel + flowVars.omschrijving + &quot;\n&quot;]" doc:name="Set dc_description_lang by concat"/>
         </foreach>
         <json:object-to-json-transformer doc:name="Object to JSON"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
@@ -333,12 +353,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 {
 	MediaHAVEN_external_metadata: {
-		title: payload.vergadering.commissie[0].titel ++ " " ++ flowVars.deel ++ flowVars.dcterms_created,
-		description: flowVars.dc_description_lang ++ "\n\n" ++ 		
-					"Voorzitter: " ++ payload.vergadering.voorzitter.voornaam ++ " " ++
-							payload.vergadering.voorzitter.naam ++ " (" ++
-							 payload.vergadering.voorzitter.fractie.naam ++ ")" ++ "\n\n" ++
-					"Vergaderzaal: " ++ payload.vergadering.vergaderzaal.naam,
+		title: payload.vergadering.commissie[0].titel ++ " " ++ flowVars.deel ++ flowVars.datumBegin,
+		description: flowVars.dc_description_lang,
 		MDProperties: {
 			PID: flowVars.pid,
 			CP: flowVars.cp,
@@ -354,15 +370,26 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			},
 			CreationDate: flowVars.CreationDate,
 			dcterms_issued: flowVars.datumBegin,
-			dcterms_created: flowVars.dcterms_created,
+			dcterms_created: flowVars.datumBegin,
 			dc_contributors @(type: "list"): {
-				bijdrager: payload.vergadering.voorzitter.voornaam ++ " " ++
+				voorzitter: payload.vergadering.voorzitter.voornaam ++ " " ++
 							payload.vergadering.voorzitter.naam ++ " (" ++
 							 payload.vergadering.voorzitter.fractie.naam ++ ")",
 				(payload.vergadering.aanwezigheid[0].persoon map {
-					bijdrager: ($.voornaam ++ " " ++ $.naam ++ " (" ++ $.fractie.naam ++ ") ")
+					(lower payload.vergadering.aanwezigheid[0].aanwezigheid-status): ($.voornaam ++ " " ++ $.naam ++ " (" ++ $.fractie.naam ++ ")")
 					}
-				)
+				),
+				(payload.vergadering.aanwezigheid[1].persoon map {
+					(lower payload.vergadering.aanwezigheid[1].aanwezigheid-status): ($.voornaam ++ " " ++ $.naam ++ " (" ++ $.fractie.naam ++ ")")
+					} 
+				),
+				(payload.vergadering.aanwezigheid[2].persoon map {
+					(lower payload.vergadering.aanwezigheid[2].aanwezigheid-status): ($.voornaam ++ " " ++ $.naam ++ " (" ++ $.fractie.naam ++ ")")
+					} 
+				)				
+			},
+			dc_subjects @(type: "list"): {
+				(trefwoord: "Vergaderzaal: " ++ payload.vergadering.vergaderzaal.naam) when payload.vergadering.vergaderzaal.naam?
 			},
 			dc_description_lang: flowVars.dc_description_lang,
 			dc_rights_licenses @(type: "list"): {

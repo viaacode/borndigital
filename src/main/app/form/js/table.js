@@ -31,7 +31,7 @@ angular.module('ngAppDemo', ['ultimateDataTableServices']).controller('ngAppDemo
                             Object.defineProperty(obj, "id",
                                     Object.getOwnPropertyDescriptor(obj, key));
                             delete obj[key];
-                        } else if (key != "filename" && key != "md5" && key != "id"){
+                        } else if (key != "filename" && key != "md5" && key != "id" && key != "total"){
                             delete obj[key];
                         }
                     });

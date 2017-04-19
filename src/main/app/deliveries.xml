@@ -332,4 +332,12 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
             <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
         </catch-exception-strategy>
     </flow>
+    <flow name="DeliverSubtitlesMedialaan">
+        <set-variable variableName="eventName" value="PI_DELIVER_SUBTITLES" doc:name="Set Name"/>
+        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
+        <set-variable variableName="subtitleXml" value="#[xpath3('//StratumEx[@name=&quot;SUBTITLES&quot;]/text()')]" doc:name="Set subtitleXml"/>
+        <logger message="TODO" level="INFO" doc:name="TODO"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+        <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
+    </flow>
 </mule>

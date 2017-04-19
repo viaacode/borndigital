@@ -47,12 +47,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 				bevat: flowVars.pid_collateral 
 			}) when flowVars.pid_collateral?,
 			CreationDate: flowVars.CreationDate,
-			dc_source: flowVars.filenameEssence,
+			dc_source: flowVars.filenameEssence
 			// Default VIAA license?
 			//dc_rights_licenses @(type: "list"): {
 			//	(licentie: flowVars.license) when flowVars.license?
 			//}
-			(lookup('get_sidecar', flowVars.incomingXml))
 		}
 	}
 }]]></dw:set-payload>
@@ -303,18 +302,20 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <sub-flow name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
-        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="total" value="#[xpath3(&quot;//total/text()&quot;)]" doc:name="Set total"/>
         <http:request config-ref="vlaamsparlementportaal" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
             <http:request-builder>
                 <http:header headerName="Accept" value="application/json"/>
             </http:request-builder>
         </http:request>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <json:json-to-object-transformer  doc:name="JSON to Object"/>
-        <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(1,20)]" doc:name="Set datumBegin"/>
-        <set-variable variableName="CreationDate" value="#[flowVars.datumBegin.substring(0, 10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate (MH)"/>
-        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  ("DEEL " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + " ") : "" ]]]></expression-component>
+        <json:json-to-object-transformer  doc:name="JSON to Object" returnClass="java.util.HashMap"/>
+        <set-variable variableName="vergadering_response" value="#[payload]" doc:name="Set vergadering_response"/>
+        <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,19)]" doc:name="Set datumBegin"/>
+        <set-variable variableName="CreationDate" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,10) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(11,19)]" doc:name="Set CreationDate (MH)"/>
+        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
         <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item">
@@ -343,8 +344,28 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 </otherwise>
             </choice>
             <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counter + &quot;: &quot; + flowVars.'parlementair_initiatieven' + flowVars.vrageninterpellatie + flowVars.titel + flowVars.omschrijving + &quot;\n&quot;]" doc:name="Set dc_description_lang by concat"/>
+            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang.replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;)]" doc:name="Remove html tags from dc_description_lang"/>
         </foreach>
-        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <set-variable variableName="transcriptie" value="#[&quot;&quot;]" doc:name="Set transcriptie"/>
+        <foreach collection="#[payload.get('vergadering').get('journaallijn')]" doc:name="For Each journaallijn">
+            <set-variable variableName="journaalllijn_subtitel" value="#[payload.get(&quot;titel&quot;)]" doc:name="Set journaalllijn_subtitel"/>
+            <set-variable variableName="journaallijn_voorzitter" value="#[&quot;Voorzitter: &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;aanspreking&quot;) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;voornaam&quot;) + &quot; &quot;  + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;naam&quot;)]" doc:name="Set journaallijn_voorzitter"/>
+            <set-variable variableName="url" value="#[payload.get('link')[0].get('href')]" doc:name="Set url"/>
+            <set-variable variableName="path" value="#[flowVars.url.substring(flowVars.url.indexOf('/e/opendata/'))]" doc:name="Set path"/>
+            <http:request config-ref="vlaamsparlementportaal" path="#[flowVars.path]" method="GET" doc:name="Get journaallijn">
+                <http:request-builder>
+                    <http:header headerName="Accept" value="application/json"/>
+                </http:request-builder>
+            </http:request>
+            <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+            <json:json-to-object-transformer doc:name="JSON to Object" returnClass="java.util.HashMap"/>
+            <set-variable variableName="gesprek" value="#[&quot;&quot;]" doc:name="Reset gesprek"/>
+            <foreach collection="#[payload.get('spreker')]" doc:name="For Each spreker">
+                <set-variable variableName="gesprek" value="#[flowVars.gesprek + payload.get('sprekertitel').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;: &quot; + payload.get('sprekertekst').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;\n\n&quot;]" doc:name="Append sprekerstitel + sprekerstekst to gesprek (remove first, last characters and html tags)"/>
+            </foreach>
+            <expression-component doc:name="Append gesprek to transcriptie"><![CDATA[#[flowVars.transcriptie += flowVars.gesprek]]]></expression-component>
+        </foreach>
+        <set-payload value="#[flowVars.vergadering_response]" doc:name="Set Payload with vergadering_response"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/json.json"/>
             <dw:input-variable variableName="comment"/>
@@ -353,7 +374,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 {
 	MediaHAVEN_external_metadata: {
-		title: payload.vergadering.commissie[0].titel ++ " " ++ flowVars.deel ++ flowVars.datumBegin,
+		title: payload.vergadering.commissie[0].titel ++ flowVars.deel ++ " " ++ flowVars.datumBegin,
 		description: flowVars.dc_description_lang,
 		MDProperties: {
 			PID: flowVars.pid,
@@ -392,6 +413,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 				(trefwoord: "Vergaderzaal: " ++ payload.vergadering.vergaderzaal.naam) when payload.vergadering.vergaderzaal.naam?
 			},
 			dc_description_lang: flowVars.dc_description_lang,
+			dc_description_transcriptie: flowVars.transcriptie,
 			dc_rights_licenses @(type: "list"): {
 				licentie: "CCBY"
 			},
@@ -408,6 +430,51 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         </dw:transform-message>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set MappedXml"/>
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The input XML was mapped succesfully" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_METADATA_MAPPING_MEDIALAAN">
+        <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
+        <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar XML"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="main_title" value="#[xpath3('//Meta[@name=&quot;MAINTITLE&quot;]/text()')]" doc:name="Set main_title"/>
+        <set-variable doc:name="Set rights_comment" value="#[&quot;&quot;]" variableName="rights_comment"/>
+        <set-variable variableName="strata_description" value="#[xpath3('//Meta[@name=&quot;STRATADESCRIPTION&quot;]/text()')]" doc:name="Set strata_description"/>
+        <set-variable variableName="dcterms_created" value="#[flowVars.filenameEssence.substring(3,8)]" doc:name="Set dcterms_created (from filename)"/>
+        <set-variable variableName="CreationDate" value="#[flowVars.dcterms_created + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_created (from EDTF to EXIF)"/>
+        <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
+            <dw:input-payload doc:sample="sample_data/empty.xml"/>
+            <dw:input-variable variableName="comment"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml skipNullOn="everywhere"
+%function split(name) name splitBy ","
+---
+{
+	MediaHAVEN_external_metadata: {
+		title: flowVars.main_title,
+		description: flowVars.strata_description,
+		MDProperties: {
+			sp_name: 'borndigital',
+			CP: flowVars.cp,
+			CP_id: flowVars.cp_id,
+			PID: flowVars.pid,
+			md5: flowVars.md5metadata,
+			dcterms_issued: flowVars.dcterms_created,
+			dcterms_created: flowVars.dcterms_created,
+			CreationDate: flowVars.CreationDate,
+			dc_source: flowVars.filenameEssence
+			// Default VIAA license?
+			//dc_rights_licenses @(type: "list"): {
+			//	(licentie: flowVars.license) when flowVars.license?
+			//}
+		}
+	}
+}]]></dw:set-payload>
+        </dw:transform-message>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set mappedXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="The input XML was mapped succesfully: #[payload]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>

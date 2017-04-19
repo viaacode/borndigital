@@ -126,6 +126,9 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>
             </when>
+            <when expression="#[flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
+                <flow-ref name="PI_METADATA_MAPPING_MEDIALAAN" doc:name="PI_METADATA_MAPPING_MEDIALAAN"/>
+            </when>
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
@@ -141,6 +144,10 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
+            </when>
+            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
+                <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
+                <flow-ref name="DeliverSubtitlesMedialaan" doc:name="Flow Reference"/>
             </when>
             <otherwise>
                 <flow-ref name="PI_SIP_DELIVERY_SIDECAR" doc:name="PI_SIP_DELIVERY_SIDECAR"/>
@@ -244,7 +251,7 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
     <flow name="PI_SIDECAR_FETCHED">
         <set-variable variableName="eventName" value="PI_SIDECAR_FETCHED" doc:name="Set eventName"/>
         <until-successful maxRetries="3" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP" throwExceptionOnTimeout="true" doc:name="Get XML file from FTP"/>
+            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP" timeout="999999" doc:name="Get XML file from FTP"/>
         </until-successful>
         <byte-array-to-object-transformer doc:name="Byte Array to Object"/>
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Set incomingXml"/>
@@ -291,6 +298,10 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
                 <logger message="Local id RMM" level="INFO" doc:name="RMM"/>
                 <set-variable variableName="local_id" value="#[flowVars.filenameWithoutExtension]" doc:name="Set local_id with filenameWithoutExtension"/>
             </when>
+            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
+                <logger message="Local id Medialaan" level="INFO" doc:name="Medialaan"/>
+                <set-variable variableName="local_id" value="#[xpath3('//Meta[@name=&quot;FILE&quot;]/text()')]" doc:name="Set local_id with value of FILE"/>
+            </when>
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
@@ -303,7 +314,14 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
     <sub-flow name="PI_SET_MD5">
         <set-variable variableName="eventName" value="PI_SET_MD5" doc:name="Set eventName"/>
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
-        <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
+                <set-variable variableName="md5metadata" value="#[xpath3('//Meta[@name=&quot;BROWSE_MD5&quot;]/text()', flowVars.incomingXml)]" doc:name="Set md5metadata from BROWSE_HASH for Medialaan"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
+            </otherwise>
+        </choice>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[&quot;MD5: &quot; + flowVars.md5metadata]" doc:name="Set comment"/>
                 <flow-ref name="PI_LOG" doc:name="PI_LOG"/>

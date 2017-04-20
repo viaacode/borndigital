@@ -318,32 +318,44 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
-        <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item">
-            <set-variable variableName="titel" value="#[payload['agenda-lijn'][0].titel != null ? payload['agenda-lijn'][0].titel + &quot;\n&quot; : &quot;&quot;]" doc:name="Set titel"/>
-            <set-variable variableName="omschrijving" value="#[payload['agenda-lijn'][0].omschrijving != null ? payload['agenda-lijn'][0].omschrijving + &quot;\n&quot; : &quot;&quot;]" doc:name="Set omschrijving"/>
-            <set-variable variableName="parlementair_initiatieven" value="#[null]" doc:name="Reset parlementair_initiatieven"/>
-            <choice doc:name="Parlementaire initieven &gt; 0?">
-                <when expression="#[payload['agenda-lijn'][0].'parlementair-initiatief'.size() &gt; 0]">
-                    <foreach collection="#[payload['agenda-lijn'][0].'parlementair-initiatief']" doc:name="For Each parlementaire initiatief">
-                        <set-variable variableName="parlementair_initiatieven" value="#[flowVars.'parlementair_initiatieven' != null ? (flowVars.'parlementair_initiatieven' + payload.titel + &quot;\n&quot;) : (payload.titel + &quot;\n&quot;)]" doc:name="Set parlementair_initiatieven"/>
-                    </foreach>
-                </when>
-                <otherwise>
-                    <set-variable variableName="parlementair_initiatieven" value="#[&quot;&quot;]" doc:name="Set parlementair_initiatieven empty"/>
-                </otherwise>
-            </choice>
-            <set-variable variableName="vrageninterpellatie" value="#[null]" doc:name="Reset vrageninterpellatie"/>
-            <choice doc:name="Vrageninterpellaties &gt; 0?">
-                <when expression="#[payload['agenda-lijn'][0].vrageninterpellatie.size() &gt; 0]">
-                    <foreach collection="#[payload['agenda-lijn'][0].vrageninterpellatie]" doc:name="For Each vrageninterpellatie">
-                        <set-variable variableName="vrageninterpellatie" value="#[flowVars.vrageninterpellatie != null ? (flowVars.vrageninterpellatie + payload.titel + &quot;\n&quot;) : (payload.titel + &quot;\n&quot;)]" doc:name="Set vrageninterpellatie"/>
-                    </foreach>
-                </when>
-                <otherwise>
-                    <set-variable variableName="vrageninterpellatie" value="#[&quot;&quot;]" doc:name="Set vrageninterpellatie empty"/>
-                </otherwise>
-            </choice>
-            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counter + &quot;: &quot; + flowVars.'parlementair_initiatieven' + flowVars.vrageninterpellatie + flowVars.titel + flowVars.omschrijving + &quot;\n&quot;]" doc:name="Set dc_description_lang by concat"/>
+        <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item" counterVariableName="counterItem">
+            <set-variable variableName="agenda_lijnen" value="#[&quot;&quot;]" doc:name="Init agenda_lijnen"/>
+            <foreach collection="#[payload.get('agenda-lijn')]" doc:name="For Each agenda-lijn" counterVariableName="counterLijn">
+                <set-variable variableName="titel" value="#[payload.titel != null ? payload.titel + &quot;\n&quot; : &quot;&quot;]" doc:name="Set titel"/>
+                <set-variable variableName="omschrijving" value="#[payload.omschrijving != null ? payload.omschrijving + &quot;\n&quot; : &quot;&quot;]" doc:name="Set omschrijving"/>
+                <set-variable variableName="parlementair_initiatieven" value="#[null]" doc:name="Reset parlementair_initiatieven"/>
+                <choice doc:name="Parlementaire initieven &gt; 0?">
+                    <when expression="#[payload.'parlementair-initiatief'.size() &gt; 0]">
+                        <foreach collection="#[payload.'parlementair-initiatief']" doc:name="For Each parlementaire initiatief">
+                            <set-variable variableName="zittingsjaar" value="#[payload.zittingsjaar != null  &amp;&amp; payload.zittingsjaar != &quot;&quot; ?  &quot;Zittingsjaar: &quot; + payload.zittingsjaar + &quot;\n&quot; : &quot;&quot;]" doc:name="Set zittingsjaar"/>
+                            <set-variable variableName="nummer" value="#[payload.nummer != null  &amp;&amp; payload.nummer != &quot;&quot; ? &quot;Nummer: &quot; + payload.nummer + &quot;\n&quot; : &quot;&quot;]" doc:name="Set nummer"/>
+                            <set-variable variableName="materie" value="#[payload.materie != null &amp;&amp; payload.materie != &quot;&quot; ? &quot;Materie: &quot; + payload.materie + &quot;\n&quot; : &quot;&quot;]" doc:name="Set materie"/>
+                            <set-variable variableName="volgnummer" value="#[payload.volgnummer != null  &amp;&amp; payload.volgnummer != &quot;&quot; ? &quot;Volgnummer: &quot; + payload.volgnummer + &quot;\n&quot; : &quot;&quot;]" doc:name="Set volgnummer"/>
+                            <set-variable variableName="parlementair_initiatieven" value="#[flowVars.'parlementair_initiatieven' != null ? (flowVars.'parlementair_initiatieven' + payload.titel + &quot;\n&quot; + flowVars.materie + flowVars.nummer + flowVars.volgnummer + flowVars.zittingsjaar + &quot;\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.materie + flowVars.nummer + flowVars.volgnummer + flowVars.zittingsjaar + &quot;\n&quot;)]" doc:name="Set parlementair_initiatieven"/>
+                        </foreach>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="parlementair_initiatieven" value="#[&quot;&quot;]" doc:name="Set parlementair_initiatieven empty"/>
+                    </otherwise>
+                </choice>
+                <set-variable variableName="vrageninterpellatie" value="#[null]" doc:name="Reset vrageninterpellatie"/>
+                <choice doc:name="Vrageninterpellaties &gt; 0?">
+                    <when expression="#[payload.vrageninterpellatie.size() &gt; 0]">
+                        <foreach collection="#[payload.vrageninterpellatie]" doc:name="For Each vrageninterpellatie">
+                            <set-variable variableName="zittingsjaar" value="#[payload.zittingsjaar != null  &amp;&amp; payload.zittingsjaar != &quot;&quot; ? &quot;Zittingsjaar: &quot; + payload.zittingsjaar + &quot;\n&quot; : &quot;&quot;]" doc:name="Set zittingsjaar"/>
+                            <set-variable variableName="nummer" value="#[payload.nummer != null  &amp;&amp; payload.nummer != &quot;&quot; ? &quot;Nummer: &quot; + payload.nummer + &quot;\n&quot; : &quot;&quot;]" doc:name="Set nummer"/>
+                            <set-variable variableName="materie" value="#[payload.materie != null  &amp;&amp; payload.materie != &quot;&quot; ? &quot;Materie: &quot; + payload.materie + &quot;\n&quot; : &quot;&quot;]" doc:name="Set materie"/>
+                            <set-variable variableName="volgnummer" value="#[payload.volgnummer != null  &amp;&amp; payload.volgnummer != &quot;&quot; ? &quot;Volgnummer: &quot; + payload.volgnummer + &quot;\n&quot; : &quot;&quot;]" doc:name="Set volgnummer"/>
+                            <set-variable variableName="vrageninterpellatie" value="#[flowVars.vrageninterpellatie != null  ? (flowVars.vrageninterpellatie + payload.titel + &quot;\n&quot; + flowVars.materie + flowVars.nummer + flowVars.volgnummer + flowVars.zittingsjaar + &quot;\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.materie + flowVars.nummer + flowVars.volgnummer + flowVars.zittingsjaar + &quot;\n&quot;)]" doc:name="Set vrageninterpellatie"/>
+                        </foreach>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="vrageninterpellatie" value="#[&quot;&quot;]" doc:name="Set vrageninterpellatie empty"/>
+                    </otherwise>
+                </choice>
+                <set-variable variableName="agenda_lijnen" value="#[flowVars.agenda_lijnen += flowVars.'parlementair_initiatieven' + flowVars.vrageninterpellatie + flowVars.titel + flowVars.omschrijving + &quot;\n&quot;]" doc:name="Set agenda_lijnen"/>
+            </foreach>
+            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counterItem + &quot;: &quot; + flowVars.agenda_lijnen]" doc:name="Set dc_description_lang by concat agenda_lijnen"/>
             <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang.replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;)]" doc:name="Remove html tags from dc_description_lang"/>
         </foreach>
         <set-variable variableName="transcriptie" value="#[&quot;&quot;]" doc:name="Set transcriptie"/>
@@ -361,7 +373,17 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <json:json-to-object-transformer doc:name="JSON to Object" returnClass="java.util.HashMap"/>
             <set-variable variableName="gesprek" value="#[&quot;&quot;]" doc:name="Reset gesprek"/>
             <foreach collection="#[payload.get('spreker')]" doc:name="For Each spreker">
-                <set-variable variableName="gesprek" value="#[flowVars.gesprek + payload.get('sprekertitel').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;: &quot; + payload.get('sprekertekst').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;\n\n&quot;]" doc:name="Append sprekerstitel + sprekerstekst to gesprek (remove first, last characters and html tags)"/>
+                <choice doc:name="Sprekertitel null?">
+                    <when expression="#[payload.get('sprekertitel') == null]">
+                        <set-variable variableName="gesprek" value="#[flowVars.gesprek + payload.get('sprekertekst').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;\n\n&quot;]" doc:name="Append sprekertekst to gesprek"/>
+                    </when>
+                    <when expression="#[payload.get('sprekertitel') == null &amp;&amp; payload.get('sprekertekst') == null]]">
+                        <expression-component doc:name="Do nothing because sprekertitel en sprekertekst empty"><![CDATA[// do nothing]]></expression-component>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="gesprek" value="#[flowVars.gesprek + payload.get('sprekertitel').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;: &quot; + payload.get('sprekertekst').toString().replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;) + &quot;\n\n&quot;]" doc:name="Append sprekertitel + sprekertekst to gesprek (remove first, last characters and html tags)"/>
+                    </otherwise>
+                </choice>
             </foreach>
             <expression-component doc:name="Append gesprek to transcriptie"><![CDATA[#[flowVars.transcriptie += flowVars.gesprek]]]></expression-component>
         </foreach>
@@ -384,7 +406,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_source: flowVars.filenameEssence,
 			dc_identifier_localid: flowVars.local_id,
 			dc_identifier_localids @(type: "list"): {
-				pdf: payload.vergadering.commissiehandelingen.pdffilewebpath
+				pdf: payload.vergadering.commissiehandelingen.pdffilewebpath,
+				bestandsnaam: flowVars.filenameEssence,
+				api: 'http://ws.vlpar.be/e/opendata/verg/' ++ flowVars.local_id
 			},
 			dc_titles @(type: "list"): {
 				reeks: payload.vergadering.commissie[0].titel

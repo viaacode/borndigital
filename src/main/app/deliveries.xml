@@ -335,8 +335,30 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
     <flow name="DeliverSubtitlesMedialaan">
         <set-variable variableName="eventName" value="PI_DELIVER_SUBTITLES" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <set-variable variableName="subtitleXml" value="#[xpath3('//StratumEx[@name=&quot;SUBTITLES&quot;]/text()')]" doc:name="Set subtitleXml"/>
-        <logger message="TODO" level="INFO" doc:name="TODO"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:input-payload doc:sample="sample_data/empty_1.xml"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/xml
+---
+AXFRoot: {
+		StratumEx @(name: 'SUBTITLES'): {
+			(payload.AXFRoot.MAObject.*StratumEx filter $.@name == "SUBTITLES" mapObject (
+					test: $
+				)
+			)
+		},
+		S_SUBTITLES: 
+			(payload.AXFRoot.*MAObject filter $.@mdclass == "S_SUBTITLES" mapObject (
+						{MAObject @(type: 'default', mdclass: 'S_SUBTITLES'): ($ as :object) }
+				)
+			)
+}
+]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="/" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.pid + '_strata.xml']" responseTimeout="10000" doc:name="FTP as collateral (pid_strata)"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
     </flow>

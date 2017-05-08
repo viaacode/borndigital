@@ -333,8 +333,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         </catch-exception-strategy>
     </flow>
     <flow name="DeliverSubtitlesMedialaan">
-        <set-variable variableName="eventName" value="PI_DELIVER_SUBTITLES" doc:name="Set Name"/>
-        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
+        <set-variable variableName="eventName" value="PI_DELIVER_SUBTITLES" doc:name="Set eventName"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <dw:transform-message doc:name="Transform Message">
@@ -358,8 +357,58 @@ AXFRoot: {
 ]]></dw:set-payload>
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="/" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.pid + '_strata.xml']" responseTimeout="10000" doc:name="FTP as collateral (pid_strata)"/>
+        <set-variable variableName="pid_strata" value="#[flowVars.pid + '_strata']" doc:name="Set pid_strata"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#['/' + flowVars.cp.toLowerCase() + '/DISK-SHARE-EVENTS']" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.pid_strata + '.xml']" responseTimeout="10000" doc:name="FTP as collateral (pid_strata)"/>
+        <set-variable variableName="result" value="#['OK']" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#['Subtitles delivered as collateral.']" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
-        <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
+    </flow>
+    <flow name="DeliverSubtitlesMedialaanVTTAndSRT">
+        <set-variable variableName="eventName" value="PI_DELIVER_SUBTITLES" doc:name="Set eventName"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="vtt_text" value="#[&quot;WEBVTT\n\n&quot;]" doc:name="Init vtt_text"/>
+        <set-variable variableName="srt_text" value="#[&quot;&quot;]" doc:name="Init srt_text"/>
+        <foreach collection="#[xpath('//StratumEx[@name=&quot;SUBTITLES&quot;]/Group/Segment')]" doc:name="For Each subtitle segment">
+            <set-variable variableName="guid" value="#[xpath('@contentid').value]" doc:name="Set guid"/>
+            <set-variable variableName="begin" value="#[xpath('@begin').value]" doc:name="Set begin"/>
+            <set-variable variableName="end" value="#[xpath('@end').value]" doc:name="Set end"/>
+            <set-variable variableName="description" value="#[xpath('//MAObject/Meta[@name=&quot;SEGMENT_SUBTITLES_DESCRIPTION&quot; and parent::node()/GUID=&quot;' + flowVars.guid + '&quot;]/text()').getData()]" doc:name="Set description"/>
+            <set-variable variableName="begin_milli" value="#[(int) (flowVars.begin % 1000)]" doc:name="Set begin_milli"/>
+            <set-variable variableName="begin_milli_zero" value="#[String.format(&quot;%03d&quot;, flowVars.begin_milli)]" doc:name="Set begin_milli_zero"/>
+            <set-variable variableName="begin_hours" value="#[(int) ((flowVars.begin / (1000*60*60)) % 24)]" doc:name="Set begin_hours"/>
+            <set-variable variableName="begin_hours_zero" value="#[String.format(&quot;%02d&quot;, flowVars.begin_hours)]" doc:name="Set begin_hours_zero"/>
+            <set-variable variableName="begin_minutes" value="#[(int) ((flowVars.begin / (1000*60)) % 60)]" doc:name="Set begin_minutes"/>
+            <set-variable variableName="begin_minutes_zero" value="#[String.format(&quot;%02d&quot;, flowVars.begin_minutes)]" doc:name="Set begin_minutes_zero"/>
+            <set-variable variableName="begin_seconds" value="#[(int) (flowVars.begin / 1000) % 60]" doc:name="Set begin_seconds"/>
+            <set-variable variableName="begin_seconds_zero" value="#[String.format(&quot;%02d&quot;, flowVars.begin_seconds)]" doc:name="Set begin_seconds_zero"/>
+            <set-variable variableName="begin_date_vtt" value="#[flowVars.begin_hours_zero + ':' + flowVars.begin_minutes_zero + ':' + flowVars.begin_seconds_zero + '.' + flowVars.begin_milli_zero]" doc:name="Set begin_date_vtt (HH:mm:ss.MMM)"/>
+            <set-variable variableName="begin_date_srt" value="#[flowVars.begin_hours_zero + ':' + flowVars.begin_minutes_zero + ':' + flowVars.begin_seconds_zero + ',' + flowVars.begin_milli_zero]" doc:name="Set begin_date_srt (HH:mm:ss,MMM)"/>
+            <set-variable variableName="end_milli" value="#[(int) (flowVars.end % 1000)]" doc:name="Set end_milli"/>
+            <set-variable variableName="end_milli_zero" value="#[String.format(&quot;%03d&quot;, flowVars.end_milli)]" doc:name="Set end_milli_zero"/>
+            <set-variable variableName="end_hours" value="#[(int) ((flowVars.end / (1000*60*60)) % 24)]" doc:name="Set end_hours"/>
+            <set-variable variableName="end_hours_zero" value="#[String.format(&quot;%02d&quot;, flowVars.end_hours)]" doc:name="Set end_hours_zero"/>
+            <set-variable variableName="end_minutes" value="#[(int) ((flowVars.end / (1000*60)) % 60)]" doc:name="Set end_minutes"/>
+            <set-variable variableName="end_minutes_zero" value="#[String.format(&quot;%02d&quot;, flowVars.end_minutes)]" doc:name="Set end_minutes_zero"/>
+            <set-variable variableName="end_seconds" value="#[(int) (flowVars.end / 1000) % 60]" doc:name="Set end_seconds"/>
+            <set-variable variableName="end_seconds_zero" value="#[String.format(&quot;%02d&quot;, flowVars.end_seconds)]" doc:name="Set end_seconds_zero"/>
+            <set-variable variableName="end_date_vtt" value="#[flowVars.end_hours_zero + ':' + flowVars.end_minutes_zero + ':' + flowVars.end_seconds_zero + '.' + flowVars.end_milli_zero]" doc:name="Set end_date_vtt (HH:mm:ss.MMM)"/>
+            <set-variable variableName="end_date_srt" value="#[flowVars.end_hours_zero + ':' + flowVars.end_minutes_zero + ':' + flowVars.end_seconds_zero + ',' + flowVars.end_milli_zero]" doc:name="Set end_date_srt (HH:mm:ss,MMM)"/>
+            <logger message="New text block: #[flowVars.begin_date_vtt + &quot; --&gt; &quot; + flowVars.end_date_vtt + &quot;\n&quot; + flowVars.description + &quot;\n&quot;]" level="INFO" doc:name="New text block"/>
+            <set-variable variableName="vtt_text" value="#[flowVars.vtt_text + flowVars.counter + &quot;\n&quot; + flowVars.begin_date_vtt + &quot; --&gt; &quot; + flowVars.end_date_vtt + &quot;\n&quot; + flowVars.description + &quot;\n\n&quot;]" doc:name="Append block to vtt_text"/>
+            <set-variable variableName="srt_text" value="#[flowVars.srt_text + flowVars.counter + &quot;\n&quot; + flowVars.begin_date_srt + &quot; --&gt; &quot; + flowVars.end_date_srt + &quot;\n&quot; + flowVars.description + &quot;\n\n&quot;]" doc:name="Append block to srt_text"/>
+        </foreach>
+        <logger level="INFO" doc:name="Logger"/>
+        <set-payload value="#[flowVars.vtt_text]" doc:name="Set Payload with vtt_text"/>
+        <set-variable variableName="pid_vtt" value="#[flowVars.pid + '_vtt']" doc:name="Set pid_vtt"/>
+        <set-variable variableName="filenameVTT" value="#[flowVars.pid_vtt + '.vtt']" doc:name="Set filenameVTT"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#['/' + flowVars.cp.toLowerCase() + '/DISK-SHARE-EVENTS']" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameVTT]" responseTimeout="10000" doc:name="FTP as collateral (pid_vtt.vtt)"/>
+        <set-variable variableName="pid_srt" value="#[flowVars.pid + '_srt']" doc:name="Set pid_srt"/>
+        <set-variable variableName="filenameSRT" value="#[flowVars.pid_srt + '.srt']" doc:name="Set filenameSRT"/>
+        <set-payload value="#[flowVars.srt_text]" doc:name="Set Payload with srt_text"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#['/' + flowVars.cp.toLowerCase()]" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameSRT]" responseTimeout="10000" doc:name="FTP as collateral (pid_srt.srt)"/>
+        <set-variable variableName="result" value="#['OK']" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="#['Subtitles delivered as VTT collateral.']" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
 </mule>

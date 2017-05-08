@@ -61,7 +61,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 }]]></dw:set-payload>
         </dw:transform-message>
         <ftp:outbound-endpoint host="${ftpSource.host}" port="21" path="#[flowVars.destination_path]" user="${ftpSource.username}" password="${ftpSource.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameWithoutExtension + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
-        <logger message="Succesfully placed sidecar for #[flowVars.id]" level="INFO" doc:name="Succes!"/>
+        <logger message="Succesfully placed sidecar for #[flowVars.id] in #[flowVars.destination_path] on ${ftpSource.host}" level="INFO" doc:name="Succes!"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="Creating sidecar failed" level="WARN" doc:name="Creating sidecar failed"/>
         </catch-exception-strategy>

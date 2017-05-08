@@ -358,7 +358,7 @@ AXFRoot: {
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <set-variable variableName="pid_strata" value="#[flowVars.pid + '_strata']" doc:name="Set pid_strata"/>
-        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#['/' + flowVars.cp.toLowerCase() + '/DISK-SHARE-EVENTS']" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.pid_strata + '.xml']" responseTimeout="10000" doc:name="FTP as collateral (pid_strata)"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#[flowVars.path]" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.pid_strata + '.xml']" responseTimeout="10000" doc:name="FTP as collateral (pid_strata)"/>
         <set-variable variableName="result" value="#['OK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#['Subtitles delivered as collateral.']" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
@@ -402,11 +402,11 @@ AXFRoot: {
         <set-payload value="#[flowVars.vtt_text]" doc:name="Set Payload with vtt_text"/>
         <set-variable variableName="pid_vtt" value="#[flowVars.pid + '_vtt']" doc:name="Set pid_vtt"/>
         <set-variable variableName="filenameVTT" value="#[flowVars.pid_vtt + '.vtt']" doc:name="Set filenameVTT"/>
-        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#['/' + flowVars.cp.toLowerCase() + '/DISK-SHARE-EVENTS']" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameVTT]" responseTimeout="10000" doc:name="FTP as collateral (pid_vtt.vtt)"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#[flowVars.path]" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameVTT]" responseTimeout="10000" doc:name="FTP as collateral (pid_vtt.vtt)"/>
         <set-variable variableName="pid_srt" value="#[flowVars.pid + '_srt']" doc:name="Set pid_srt"/>
         <set-variable variableName="filenameSRT" value="#[flowVars.pid_srt + '.srt']" doc:name="Set filenameSRT"/>
         <set-payload value="#[flowVars.srt_text]" doc:name="Set Payload with srt_text"/>
-        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#['/' + flowVars.cp.toLowerCase()]" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameSRT]" responseTimeout="10000" doc:name="FTP as collateral (pid_srt.srt)"/>
+        <ftp:outbound-endpoint host="${ftpDestinationCollateral.host}" port="21" path="#[flowVars.path]" user="${ftpDestinationCollateral.username}" password="${ftpDestinationCollateral.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameSRT]" responseTimeout="10000" doc:name="FTP as collateral (pid_srt.srt)"/>
         <set-variable variableName="result" value="#['OK']" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#['Subtitles delivered as VTT collateral.']" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>

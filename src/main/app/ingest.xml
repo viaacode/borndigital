@@ -110,6 +110,7 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             </when>
             <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;) &amp;&amp; xpath3('//StratumEx[@name=&quot;SUBTITLES&quot;]', flowVars.incomingXml) != &quot;&quot;]">
                 <logger message="Todo: not from digitization!" level="INFO" doc:name="Todo: check not from digitization!"/>
+                <set-variable variableName="path" value="#['/' + flowVars.cp.toLowerCase() + '/DISK-SHARE-EVENTS']" doc:name="Set path"/>
                 <flow-ref name="DeliverSubtitlesMedialaan" doc:name="DeliverSubtitlesMedialaan"/>
                 <flow-ref name="DeliverSubtitlesMedialaanVTTAndSRT" doc:name="DeliverSubtitlesMedialaanVTTAndSRT"/>
             </when>

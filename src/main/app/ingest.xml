@@ -56,7 +56,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 from sips
 where ((local_id = #[flowVars.local_id] and md5 is null)
 		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
-		or md5 = #[flowVars.md5metadata]
+		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
+		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
 	)]]></db:parameterized-query>
                     </db:select>
                     <choice doc:name="Record found?">
@@ -91,7 +92,6 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
         <flow-ref name="PI_SIDECAR_FETCHED" doc:name="PI_SIDECAR_FETCHED"/>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <flow-ref name="PI_SET_LOCAL_ID" doc:name="PI_SET_LOCAL_ID"/>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <flow-ref name="PI_SET_MD5" doc:name="PI_SET_MD5"/>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <flow-ref name="PI_SET_PID" doc:name="PI_SET_PID"/>
@@ -106,7 +106,12 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <choice doc:name="SIP contains collateral (e.g. subtitle)?">
             <when expression="flowVars.files.get(&quot;collateral&quot;) != null">
-                <flow-ref name="SEND_COLLATERAL" doc:name="Flow Reference"/>
+                <flow-ref name="SEND_COLLATERAL" doc:name="SEND_COLLATERAL"/>
+            </when>
+            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;) &amp;&amp; xpath3('//StratumEx[@name=&quot;SUBTITLES&quot;]', flowVars.incomingXml) != &quot;&quot;]">
+                <logger message="Todo: not from digitization!" level="INFO" doc:name="Todo: check not from digitization!"/>
+                <flow-ref name="DeliverSubtitlesMedialaan" doc:name="DeliverSubtitlesMedialaan"/>
+                <flow-ref name="DeliverSubtitlesMedialaanVTTAndSRT" doc:name="DeliverSubtitlesMedialaanVTTAndSRT"/>
             </when>
             <otherwise>
                 <expression-component doc:name="No collateral, do nothing"><![CDATA[// No collateral, do nothing]]></expression-component>
@@ -144,10 +149,6 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
-            </when>
-            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
-                <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
-                <flow-ref name="DeliverSubtitlesMedialaan" doc:name="Flow Reference"/>
             </when>
             <otherwise>
                 <flow-ref name="PI_SIP_DELIVERY_SIDECAR" doc:name="PI_SIP_DELIVERY_SIDECAR"/>
@@ -211,7 +212,8 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
 from sips
 where ((local_id = #[flowVars.local_id] and md5 is null)
 		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
-		or md5 = #[flowVars.md5metadata]
+		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
+		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
 	)]]></db:parameterized-query>
                 </db:select>
                 <choice doc:name="Found?">
@@ -251,12 +253,19 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
     <flow name="PI_SIDECAR_FETCHED">
         <set-variable variableName="eventName" value="PI_SIDECAR_FETCHED" doc:name="Set eventName"/>
         <until-successful maxRetries="3" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP" timeout="999999" doc:name="Get XML file from FTP"/>
+            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP" timeout="10000" doc:name="Get XML file from FTP"/>
         </until-successful>
-        <byte-array-to-object-transformer doc:name="Byte Array to Object"/>
+        <choice doc:name="When Medialaan, set encoding to UTF-16">
+            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
+                <byte-array-to-object-transformer encoding="UTF-16" mimeType="application/xml" doc:name="Byte Array to Object"/>
+            </when>
+            <otherwise>
+                <byte-array-to-object-transformer doc:name="Byte Array to Object"/>
+            </otherwise>
+        </choice>
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Set incomingXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="#[flowVars.incomingXml]" doc:name="Set comment"/>
+        <set-variable variableName="comment" value="#[&quot;Sidecar is succesfully read.&quot;]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <choice doc:name="Do nothing when vrt or meise">
@@ -316,7 +325,7 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
         <choice doc:name="Choice">
             <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
-                <set-variable variableName="md5metadata" value="#[xpath3('//Meta[@name=&quot;BROWSE_MD5&quot;]/text()', flowVars.incomingXml)]" doc:name="Set md5metadata from BROWSE_HASH for Medialaan"/>
+                <set-variable variableName="md5metadata" value="#[xpath3('//Meta[@name=&quot;BROWSE_HASH&quot;]/text()', flowVars.incomingXml)]" doc:name="Set md5metadata from BROWSE_HASH for Medialaan"/>
             </when>
             <otherwise>
                 <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
@@ -333,7 +342,8 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
 from sips
 where ((local_id = #[flowVars.local_id] and md5 is null)
 		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
-		or md5 = #[flowVars.md5metadata]
+		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
+		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
 	)]]></db:parameterized-query>
                         </db:select>
                         <choice doc:name="Found?">
@@ -341,15 +351,15 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
                                 <db:update config-ref="borndigital" doc:name="Update existing record">
                     <db:parameterized-query><![CDATA[update sips
 set filename = #[flowVars.filenameEssence], host = #[flowVars.host], filepath = #[flowVars.filepath], 
-	local_id = #[flowVars.local_id], md5 = #[flowVars.md5metadata], pid = #[flowVars.pid], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress', retry_count = 0
+	local_id = #[flowVars.local_id], md5 = #[flowVars.md5metadata], pid = #[flowVars.pid], organisation_id = #[flowVars.cp_id], preingest_status = 'in_progress', archive_status = 'in_progress', retry_count = 0
 where id = #[payload[0].id]]]></db:parameterized-query>
                                 </db:update>
                             </when>
                             <otherwise>
                                 <db:insert config-ref="borndigital" doc:name="Insert new record into sips table">
                     <db:parameterized-query><![CDATA[INSERT INTO sips
-(local_id, md5, organisation, pid, filename, filepath, host, organisation_id, archive_status)
-VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVars.pid], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.cp_id], 'in_progress')]]></db:parameterized-query>
+(local_id, md5, organisation, pid, filename, filepath, host, organisation_id, archive_status, preingest_status)
+VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVars.pid], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.cp_id], 'in_progress', 'in_progress')]]></db:parameterized-query>
                                 </db:insert>
                             </otherwise>
                         </choice>

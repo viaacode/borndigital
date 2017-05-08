@@ -173,9 +173,9 @@ where id = #[payload.id]]]></db:parameterized-query>
                 </when>
                 <otherwise>
                     <logger message="Max amount of retries reached. Set archive_status NOK" level="INFO" doc:name="Max amount of retries reached. Set archive_status NOK"/>
-                    <db:update config-ref="borndigital" doc:name="Set archive_status NOK, preingest_status OK">
+                    <db:update config-ref="borndigital" doc:name="Set archive_status NOK, preingest_status NOK">
                         <db:parameterized-query><![CDATA[update sips
-set archive_status = 'NOK', comment = 'Ingest failed.', preingest_status = 'OK'
+set archive_status = 'NOK', comment = 'Ingest failed.', preingest_status = 'NOK'
 where id = #[payload.id]]]></db:parameterized-query>
                     </db:update>
                 </otherwise>

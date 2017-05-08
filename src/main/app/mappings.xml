@@ -256,7 +256,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="total" value="#[xpath3(&quot;//total/text()&quot;)]" doc:name="Set total"/>
+        <set-variable variableName="total" value="#[flowVars.filenameEssence.replaceAll('^.*_[1-9]+v([1-9]+)\\..*', '$1') != flowVars.filenameEssence ? flowVars.filenameEssence.replaceAll('^.*_[1-9]+v([1-9]+)\\..*', '$1') : &quot;1&quot;]" doc:name="Set total"/>
         <http:request config-ref="vlaamsparlementportaal" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
             <http:request-builder>
                 <http:header headerName="Accept" value="application/json"/>
@@ -267,7 +267,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="vergadering_response" value="#[payload]" doc:name="Set vergadering_response"/>
         <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,19)]" doc:name="Set datumBegin"/>
         <set-variable variableName="CreationDate" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,10) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(11,19)]" doc:name="Set CreationDate (MH)"/>
-        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_dl([1-9]+)\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
+        <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <set-variable variableName="dc_description_lang" value="#[&quot;&quot;]" doc:name="init dc_description_lang"/>
         <foreach collection="#[payload.get('vergadering').get('agenda-item')]" doc:name="For Each agenda-item" counterVariableName="counterItem">

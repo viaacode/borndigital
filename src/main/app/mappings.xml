@@ -18,7 +18,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <expression-filter expression="#[flowVars.comment = &quot;Metadata format was incorrect.&quot;]" nullReturnsTrue="true"/>
         <filter ref="Provant_Schema_Validation"/>
     </and-filter>
-    <http:request-config name="vlaamsparlementportaal" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="vlaamsparlement_api" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="10000">
+        <http:proxy host="proxy.do.viaa.be" port="80"/>
+    </http:request-config>
     <sub-flow name="PI_METADATA_MAPPING_MHEM">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
@@ -257,11 +259,13 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="total" value="#[flowVars.filenameEssence.replaceAll('^.*_[1-9]+v([1-9]+)\\..*', '$1') != flowVars.filenameEssence ? flowVars.filenameEssence.replaceAll('^.*_[1-9]+v([1-9]+)\\..*', '$1') : &quot;1&quot;]" doc:name="Set total"/>
-        <http:request config-ref="vlaamsparlementportaal" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
-            <http:request-builder>
-                <http:header headerName="Accept" value="application/json"/>
-            </http:request-builder>
-        </http:request>
+        <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
+            <http:request config-ref="vlaamsparlement_api" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
+                <http:request-builder>
+                    <http:header headerName="Accept" value="application/json"/>
+                </http:request-builder>
+            </http:request>
+        </until-successful>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <json:json-to-object-transformer  doc:name="JSON to Object" returnClass="java.util.HashMap"/>
         <set-variable variableName="vergadering_response" value="#[payload]" doc:name="Set vergadering_response"/>
@@ -282,8 +286,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                             <set-variable variableName="zittingsjaar" value="#[payload.zittingsjaar != null  &amp;&amp; payload.zittingsjaar != &quot;&quot; ?  &quot;(&quot; + payload.zittingsjaar + &quot;)&quot; : &quot;&quot;]" doc:name="Set zittingsjaar"/>
                             <set-variable variableName="nummer" value="#[payload.nummer != null  &amp;&amp; payload.nummer != &quot;&quot; ? payload.nummer + &quot; &quot; : &quot;&quot;]" doc:name="Set nummer"/>
                             <set-variable variableName="materie" value="#[payload.materie != null &amp;&amp; payload.materie != &quot;&quot; ? payload.materie + &quot;\n&quot; : &quot;&quot;]" doc:name="Set materie"/>
-                            <set-variable variableName="volgnummer" value="#[payload.volgnummer != null  &amp;&amp; payload.volgnummer != &quot;&quot; ? &quot; nr. &quot; + payload.volgnummer : &quot;&quot;]" doc:name="Set volgnummer"/>
-                            <set-variable variableName="parlementair_initiatieven" value="#[flowVars.'parlementair_initiatieven' != null ? (flowVars.'parlementair_initiatieven' + payload.titel + &quot;\n&quot; + flowVars.nummer + flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot; + flowVars.materie + &quot;\n\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.nummer + flowVars.zittingsjaar + flowVars.volgnummer + flowVars.materie + &quot;\n&quot;)]" doc:name="Set parlementair_initiatieven"/>
+                            <set-variable variableName="volgnummer" value="#[payload.volgnr != null  &amp;&amp; payload.volgnr != &quot;&quot; ? &quot; nr. &quot; + payload.volgnr : &quot;&quot;]" doc:name="Set volgnummer"/>
+                            <set-variable variableName="parlementair_initiatieven" value="#[flowVars.'parlementair_initiatieven' != null ? (flowVars.'parlementair_initiatieven' + payload.titel + &quot;\n&quot; + flowVars.nummer + flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot; + flowVars.materie + &quot;\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.nummer + flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot; + flowVars.materie + &quot;\n&quot;)]" doc:name="Set parlementair_initiatieven"/>
                         </foreach>
                     </when>
                     <otherwise>
@@ -296,9 +300,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                         <foreach collection="#[payload.vrageninterpellatie]" doc:name="For Each vrageninterpellatie">
                             <set-variable variableName="zittingsjaar" value="#[payload.zittingsjaar != null  &amp;&amp; payload.zittingsjaar != &quot;&quot; ? &quot;(&quot; + payload.zittingsjaar + &quot;)&quot; : &quot;&quot;]" doc:name="Set zittingsjaar"/>
                             <set-variable variableName="nummer" value="#[payload.nummer != null  &amp;&amp; payload.nummer != &quot;&quot; ? payload.nummer + &quot; &quot; : &quot;&quot;]" doc:name="Set nummer"/>
-                            <set-variable variableName="materie" value="#[payload.materie != null  &amp;&amp; payload.materie != &quot;&quot; ? &quot;Materie: &quot; + payload.materie + &quot;\n&quot; : &quot;&quot;]" doc:name="Set materie"/>
-                            <set-variable variableName="volgnummer" value="#[payload.volgnummer != null  &amp;&amp; payload.volgnummer != &quot;&quot; ? &quot; nr. &quot; + payload.volgnummer : &quot;&quot;]" doc:name="Set volgnummer"/>
-                            <set-variable variableName="vrageninterpellatie" value="#[flowVars.vrageninterpellatie != null  ? (flowVars.vrageninterpellatie + payload.titel + &quot;\n&quot; + flowVars.nummer +  flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot; + flowVars.materie + &quot;\n\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.nummer +  flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot;+ flowVars.materie + &quot;\n&quot;)]" doc:name="Set vrageninterpellatie"/>
+                            <set-variable variableName="materie" value="#[payload.materie != null  &amp;&amp; payload.materie != &quot;&quot; ? payload.materie + &quot;\n&quot; : &quot;&quot;]" doc:name="Set materie"/>
+                            <set-variable variableName="volgnummer" value="#[payload.volgnr != null  &amp;&amp; payload.volgnr != &quot;&quot; ? &quot; nr. &quot; + payload.volgnr : &quot;&quot;]" doc:name="Set volgnummer"/>
+                            <set-variable variableName="vrageninterpellatie" value="#[flowVars.vrageninterpellatie != null  ? (flowVars.vrageninterpellatie + payload.titel + &quot;\n&quot; + flowVars.nummer +  flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot; + flowVars.materie + &quot;\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.nummer +  flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot;+ flowVars.materie + &quot;\n&quot;)]" doc:name="Set vrageninterpellatie"/>
                         </foreach>
                     </when>
                     <otherwise>
@@ -316,11 +320,13 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <set-variable variableName="journaallijn_voorzitter" value="#[&quot;Voorzitter: &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;aanspreking&quot;) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;voornaam&quot;) + &quot; &quot;  + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;naam&quot;)]" doc:name="Set journaallijn_voorzitter"/>
             <set-variable variableName="url" value="#[payload.get('link')[0].get('href')]" doc:name="Set url"/>
             <set-variable variableName="path" value="#[flowVars.url.substring(flowVars.url.indexOf('/e/opendata/'))]" doc:name="Set path"/>
-            <http:request config-ref="vlaamsparlementportaal" path="#[flowVars.path]" method="GET" doc:name="Get journaallijn">
-                <http:request-builder>
-                    <http:header headerName="Accept" value="application/json"/>
-                </http:request-builder>
-            </http:request>
+            <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
+                <http:request config-ref="vlaamsparlement_api" path="#[flowVars.path]" method="GET" doc:name="Get journaallijn">
+                    <http:request-builder>
+                        <http:header headerName="Accept" value="application/json"/>
+                    </http:request-builder>
+                </http:request>
+            </until-successful>
             <byte-array-to-string-transformer doc:name="Byte Array to String"/>
             <json:json-to-object-transformer doc:name="JSON to Object" returnClass="java.util.HashMap"/>
             <set-variable variableName="gesprek" value="#[&quot;&quot;]" doc:name="Reset gesprek"/>
@@ -352,7 +358,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 		description: flowVars.dc_description_lang,
 		MDProperties: {
 			PID: flowVars.pid,
-			CP: flowVars.cp,
+			CP: 'Vlaams Parlement',
 			CP_id: 'OR-7h1dk9t',
 			sp_name: 'borndigital',
 			dc_source: flowVars.filenameEssence,

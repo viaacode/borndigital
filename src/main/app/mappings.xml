@@ -452,7 +452,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <set-variable variableName="event_location_city_name" value="#[xpath3('//MVAttribute[@type=&quot;EVENT_LOCATION_CITY&quot; and @objectid=&quot;' + flowVars.guid + '&quot;]/Meta/text()', flowVars.incomingXml)]" doc:name="Set event_location_city_name"/>
             <set-variable variableName="event_location_country_id" value="#[xpath3('//MVAttribute[@type=&quot;EVENT_LOCATION_COUNTRY&quot; and @objectid=&quot;' + flowVars.guid + '&quot;]/Meta/text()', flowVars.incomingXml)]" doc:name="Set event_location_country_id"/>
             <set-variable variableName="coverage_spatial_list" value="#[flowVars.coverage_spatial_list + flowVars.event_location_country_name + &quot;\n&quot;]" doc:name="Add to coverage_spatial_list"/>
-            <set-variable variableName="beeldarchief_id" value="#[xpath3('//MVAttribute[@type=&quot;BEELDARCHIEF_ID&quot; and @objectid=&quot;' + flowVars.guid + '&quot;]/Meta/text()', flowVars.incomingXml)]" doc:name="Set beeldarchief_id"/>
+            <set-variable variableName="beeldarchief_id" value="#[xpath3('//MAObject/Meta[@name=&quot;BEELDARCHIEF_ID&quot; and parent::node()/GUID=&quot;' + flowVars.guid + '&quot;]/text()', flowVars.incomingXml)]" doc:name="Set beeldarchief_id"/>
             <set-variable variableName="local_ids" value="#[flowVars.local_ids + flowVars.beeldarchief_id + &quot;\n&quot;]" doc:name="Add beeldarchief_id to local_ids"/>
             <set-variable variableName="authors_id" value="#[xpath3('//MVAttribute[@type=&quot;AUTHORS&quot; and @objectid=&quot;' + flowVars.guid + '&quot;]/Meta/text()', flowVars.incomingXml)]" doc:name="Set authors_id"/>
             <set-variable variableName="authors_list" value="#[flowVars.authors_list + flowVars.authors_name + &quot;\n&quot;]" doc:name="Append to authors_list"/>
@@ -476,6 +476,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <dw:transform-message doc:name="Transform Message" metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4">
             <dw:input-payload doc:sample="sample_data/empty.xml"/>
             <dw:input-variable variableName="comment"/>
+            <dw:input-variable variableName="local_ids"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml skipNullOn="everywhere"
 %function split(name) name splitBy ","
@@ -491,7 +492,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			PID: flowVars.pid,
 			dc_identifier_localid: flowVars.local_id,
 			dc_identifier_localids @(type: "list"): {
-				(flowVars.local_ids splitBy "\n" distinctBy $ filter $ != 'null' map 
+				((flowVars.local_ids splitBy "\n") distinctBy $ filter ($ != 'null') map 
 					beeldarchief_id: $
 				)
 			},
@@ -500,28 +501,28 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			CreationDate: flowVars.dcterms_issued,
 			dc_source: flowVars.filenameEssence,
 			dc_titles @(type: "list"): {
-				(flowVars.dc_titles_deelarchief splitBy "\n" distinctBy $ filter $ != 'null' map 
+				((flowVars.dc_titles_deelarchief splitBy "\n") distinctBy $ filter $ != 'null' map 
 					deelarchief: $
 				)
 			},
 			dc_description_lang: flowVars.description,
 			dc_coverages @(type: 'list'): {
-				(flowVars.coverage_spatial_list splitBy "\n" distinctBy $ filter $ != 'null' map 
+				((flowVars.coverage_spatial_list splitBy "\n") distinctBy $ filter $ != 'null' map 
 					ruimte: $
 				)
 			},
 			dc_creators @(type: 'list'): {
-				(flowVars.authors_list splitBy "\n" distinctBy $ filter $ != 'null' map 
+				((flowVars.authors_list splitBy "\n") distinctBy $ filter $ != 'null' map 
 					auteur: $
 				)
 			},
 			dc_publishers @(type: 'list'): {
-				(flowVars.broadcaster_list splitBy "\n" distinctBy $ filter $ != 'null'  map 
+				((flowVars.broadcaster_list splitBy "\n") distinctBy $ filter $ != 'null'  map 
 					publisher: $
 				)
 			},
 			dc_rights_rightsOwners @(type: 'list'): {
-				(flowVars.dc_rightsowner_list splitBy "\n" distinctBy $ filter $ != 'null' map 
+				((flowVars.dc_rightsowner_list splitBy "\n") distinctBy $ filter $ != 'null' map 
 					auteursrechthouder: $
 				)
 			},
@@ -549,7 +550,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="source_id" value="#[xpath3('//Meta[@name=&quot;SOURCE&quot;]/text()')]" doc:name="Set source_id"/>
         <set-variable variableName="newstypes_id" value="#[xpath3('//Meta[@name=&quot;NEWSTYPES&quot;]/text()')]" doc:name="Set newstypes_id"/>
         <set-variable variableName="broadcast_date" value="#[xpath3('//Meta[@name=&quot;BROADCAST_DATE&quot;]/text()')]" doc:name="Set broadcast_date (YYYYMMDD)"/>
-        <set-variable variableName="dcterms_issued" value="#[flowVars.broadcast_date != &quot;&quot; ? flowVars.broadcast_date.substring(0,4) + '-' + flowVars.broadcast_date.substring(4,6) + '-' + flowVars.broadcast_date.substring(4,6) + '-' + flowVars.broadcast_date.substring(6,8) :  flowVars.filenameEssence.substring(0,4) + &quot;-&quot; + flowVars.filenameEssence.substring(4,6) + &quot;-&quot; + flowVars.filenameEssence.substring(6,8)]" doc:name="Set dcterms_issued (from broadcast_date) with YYYY-MM-DD format"/>
+        <set-variable variableName="dcterms_issued" value="#[flowVars.broadcast_date != &quot;&quot; ? flowVars.broadcast_date.substring(0,4) + '-' + flowVars.broadcast_date.substring(4,6) + '-' + flowVars.broadcast_date.substring(6,8) :  flowVars.filenameEssence.substring(0,4) + &quot;-&quot; + flowVars.filenameEssence.substring(4,6) + &quot;-&quot; + flowVars.filenameEssence.substring(6,8)]" doc:name="Set dcterms_issued (from broadcast_date) with YYYY-MM-DD format"/>
         <set-variable variableName="CreationDate" value="#[flowVars.dcterms_issued + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
         <set-variable variableName="broadcaster_id" value="#[xpath3('//Meta[@name=&quot;BROADCASTER&quot;]/text()')]" doc:name="Set broadcaster_id"/>
         <set-variable variableName="newsprograms_id" value="#[xpath3('//Meta[@name=&quot;NEWSPROGRAMS&quot;]/text()')]" doc:name="Set newsprograms_id"/>

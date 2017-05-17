@@ -36,6 +36,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <amqp:connector name="RabbitMQConnectorFXP" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.fxp.host}" password="${rabbit.fxp.password}" port="${rabbit.fxp.port}" username="${rabbit.fxp.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect-forever></reconnect-forever>  
     </amqp:connector>
+    <amqp:connector name="RabbitMQConnectorFXPPriority" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.fxp.host}" password="${rabbit.fxp.password}" port="${rabbit.fxp.port}" username="${rabbit.fxp.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL" priority="9"> 
+        <reconnect-forever></reconnect-forever>  
+    </amqp:connector>
     <amqp:connector name="RabbitMQConnectorDelete" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.fxp.host}" password="${rabbit.fxp.password}" port="${rabbit.fxp.port}" username="${rabbit.fxp.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect-forever></reconnect-forever>  
     </amqp:connector>

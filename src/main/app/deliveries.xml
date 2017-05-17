@@ -46,7 +46,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
+                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXPPriority" doc:name="Send message to fxp_requests">
                         <reconnect-forever/>
                     </amqp:outbound-endpoint>
                     <!-- 

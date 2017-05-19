@@ -163,7 +163,7 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             <otherwise>
                 <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
                     <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress', retry_count = 0
+set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress'
 where filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath] and host = #[flowVars.host] and md5 = #[flowVars.md5metadata]]]></db:parameterized-query>
                 </db:update>
             </otherwise>

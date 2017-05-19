@@ -431,7 +431,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <sub-flow name="PI_METADATA_MAPPING_MEDIALAAN_DIGITIZATION">
         <set-variable variableName="main_title" value="#[xpath3('//Meta[@name=&quot;MAINTITLE&quot;]/text()')]" doc:name="Set main_title"/>
         <set-variable variableName="sourcesystem" value="#[xpath3('//Meta[@name=&quot;SOURCESYSTEM&quot;]/text()')]" doc:name="Set sourcesystem (will be mapped to SP)"/>
-        <logger message="TODO: map sourcesystem to sp_name" level="INFO" doc:name="TODO: map sourcesystem to sp_name"/>
+        <choice doc:name="When sourcesystem 20 == Memnon">
+            <when expression="#[flowVars.sourcesystem == 20]">
+                <set-variable variableName="sp_name" value="#[&quot;medialaan&quot;]" doc:name="Set sp_name to medialaan"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="sp_name" value="#[&quot;Memnon&quot;]" doc:name="Set sp_name to Memnon"/>
+            </otherwise>
+        </choice>
         <set-variable variableName="description" value="#[&quot;&quot;]" doc:name="Init description"/>
         <set-variable variableName="dc_titles_deelarchief" value="#[&quot;&quot;]" doc:name="Init dc_titles_deelarchief (one string seperated by \n, will be split later)"/>
         <set-variable variableName="coverage_spatial_list" value="#[&quot;&quot;]" doc:name="Init coverage_spatial_list"/>
@@ -502,7 +509,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_source: flowVars.filenameEssence,
 			dc_titles @(type: "list"): {
 				((flowVars.dc_titles_deelarchief splitBy "\n") distinctBy $ filter $ != 'null' map 
-					deelarchief: $
+					item: $
 				)
 			},
 			dc_description_lang: flowVars.description,

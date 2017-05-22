@@ -18,7 +18,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <expression-filter expression="#[flowVars.comment = &quot;Metadata format was incorrect.&quot;]" nullReturnsTrue="true"/>
         <filter ref="Provant_Schema_Validation"/>
     </and-filter>
-    <http:request-config name="vlaamsparlement_api" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="10000">
+    <http:request-config name="vlaamsparlement_api" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="20000">
         <http:proxy host="proxy.do.viaa.be" port="80"/>
     </http:request-config>
     <sub-flow name="PI_METADATA_MAPPING_MHEM">
@@ -269,7 +269,80 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <json:json-to-object-transformer  doc:name="JSON to Object" returnClass="java.util.HashMap"/>
         <set-variable variableName="vergadering_response" value="#[payload]" doc:name="Set vergadering_response"/>
+        <set-variable variableName="type" value="#[payload.get(&quot;vergadering&quot;).get(&quot;type&quot;).toString()]" doc:name="Set type (Plenair | Commissie)"/>
+        <choice doc:name="Plenaire or commissie?">
+            <when expression="#[flowVars.type == &quot;Plenair&quot;]">
+                <set-variable variableName="titelType" value="#[&quot;Plenaire vergadering&quot;]" doc:name="Set titelType plenaire"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="titelType" value="#[payload.vergadering.commissie[0].titel]" doc:name="Set titelType"/>
+            </otherwise>
+        </choice>
         <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,19)]" doc:name="Set datumBegin"/>
+        <set-variable variableName="dayOfWeek" value="#[new org.mule.el.datetime.DateTime(flowVars.datumBegin).getDayOfWeek()]" doc:name="Set dayOfWeek"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.dayOfWeek == &quot;6&quot;]">
+                <set-variable variableName="dag" value="#[&quot;zondag&quot;]" doc:name="Set dag zondag"/>
+            </when>
+            <when expression="#[flowVars.dayOfWeek == &quot;5&quot;]">
+                <set-variable variableName="dag" value="#[&quot;zaterdag&quot;]" doc:name="Set dag zaterdag"/>
+            </when>
+            <when expression="#[flowVars.dayOfWeek == &quot;4&quot;]">
+                <set-variable variableName="dag" value="#[&quot;vrijdag&quot;]" doc:name="Set dag vrijdag"/>
+            </when>
+            <when expression="#[flowVars.dayOfWeek == &quot;3&quot;]">
+                <set-variable variableName="dag" value="#[&quot;donderdag&quot;]" doc:name="Set dag donderdag"/>
+            </when>
+            <when expression="#[flowVars.dayOfWeek == &quot;2&quot;]">
+                <set-variable variableName="dag" value="#[&quot;woensdag&quot;]" doc:name="Set dag woensdag"/>
+            </when>
+            <when expression="#[flowVars.dayOfWeek == &quot;1&quot;]">
+                <set-variable variableName="dag" value="#[&quot;dinsdag&quot;]" doc:name="Set dag dinsdag"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="dag" value="#[&quot;maandag&quot;]" doc:name="Set dag maandag"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="month" value="#[new org.mule.el.datetime.DateTime(flowVars.datumBegin).getMonth()]" doc:name="Set month"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.month == 5]">
+                <set-variable variableName="maand" value="#[&quot;mei&quot;]" doc:name="Set maand mei"/>
+            </when>
+            <when expression="#[flowVars.month == 4]">
+                <set-variable variableName="maand" value="#[&quot;april&quot;]" doc:name="Set maand april"/>
+            </when>
+            <when expression="#[flowVars.month == 3]">
+                <set-variable variableName="maand" value="#[&quot;maart&quot;]" doc:name="Set maand maart"/>
+            </when>
+            <when expression="#[flowVars.month == 2]">
+                <set-variable variableName="maand" value="#[&quot;februari&quot;]" doc:name="Set maand februari"/>
+            </when>
+            <when expression="#[flowVars.month == 10]">
+                <set-variable doc:name="Set maand oktober" value="#[&quot;oktober&quot;]" variableName="maand"/>
+            </when>
+            <when expression="#[flowVars.month == 9]">
+                <set-variable doc:name="Set maand september" value="#[&quot;september&quot;]" variableName="maand"/>
+            </when>
+            <when expression="#[flowVars.month == 8]">
+                <set-variable doc:name="Set maand augustus" value="#[&quot;augustus&quot;]" variableName="maand"/>
+            </when>
+            <when expression="#[flowVars.month == 7]">
+                <set-variable doc:name="Set maand juli" value="#[&quot;juli&quot;]" variableName="maand"/>
+            </when>
+            <when expression="#[flowVars.month == 6]">
+                <set-variable doc:name="Set maand juni" value="#[&quot;juni&quot;]" variableName="maand"/>
+            </when>
+            <when expression="#[flowVars.month == 11]">
+                <set-variable variableName="maand" value="#[&quot;november&quot;]" doc:name="Set maand november"/>
+            </when>
+            <when expression="#[flowVars.month == 12]">
+                <set-variable variableName="maand" value="#[&quot;december&quot;]" doc:name="Set maand december"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="maand" value="#[&quot;januari&quot;]" doc:name="Set maand januari"/>
+            </otherwise>
+        </choice>
+        <set-variable variableName="datumTitel" value="#[flowVars.dag + &quot; &quot; + flowVars.datumBegin.substring(8,10).replaceFirst(&quot;^0+(?!$)&quot;, &quot;&quot;) + &quot; &quot; + flowVars.maand + &quot; &quot; + flowVars.datumBegin.substring(0,4) + &quot;, &quot; + flowVars.datumBegin.substring(11,13) + &quot;.&quot; + flowVars.datumBegin.substring(14,16) + &quot;u&quot;]" doc:name="Set datumTitel (bv. Plenaire vergadering woensdag 16 november 2011, 14.00u)"/>
         <set-variable variableName="CreationDate" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,10) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(11,19)]" doc:name="Set CreationDate (MH)"/>
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
@@ -311,7 +384,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 </choice>
                 <set-variable variableName="agenda_lijnen" value="#[flowVars.agenda_lijnen += flowVars.'parlementair_initiatieven' + flowVars.vrageninterpellatie + flowVars.titel + flowVars.omschrijving + &quot;\n&quot;]" doc:name="Set agenda_lijnen"/>
             </foreach>
-            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += &quot;Agenda-item &quot; + flowVars.counterItem + &quot;: &quot; + flowVars.agenda_lijnen]" doc:name="Set dc_description_lang by concat agenda_lijnen"/>
+            <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang += flowVars.agenda_lijnen]" doc:name="Set dc_description_lang by concat agenda_lijnen"/>
             <set-variable variableName="dc_description_lang" value="#[flowVars.dc_description_lang.replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;)]" doc:name="Remove html tags from dc_description_lang"/>
         </foreach>
         <set-variable variableName="transcriptie" value="#[&quot;&quot;]" doc:name="Set transcriptie"/>
@@ -320,13 +393,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <set-variable variableName="journaallijn_voorzitter" value="#[&quot;Voorzitter: &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;aanspreking&quot;) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;voornaam&quot;) + &quot; &quot;  + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;naam&quot;)]" doc:name="Set journaallijn_voorzitter"/>
             <set-variable variableName="url" value="#[payload.get('link')[0].get('href')]" doc:name="Set url"/>
             <set-variable variableName="path" value="#[flowVars.url.substring(flowVars.url.indexOf('/e/opendata/'))]" doc:name="Set path"/>
-            <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-                <http:request config-ref="vlaamsparlement_api" path="#[flowVars.path]" method="GET" doc:name="Get journaallijn">
-                    <http:request-builder>
-                        <http:header headerName="Accept" value="application/json"/>
-                    </http:request-builder>
-                </http:request>
-            </until-successful>
+            <http:request config-ref="vlaamsparlement_api" path="#[flowVars.path]" method="GET" doc:name="Get journaallijn">
+                <http:request-builder>
+                    <http:header headerName="Accept" value="application/json"/>
+                </http:request-builder>
+            </http:request>
             <byte-array-to-string-transformer doc:name="Byte Array to String"/>
             <json:json-to-object-transformer doc:name="JSON to Object" returnClass="java.util.HashMap"/>
             <set-variable variableName="gesprek" value="#[&quot;&quot;]" doc:name="Reset gesprek"/>
@@ -343,7 +414,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                     </otherwise>
                 </choice>
             </foreach>
-            <expression-component doc:name="Append gesprek to transcriptie"><![CDATA[#[flowVars.transcriptie += flowVars.gesprek]]]></expression-component>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.gesprek == &quot;&quot;]">
+                    <expression-component doc:name="do nothing"><![CDATA[// do nothing]]></expression-component>
+                </when>
+                <otherwise>
+                    <expression-component doc:name="Append gesprek to transcriptie"><![CDATA[#[flowVars.transcriptie += flowVars.gesprek + "\n"]]]></expression-component>
+                </otherwise>
+            </choice>
         </foreach>
         <set-payload value="#[flowVars.vergadering_response]" doc:name="Set Payload with vergadering_response"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
@@ -354,7 +432,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 {
 	MediaHAVEN_external_metadata: {
-		title: payload.vergadering.commissie[0].titel ++ flowVars.deel ++ " " ++ flowVars.datumBegin,
+		title: flowVars.titelType ++ " " ++ flowVars.deel ++ flowVars.datumTitel,
 		description: flowVars.dc_description_lang,
 		MDProperties: {
 			PID: flowVars.pid,
@@ -364,12 +442,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_source: flowVars.filenameEssence,
 			dc_identifier_localid: flowVars.local_id,
 			dc_identifier_localids @(type: "list"): {
-				pdf: payload.vergadering.commissiehandelingen.pdffilewebpath,
+				pdf: payload.vergadering.commissiehandelingen.pdffilewebpath when flowVars.type == "Commissie"
+					otherwise payload.vergadering.plenairehandelingen.pdffilewebpath,
 				bestandsnaam: flowVars.filenameEssence,
 				api: 'http://ws.vlpar.be/e/opendata/verg/' ++ flowVars.local_id
 			},
 			dc_titles @(type: "list"): {
-				reeks: payload.vergadering.commissie[0].titel
+				reeks: payload.vergadering.commissie[0].titel when flowVars.type == "Commissie"
+						otherwise "Plenair"
 			},
 			CreationDate: flowVars.CreationDate,
 			dcterms_issued: flowVars.datumBegin,

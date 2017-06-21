@@ -26,30 +26,30 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="dc_description" value="#[xpath3(&quot;//*[local-name() = 'dc_description']/text()&quot;)]" doc:name="Set dc_description"/>
-        <set-variable variableName="dcterms_created" value="#[xpath3(&quot;//*[local-name() = 'dcterms_created']/text()&quot;)]" doc:name="Set dcterms_created"/>
-        <set-variable variableName="CreationDate" value="#[flowVars.dcterms_created + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_created (from EDTF to EXIF)"/>
+        <set-variable variableName="CreationDate" value="#[xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;).substring(0,10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml"/>
             <dw:input-variable variableName="comment"/>
             <dw:set-payload><![CDATA[%dw 1.0
+%input payload application/xml
 %output application/xml skipNullOn="everywhere"
 %function split(name) name splitBy ","
 ---
 {
 	MediaHAVEN_external_metadata: {
-		title: flowVars.filenameWithoutExtension,
-		description: flowVars.dc_description,
+		(title: payload.VIAA.dc_titles[0]) when (sizeOf payload.VIAA.dc_titles) > 0,
+		description: payload.VIAA.dc_description when payload.VIAA.dc_description? otherwise "",
 		MDProperties: {
-			sp_name: 'borndigital',
-			CP: flowVars.cp,
+			(payload.*VIAA map (
+				$
+			)),
+			(sp_name: 'borndigital') when payload.VIAA.sp_name == null,
+			(CP: flowVars.cp) when payload.VIAA.CP == null,
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
-			(dc_relations: {
-				bevat: flowVars.pid_collateral 
-			}) when flowVars.pid_collateral?,
+			(dc_relations: { (flowVars.relations map (bevat: $)) }) when flowVars.pid_collateral?,
 			CreationDate: flowVars.CreationDate,
-			dc_source: flowVars.filenameEssence
+			(dc_source: flowVars.filenameEssence) when payload.VIAA.dc_source == null
 			// Default VIAA license?
 			//dc_rights_licenses @(type: "list"): {
 			//	(licentie: flowVars.license) when flowVars.license?
@@ -281,22 +281,22 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="datumBegin" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,19)]" doc:name="Set datumBegin"/>
         <set-variable variableName="dayOfWeek" value="#[new org.mule.el.datetime.DateTime(flowVars.datumBegin).getDayOfWeek()]" doc:name="Set dayOfWeek"/>
         <choice doc:name="Choice">
-            <when expression="#[flowVars.dayOfWeek == &quot;6&quot;]">
+            <when expression="#[flowVars.dayOfWeek == &quot;1&quot;]">
                 <set-variable variableName="dag" value="#[&quot;zondag&quot;]" doc:name="Set dag zondag"/>
             </when>
-            <when expression="#[flowVars.dayOfWeek == &quot;5&quot;]">
+            <when expression="#[flowVars.dayOfWeek == &quot;7&quot;]">
                 <set-variable variableName="dag" value="#[&quot;zaterdag&quot;]" doc:name="Set dag zaterdag"/>
             </when>
-            <when expression="#[flowVars.dayOfWeek == &quot;4&quot;]">
+            <when expression="#[flowVars.dayOfWeek == &quot;6&quot;]">
                 <set-variable variableName="dag" value="#[&quot;vrijdag&quot;]" doc:name="Set dag vrijdag"/>
             </when>
-            <when expression="#[flowVars.dayOfWeek == &quot;3&quot;]">
+            <when expression="#[flowVars.dayOfWeek == &quot;5&quot;]">
                 <set-variable variableName="dag" value="#[&quot;donderdag&quot;]" doc:name="Set dag donderdag"/>
             </when>
-            <when expression="#[flowVars.dayOfWeek == &quot;2&quot;]">
+            <when expression="#[flowVars.dayOfWeek == &quot;4&quot;]">
                 <set-variable variableName="dag" value="#[&quot;woensdag&quot;]" doc:name="Set dag woensdag"/>
             </when>
-            <when expression="#[flowVars.dayOfWeek == &quot;1&quot;]">
+            <when expression="#[flowVars.dayOfWeek == &quot;3&quot;]">
                 <set-variable variableName="dag" value="#[&quot;dinsdag&quot;]" doc:name="Set dag dinsdag"/>
             </when>
             <otherwise>
@@ -423,6 +423,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 </otherwise>
             </choice>
         </foreach>
+        <custom-transformer class="utils.UnescapeHtml" doc:name="Remove HTML escaping"/>
+        <set-variable variableName="transcriptie" value="#[payload]" doc:name="Set transcriptie with unescaped HTML"/>
         <set-payload value="#[flowVars.vergadering_response]" doc:name="Set Payload with vergadering_response"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/json.json"/>
@@ -469,7 +471,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 				(trefwoord: "Vergaderzaal: " ++ payload.vergadering.vergaderzaal.naam) when payload.vergadering.vergaderzaal.naam?
 			},
 			dc_description_lang: flowVars.dc_description_lang,
-			dc_description_transcriptie: flowVars.transcriptie,
+			dc_description_transcriptie: flowVars.transcriptie replace "&#13;" with "",
 			dc_rights_licenses @(type: "list"): {
 				licentie: "CC BY"
 			},

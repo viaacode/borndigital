@@ -47,6 +47,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <flow-ref name="sendErrorMessage" doc:name="sendErrorMessage"/>
             <choice doc:name="Choice">
+                <when expression="#[flowVars.comment == null]">
+                    <set-variable variableName="comment" value="#[exception.cause.message]" doc:name="Set comment"/>
+                </when>
+                <otherwise>
+                    <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
+                </otherwise>
+            </choice>
+            <choice doc:name="Choice">
                 <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                     <expression-component doc:name="Do nothing"><![CDATA[// Do nothing]]></expression-component>
                 </when>
@@ -106,13 +114,7 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
         <choice doc:name="SIP contains collateral (e.g. subtitle)?">
             <when expression="flowVars.files.get(&quot;collateral&quot;) != null">
-                <flow-ref name="SEND_COLLATERAL" doc:name="SEND_COLLATERAL"/>
-            </when>
-            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;) &amp;&amp; xpath3('//StratumEx[@name=&quot;SUBTITLES&quot;]', flowVars.incomingXml) != &quot;&quot;]">
-                <logger message="Todo: not from digitization!" level="INFO" doc:name="Todo: check not from digitization!"/>
-                <set-variable variableName="path" value="#['/' + flowVars.cp.toLowerCase() + '/DISK-SHARE-EVENTS']" doc:name="Set path"/>
-                <flow-ref name="DeliverSubtitlesMedialaan" doc:name="DeliverSubtitlesMedialaan"/>
-                <flow-ref name="DeliverSubtitlesMedialaanVTTAndSRT" doc:name="DeliverSubtitlesMedialaanVTTAndSRT"/>
+                <flow-ref name="SEND_COLLATERALS" doc:name="SEND_COLLATERALS"/>
             </when>
             <otherwise>
                 <expression-component doc:name="No collateral, do nothing"><![CDATA[// No collateral, do nothing]]></expression-component>
@@ -132,9 +134,6 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
             <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>
             </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_MEDIALAAN" doc:name="PI_METADATA_MAPPING_MEDIALAAN"/>
-            </when>
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
@@ -152,7 +151,8 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                 <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
             </when>
             <otherwise>
-                <flow-ref name="PI_SIP_DELIVERY_SIDECAR" doc:name="PI_SIP_DELIVERY_SIDECAR"/>
+                <flow-ref name="PI_SIP_DELIVERY_GENERIC_ESSENCE" doc:name="PI_SIP_DELIVERY_GENERIC_ESSENCE"/>
+                <flow-ref name="PI_SIP_DELIVERY_GENERIC_SIDECAR" doc:name="PI_SIP_DELIVERY_GENERIC_SIDECAR"/>
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -173,16 +173,23 @@ where filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath]
     </sub-flow>
     <sub-flow name="init_variables">
         <set-variable variableName="cp" value="#[flowVars.input.cp_name]" doc:name="Set cp"/>
-        <set-variable variableName="filenameWithoutExtension" value="#[flowVars.files.essence.file_name.split(&quot;\\.&quot;)[0]]" doc:name="Set filenameWithoutExtension"/>
-        <set-variable variableName="filenameEssence" value="#[flowVars.files.essence.file_name]" doc:name="Set filenameEssence"/>
+        <set-variable variableName="filenameWithoutExtension" value="#[flowVars.files.essence[0].file_name.split(&quot;\\.&quot;)[0]]" doc:name="Set filenameWithoutExtension"/>
+        <set-variable variableName="filenameEssence" value="#[flowVars.files.essence[0].file_name]" doc:name="Set filenameEssence"/>
         <set-variable variableName="extension" value="#[flowVars.filenameEssence.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.filenameEssence.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension"/>
-        <set-variable variableName="filepath" value="#[flowVars.files.essence.file_path]" doc:name="Set filepath"/>
+        <set-variable variableName="filepath" value="#[flowVars.files.essence[0].file_path]" doc:name="Set filepath"/>
         <set-variable variableName="host" value="#[flowVars.input.server]" doc:name="Set host"/>
-        <set-variable variableName="md5calculated" value="#[flowVars.files.essence.md5]" doc:name="Set md5calculated"/>
+        <set-variable variableName="md5calculated" value="#[flowVars.files.essence[0].md5]" doc:name="Set md5calculated"/>
         <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
         <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
-        <flow-ref name="get_cp_id" doc:name="get_cp_id"/>
-        <set-variable variableName="cp_id" value="#[payload]" doc:name="Set cp_id"/>
+        <choice doc:name="When not a custom CP, use flow_id as CP_id">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;provant&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;) || flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
+                <flow-ref name="get_cp_id" doc:name="get_cp_id"/>
+                <set-variable variableName="cp_id" value="#[payload]" doc:name="Set cp_id"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="cp_id" value="#[flowVars.input.flow_id]" doc:name="Set cp_id with flow_id"/>
+            </otherwise>
+        </choice>
     </sub-flow>
     <sub-flow name="PI_SET_PID">
         <set-variable variableName="eventName" value="PI_SET_PID" doc:name="Set eventName"/>
@@ -254,16 +261,9 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
     <flow name="PI_SIDECAR_FETCHED">
         <set-variable variableName="eventName" value="PI_SIDECAR_FETCHED" doc:name="Set eventName"/>
         <until-successful maxRetries="3" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'].file_path]/#[flowVars.files['sidecar'].file_name]?connector=FTP" timeout="10000" doc:name="Get XML file from FTP"/>
+            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'][0].file_path]/#[flowVars.files['sidecar'][0].file_name]?connector=FTP" timeout="10000" doc:name="Get XML file from FTP"/>
         </until-successful>
-        <choice doc:name="When Medialaan, set encoding to UTF-16">
-            <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
-                <byte-array-to-object-transformer encoding="UTF-16" mimeType="application/xml" doc:name="Byte Array to Object"/>
-            </when>
-            <otherwise>
-                <byte-array-to-object-transformer doc:name="Byte Array to Object"/>
-            </otherwise>
-        </choice>
+        <byte-array-to-object-transformer doc:name="Byte Array to Object"/>
         <set-variable variableName="incomingXml" value="#[payload]" doc:name="Set incomingXml"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[&quot;Sidecar is succesfully read.&quot;]" doc:name="Set comment"/>
@@ -303,10 +303,6 @@ VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flo
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <logger message="Local id Meise" level="INFO" doc:name="Meise"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_cpid/text()&quot;)]" doc:name="Set local_id from dc_identifier_cpid (legacy)"/>
-            </when>
-            <when expression="#[flowVars.cp.equals(&quot;RMM&quot;) || flowVars.cp.equals(&quot;rmm&quot;)]">
-                <logger message="Local id RMM" level="INFO" doc:name="RMM"/>
-                <set-variable variableName="local_id" value="#[flowVars.filenameWithoutExtension]" doc:name="Set local_id with filenameWithoutExtension"/>
             </when>
             <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
                 <logger message="Local id Medialaan" level="INFO" doc:name="Medialaan"/>
@@ -372,15 +368,18 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         <remove-variable variableName="comment" doc:name="Clear Comment"/>
         <remove-variable variableName="result" doc:name="Clear result"/>
     </sub-flow>
-    <sub-flow name="SEND_COLLATERAL">
-        <set-variable variableName="filenameCollateral" value="#[flowVars.files.collateral.file_name]" doc:name="Set filenameCollateral"/>
-        <logger message="Contains subtitles" level="INFO" doc:name="Contains collateral"/>
-        <set-variable variableName="extension_collateral" value="#[flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension_collateral"/>
-        <set-variable variableName="pid_collateral" value="#[flowVars.pid + '_' + flowVars.extension_collateral]" doc:name="Set pid_collateral"/>
-        <set-variable variableName="cp_mediahaven" value="#[flowVars.cp.toLowerCase()]" doc:name="Set cp_mediahaven"/>
-        <dw:transform-message doc:name="Build fxp request">
-            <dw:input-variable variableName="currentItem"/>
-            <dw:set-payload><![CDATA[%dw 1.0
+    <sub-flow name="SEND_COLLATERALS">
+        <set-variable variableName="relations" value="#[new ArrayList()]" doc:name="Init relations"/>
+        <foreach collection="#[flowVars.files.collateral]" doc:name="For Each collateral">
+            <set-variable variableName="filenameCollateral" value="#[payload.file_name]" doc:name="Set filenameCollateral"/>
+            <logger message="Contains subtitles" level="INFO" doc:name="Contains collateral"/>
+            <set-variable variableName="extension_collateral" value="#[flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension_collateral"/>
+            <set-variable variableName="pid_collateral" value="#[flowVars.pid + '_' + flowVars.extension_collateral]" doc:name="Set pid_collateral"/>
+            <expression-component doc:name="Add pid_collateral to relations"><![CDATA[#[flowVars.relations.add(flowVars.pid_collateral)]]]></expression-component>
+            <set-variable variableName="cp_mediahaven" value="#[flowVars.cp.toLowerCase()]" doc:name="Set cp_mediahaven"/>
+            <dw:transform-message doc:name="Build fxp request">
+                <dw:input-variable variableName="currentItem"/>
+                <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/java
 %output application/json
 ---
@@ -397,10 +396,11 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
     "source_user": flowVars.sourceUsername,
     "move": false
 }]]></dw:set-payload>
-        </dw:transform-message>
-        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
-        <logger message="Done sending subtitle with pid #[flowVars.pid_collateral] and local_id #[flowVars.local_id]" level="INFO" doc:name="Done sending subtitle"/>
+            </dw:transform-message>
+            <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+            <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
+            <logger message="Done sending subtitle with pid #[flowVars.pid_collateral] and local_id #[flowVars.local_id]" level="INFO" doc:name="Done sending subtitle"/>
+        </foreach>
     </sub-flow>
 
 </mule>

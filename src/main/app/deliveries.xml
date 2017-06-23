@@ -20,9 +20,9 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
+        <foreach collection="#[flowVars.files.entrySet()]" doc:name="For Each">
             <choice doc:name="Choice">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
+                <when expression="#[!payload.key.equals(&quot;sidecar&quot;)]">
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     
                     <dw:transform-message doc:name="Transform Message">

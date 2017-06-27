@@ -203,14 +203,14 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <foreach collection="#[flowVars.files]" doc:name="For Each">
             <choice doc:name="Is sidecar?">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+                <when expression="#[!payload[0].file_type.equals(&quot;sidecar&quot;)]">
+                    <set-variable variableName="currentItem" value="#[payload[0]]" doc:name="Set currentItem"/>
                     <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
                     <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
                     <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
                     <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <set-variable variableName="extension" value="#[flowVars.currentItem.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <logger message="Continuing transfer after while loops" level="INFO" doc:name="Logger"/>

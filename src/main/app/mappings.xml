@@ -37,7 +37,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 {
 	MediaHAVEN_external_metadata: {
-		(title: payload.VIAA.dc_titles[0]) when (sizeOf payload.VIAA.dc_titles) > 0,
+		(title: payload.VIAA.dc_title) when payload.VIAA.dc_title?,
 		description: payload.VIAA.dc_description when payload.VIAA.dc_description? otherwise "",
 		MDProperties: {
 			(payload.*VIAA map (

@@ -37,7 +37,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 {
 	MediaHAVEN_external_metadata: {
-		(title: payload.VIAA.dc_title) when payload.VIAA.dc_title?,
+		(title: payload.VIAA.dc_title when payload.VIAA.dc_title?
+			otherwise payload.VIAA.dc_titles[0] when (sizeOf payload.VIAA.dc_titles) > 0
+			otherwise ""),
 		description: payload.VIAA.dc_description when payload.VIAA.dc_description? otherwise "",
 		MDProperties: {
 			(payload.*VIAA map (
@@ -713,5 +715,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="mappedXml" value="#[payload]" doc:name="Set mappedXml"/>
     </sub-flow>
-
+    <sub-flow name="metadata_corrections">
+        <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replaceAll('&lt;trefwoord&gt;', '&lt;Trefwoord&gt;').replaceAll('&lt;/trefwoord&gt;', '&lt;/Trefwoord&gt;')]" doc:name="Fix trefwoord -&gt; Trefwoord"/>
+        <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replaceAll('&lt;auteursrechthouder&gt;', '&lt;Auteursrechthouder&gt;').replaceAll('&lt;/auteursrechthouder&gt;','&lt;/Auteursrechthouder&gt;')]" doc:name="Fix auteursrechthouder -&gt; Auteursrechthouder"/>
+        <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replaceAll('&lt;licentiehouder&gt;', '&lt;Licentiehouder&gt;').replaceAll('&lt;/licentiehouder&gt;','&lt;/Licentiehouder&gt;')]" doc:name="Fix licentiehouder -&gt; Licentiehouder"/>
+    </sub-flow>
 </mule>

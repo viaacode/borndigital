@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+<mule xmlns:ftplite="http://www.mulesoft.org/schema/mule/ftplite" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:file="http://www.mulesoft.org/schema/mule/file"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster"
 	xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
@@ -30,11 +30,11 @@ http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/
 http://www.mulesoft.org/schema/mule/mulerequester http://www.mulesoft.org/schema/mule/mulerequester/current/mule-mulerequester.xsd
 http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
-http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/ftplite/current/mule-ftplite.xsd">
     <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
     <asynchronous-processing-strategy name="Asynchronous_Processing_Strategy" maxThreads="4" minThreads="1" doc:name="Asynchronous Processing Strategy"/>
-    <validation:config name="Validation_Configuration" doc:name="Validation Configuration"/>    
-	<!-- Special File Connector that does not auto-delete files once read -->
+    <validation:config name="Validation_Configuration" doc:name="Validation Configuration"/>
 
     <flow name="main" processingStrategy="synchronous" initialState="started"> 
         <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="1">
@@ -97,75 +97,85 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
         <component class="utils.Utils" doc:name="Extract files"></component>
         <set-variable variableName="files" value="#[payload]" doc:name="Set files (with message metadata)"/>
         <flow-ref name="init_variables" doc:name="init_variables"/>
-        <flow-ref name="PI_SIDECAR_FETCHED" doc:name="PI_SIDECAR_FETCHED"/>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <flow-ref name="PI_SET_LOCAL_ID" doc:name="PI_SET_LOCAL_ID"/>
-        <flow-ref name="PI_SET_MD5" doc:name="PI_SET_MD5"/>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <flow-ref name="PI_SET_PID" doc:name="PI_SET_PID"/>
-        <choice doc:name="Don't add to sips when vrt or plantentuinmeise">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
-            </when>
-            <otherwise>
-                <flow-ref name="ADD_TO_SIPS" doc:name="ADD_TO_SIPS"/>
-            </otherwise>
-        </choice>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <choice doc:name="SIP contains collateral (e.g. subtitle)?">
-            <when expression="flowVars.files.get(&quot;collateral&quot;) != null">
-                <flow-ref name="SEND_COLLATERALS" doc:name="SEND_COLLATERALS"/>
-            </when>
-            <otherwise>
-                <expression-component doc:name="No collateral, do nothing"><![CDATA[// No collateral, do nothing]]></expression-component>
-            </otherwise>
-        </choice>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <choice doc:name="Which flow_id?">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_PROVANT" doc:name="PI_METADATA_MAPPING_PROVANT"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_MEISE" doc:name="PI_METADATA_MAPPING_MEISE"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>
-            </when>
-            <otherwise>
-                <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
-                <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
-            </otherwise>
-        </choice>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+        <flow-ref name="check_filename_special_characters" doc:name="check_filename_special_characters"/>
         <choice doc:name="Choice">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
-                <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
-                <flow-ref name="PI_SIP_DELIVERY_PROVANT" doc:name="PI_SIP_DELIVERY_PROVANT"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
+            <when expression="#[flowVars.filename_contains_bad_characters]">
+                <flow-ref name="move_files_for_correct_name" doc:name="move_files_for_correct_name"/>
             </when>
             <otherwise>
-                <flow-ref name="PI_SIP_DELIVERY_GENERIC_ESSENCE" doc:name="PI_SIP_DELIVERY_GENERIC_ESSENCE"/>
-                <flow-ref name="PI_SIP_DELIVERY_GENERIC_SIDECAR" doc:name="PI_SIP_DELIVERY_GENERIC_SIDECAR"/>
-            </otherwise>
-        </choice>
-        <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-        <choice doc:name="Don't update sips for vrt and meise">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
-            </when>
-            <otherwise>
-                <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
-                    <db:parameterized-query><![CDATA[update sips
+                <flow-ref name="PI_SIDECAR_FETCHED" doc:name="PI_SIDECAR_FETCHED"/>
+                <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+                <flow-ref name="PI_SET_LOCAL_ID" doc:name="PI_SET_LOCAL_ID"/>
+                <flow-ref name="PI_SET_MD5" doc:name="PI_SET_MD5"/>
+                <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+                <flow-ref name="PI_SET_PID" doc:name="PI_SET_PID"/>
+                <choice doc:name="Don't add to sips when vrt or plantentuinmeise">
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                        <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
+                    </when>
+                    <otherwise>
+                        <flow-ref name="ADD_TO_SIPS" doc:name="ADD_TO_SIPS"/>
+                    </otherwise>
+                </choice>
+                <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+                <choice doc:name="SIP contains collateral (e.g. subtitle)?">
+                    <when expression="flowVars.files.get(&quot;collateral&quot;) != null">
+                        <flow-ref name="SEND_COLLATERALS" doc:name="SEND_COLLATERALS"/>
+                    </when>
+                    <otherwise>
+                        <expression-component doc:name="No collateral, do nothing"><![CDATA[// No collateral, do nothing]]></expression-component>
+                    </otherwise>
+                </choice>
+                <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+                <choice doc:name="Which flow_id?">
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                        <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
+                    </when>
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
+                        <flow-ref name="PI_METADATA_MAPPING_PROVANT" doc:name="PI_METADATA_MAPPING_PROVANT"/>
+                    </when>
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                        <flow-ref name="PI_METADATA_MAPPING_MEISE" doc:name="PI_METADATA_MAPPING_MEISE"/>
+                    </when>
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;)]">
+                        <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>
+                    </when>
+                    <otherwise>
+                        <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
+                        <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
+                        <flow-ref name="metadata_corrections" doc:name=""/>
+                        <logger message="Todo:validate with XSD" level="INFO" doc:name="Todo: validate with XSD"/>
+                    </otherwise>
+                </choice>
+                <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+                <choice doc:name="Choice">
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
+                        <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
+                    </when>
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
+                        <flow-ref name="PI_SIP_DELIVERY_PROVANT" doc:name="PI_SIP_DELIVERY_PROVANT"/>
+                    </when>
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                        <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
+                    </when>
+                    <otherwise>
+                        <flow-ref name="PI_SIP_DELIVERY_GENERIC_ESSENCE" doc:name="PI_SIP_DELIVERY_GENERIC_ESSENCE"/>
+                        <flow-ref name="PI_SIP_DELIVERY_GENERIC_SIDECAR" doc:name="PI_SIP_DELIVERY_GENERIC_SIDECAR"/>
+                    </otherwise>
+                </choice>
+                <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
+                <choice doc:name="Don't update sips for vrt and meise">
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                        <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
+                    </when>
+                    <otherwise>
+                        <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
+                            <db:parameterized-query><![CDATA[update sips
 set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress'
 where filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath] and host = #[flowVars.host] and md5 = #[flowVars.md5metadata]]]></db:parameterized-query>
-                </db:update>
+                        </db:update>
+                    </otherwise>
+                </choice>
             </otherwise>
         </choice>
                 <logger message="Done with local_id #[flowVars.local_id] and pid #[flowVars.pid]" level="INFO" doc:name="Done"/>
@@ -401,6 +411,57 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
             <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
             <logger message="Done sending subtitle with pid #[flowVars.pid_collateral] and local_id #[flowVars.local_id]" level="INFO" doc:name="Done sending subtitle"/>
         </foreach>
+    </sub-flow>
+    <sub-flow name="check_filename_special_characters">
+        <set-variable variableName="filename_contains_bad_characters" value="#[flowVars.filenameWithoutExtension.matches(&quot;.*[\\[\\]()#&#235;+%&#233;&#8217;].*&quot;)]" doc:name="Set filename_contains_bad_characters (e.g.: ()#&#235;+%)"/>
+        <set-variable variableName="state" value="BAD_CHAR_CHECKED" doc:name="Set state (BAD_CHAR_CHECKED)"/>
+        <logger message="BAD_CHAR_CHECKED: #[flowVars.filename_contains_bad_characters]" level="INFO" doc:name="BAD_CHAR_CHECKED"/>
+    </sub-flow>
+    <sub-flow name="move_files_for_correct_name">
+        <set-variable variableName="filename_corrected" value="#[flowVars.filenameWithoutExtension.replaceAll(&quot;\\(&quot;,&quot; &quot;).replaceAll(&quot;\\)&quot;,&quot; &quot;).replaceAll(&quot;#&quot;,&quot; &quot;).replaceAll(&quot;&#235;&quot;,&quot;e&quot;).replaceAll(&quot;&#233;&quot;,&quot;e&quot;).replaceAll(&quot;\\+&quot;,&quot;&quot;).replaceAll(&quot;\\%&quot;,&quot;&quot;).replaceAll(&quot;&#8217;&quot;,&quot;&quot;).replaceAll(&quot;\\[&quot;,&quot; &quot;).replaceAll(&quot;\\]&quot;,&quot; &quot;).trim()]" doc:name="Set filename_corrected"/>
+        <set-variable variableName="destinationpath" value="#[flowVars.filepath.substring(0, flowVars.filepath.lastIndexOf('/'))]" doc:name="Set destinationpath to source folder one higher"/>
+        <dw:transform-message doc:name="Build move request for sidecar">
+            <dw:input-variable variableName="currentItem"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+	%output application/json
+	---
+	{
+		"source_name": flowVars.filenameWithoutExtension ++ ".xml",
+		"destination_name": flowVars.filename_corrected ++ ".xml",
+		"source_path": flowVars.filepath,
+		"destination_path": flowVars.destinationpath,
+	    "host": flowVars.host,
+	    "username": flowVars.sourceUsername,
+	    "password": flowVars.sourcePassword,
+	    "correlation_id": ""
+	}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
+            <reconnect-forever/>
+        </amqp:outbound-endpoint>
+        <dw:transform-message doc:name="Build move request for essence">
+            <dw:input-variable variableName="currentItem"/>
+            <dw:set-payload><![CDATA[%dw 1.0
+	%output application/json
+	---
+	{
+		"source_name": flowVars.filenameWithoutExtension ++ "." ++ flowVars.extension,
+		"destination_name": flowVars.filename_corrected ++ "." ++ flowVars.extension,
+		"source_path": flowVars.filepath,
+		"destination_path": flowVars.destinationpath,
+	    "host": flowVars.host,
+	    "username": flowVars.sourceUsername,
+	    "password": flowVars.sourcePassword,
+	    "correlation_id": ""
+	}]]></dw:set-payload>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
+            <reconnect-forever/>
+        </amqp:outbound-endpoint>
+        <set-variable variableName="state" value="FILES_MOVED" doc:name="Set state (FILES_MOVED)"/>
+        <logger message="FILES_MOVED" level="INFO" doc:name="FILES_MOVED"/>
     </sub-flow>
 
 </mule>

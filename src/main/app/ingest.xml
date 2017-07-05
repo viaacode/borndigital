@@ -54,7 +54,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
                     <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
                 </otherwise>
             </choice>
-            <choice doc:name="Choice">
+            <choice doc:name="Do nothing when vrt or meise">
                 <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                     <expression-component doc:name="Do nothing"><![CDATA[// Do nothing]]></expression-component>
                 </when>
@@ -66,6 +66,7 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
 		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
 		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
 		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
+		or (#[flowVars.md5metadata] = '' and local_id = #[flowVars.filenameWithoutExtension])
 	)]]></db:parameterized-query>
                     </db:select>
                     <choice doc:name="Record found?">
@@ -143,7 +144,7 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                     <otherwise>
                         <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                         <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
-                        <flow-ref name="metadata_corrections" doc:name=""/>
+                        <flow-ref name="metadata_corrections" doc:name="metadata_corrections"/>
                         <logger message="Todo:validate with XSD" level="INFO" doc:name="Todo: validate with XSD"/>
                     </otherwise>
                 </choice>
@@ -268,9 +269,11 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
         <json:json-to-object-transformer returnClass="answer.PIDIdResponse[]" doc:name="JSON to Object"/>
         <set-variable variableName="pid" value="#[payload[0].id]" doc:name="Set pid"/>
     </sub-flow>
-    <flow name="PI_SIDECAR_FETCHED">
+    <sub-flow name="PI_SIDECAR_FETCHED">
         <set-variable variableName="eventName" value="PI_SIDECAR_FETCHED" doc:name="Set eventName"/>
-        <until-successful maxRetries="3" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
+        <set-variable variableName="local_id" value="#[flowVars.filenameWithoutExtension]" doc:name="Set local_id as filenameWithoutExtension"/>
+        <set-variable variableName="md5metadata" value="#['']" doc:name="Set md5metadata empty"/>
+        <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
             <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'][0].file_path]/#[flowVars.files['sidecar'][0].file_name]?connector=FTP" timeout="10000" doc:name="Get XML file from FTP"/>
         </until-successful>
         <byte-array-to-object-transformer doc:name="Byte Array to Object"/>
@@ -278,25 +281,7 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[&quot;Sidecar is succesfully read.&quot;]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
-        <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <choice doc:name="Do nothing when vrt or meise">
-                <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                    <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
-                </when>
-                <otherwise>
-                    <db:insert config-ref="borndigital" doc:name="Insert into sips table as NOK">
-                        <db:parameterized-query><![CDATA[INSERT INTO sips
-(organisation, filename, filepath, host, comment, preingest_status, organisation_id, archive_status)
-VALUES (#[flowVars.cp], #[flowVars.filenameEssence], #[flowVars.filepath], #[flowVars.host], #[flowVars.comment], 'NOK', #[flowVars.cp_id], 'in_progress')]]></db:parameterized-query>
-                    </db:insert>
-                </otherwise>
-            </choice>
-            <set-variable variableName="result" value="#[&quot;NOK&quot;]" doc:name="Set result NOK"/>
-            <set-variable variableName="comment" value="#[&quot;Failed to read sidecar&quot;]" doc:name="Set comment (Failed to read sidecar)"/>
-            <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
-            <validation:is-true config-ref="Validation_Configuration" expression="#[false]" doc:name="Throw exception so main flow stops"/>
-        </catch-exception-strategy>
-    </flow>
+    </sub-flow>
     <flow name="PI_SET_LOCAL_ID">
         <set-variable variableName="eventName" value="PI_SET_LOCAL_ID" doc:name="Set eventName"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>

@@ -172,8 +172,8 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                     <otherwise>
                         <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
                             <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress'
-where filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath] and host = #[flowVars.host] and md5 = #[flowVars.md5metadata]]]></db:parameterized-query>
+set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress', md5 = #[flowVars.md5metadata]
+where (filename = #[flowVars.filenameEssence] and filepath = #[flowVars.filepath] and host = #[flowVars.host] and md5 = #[flowVars.md5metadata]) OR (filename = #[flowVars.filenameEssence] and md5 = '')]]></db:parameterized-query>
                         </db:update>
                     </otherwise>
                 </choice>
@@ -335,7 +335,7 @@ from sips
 where ((local_id = #[flowVars.local_id] and md5 is null)
 		or (filename = #[flowVars.filename] and filepath = #[flowVars.filepath] and md5 is null)
 		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
-		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
+		or (filename = #[flowVars.filenameEssence] and md5 = '')
 	)]]></db:parameterized-query>
                         </db:select>
                         <choice doc:name="Found?">

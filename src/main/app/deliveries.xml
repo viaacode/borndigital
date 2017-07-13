@@ -20,9 +20,9 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
+        <foreach collection="#[flowVars.files.entrySet()]" doc:name="For Each">
             <choice doc:name="Choice">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
+                <when expression="#[!payload.key.equals(&quot;sidecar&quot;)]">
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     
                     <dw:transform-message doc:name="Transform Message">
@@ -83,17 +83,14 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
-    <sub-flow name="PI_SIP_DELIVERY_SIDECAR">
+    <sub-flow name="PI_SIP_DELIVERY_GENERIC_ESSENCE">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
-            <choice doc:name="Choice">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
-                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    <dw:transform-message doc:name="Build fxp request">
-                        <dw:input-variable variableName="currentItem"/>
-                        <dw:set-payload><![CDATA[%dw 1.0
+        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
+        <flow-ref name="while_free_space" doc:name="while_free_space"/>
+        <dw:transform-message doc:name="Build fxp request">
+            <dw:input-variable variableName="currentItem"/>
+            <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/java
 %output application/json
 ---
@@ -110,19 +107,15 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
     "source_user": flowVars.sourceUsername,
     "move": false
 }]]></dw:set-payload>
-                    </dw:transform-message>
-                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                  	<amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
-                </when>
-                <otherwise>
-                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
-                </otherwise>
-            </choice>
-        </foreach>
-        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
-        <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_SIP_DELIVERY_GENERIC_SIDECAR">
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
+        <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
     </sub-flow>
     <sub-flow name="PI_SIP_DELIVERY_PROVANT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
@@ -210,14 +203,14 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <foreach collection="#[flowVars.files]" doc:name="For Each">
             <choice doc:name="Is sidecar?">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+                <when expression="#[!payload[0].file_type.equals(&quot;sidecar&quot;)]">
+                    <set-variable variableName="currentItem" value="#[payload[0]]" doc:name="Set currentItem"/>
                     <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
                     <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
                     <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
                     <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <set-variable variableName="extension" value="#[flowVars.currentItem.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <logger message="Continuing transfer after while loops" level="INFO" doc:name="Logger"/>

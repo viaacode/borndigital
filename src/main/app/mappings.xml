@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="CreationDate" value="#[xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;).substring(0,10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
+        <set-variable variableName="CreationDate" value="#[xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;).replaceAll('-', ':').substring(0,10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml"/>
             <dw:input-variable variableName="comment"/>
@@ -345,7 +345,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             </otherwise>
         </choice>
         <set-variable variableName="datumTitel" value="#[flowVars.dag + &quot; &quot; + flowVars.datumBegin.substring(8,10).replaceFirst(&quot;^0+(?!$)&quot;, &quot;&quot;) + &quot; &quot; + flowVars.maand + &quot; &quot; + flowVars.datumBegin.substring(0,4) + &quot;, &quot; + flowVars.datumBegin.substring(11,13) + &quot;.&quot; + flowVars.datumBegin.substring(14,16) + &quot;u&quot;]" doc:name="Set datumTitel (bv. Plenaire vergadering woensdag 16 november 2011, 14.00u)"/>
-        <set-variable variableName="CreationDate" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,10) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(11,19)]" doc:name="Set CreationDate (MH)"/>
+        <set-variable variableName="CreationDate" value="#[payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(0,10).replaceAll('-', ':') + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;datumbegin&quot;).toString().substring(11,19).replaceAll('-',':')]" doc:name="Set CreationDate (MH)"/>
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_DESCRIPTION" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_DESCRIPTION"/>
@@ -400,7 +400,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_description_lang: flowVars.dc_description_lang,
 			dc_description_transcriptie: flowVars.transcriptie replace "&#13;" with "",
 			dc_rights_licenses @(type: "list"): {
-				multiselect: "Publiek domein"
+				multiselect: "VIAA-ONDERWIJS",
+				multiselect: "VIAA-PUBLIEK-CONTENT"
 			},
 			dc_rights_rightsOwners @(type: "list"): {
 				Auteursrechthouder: "Vlaams Parlement"
@@ -810,5 +811,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replaceAll('&lt;trefwoord&gt;', '&lt;Trefwoord&gt;').replaceAll('&lt;/trefwoord&gt;', '&lt;/Trefwoord&gt;')]" doc:name="Fix trefwoord -&gt; Trefwoord"/>
         <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replaceAll('&lt;auteursrechthouder&gt;', '&lt;Auteursrechthouder&gt;').replaceAll('&lt;/auteursrechthouder&gt;','&lt;/Auteursrechthouder&gt;')]" doc:name="Fix auteursrechthouder -&gt; Auteursrechthouder"/>
         <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replaceAll('&lt;licentiehouder&gt;', '&lt;Licentiehouder&gt;').replaceAll('&lt;/licentiehouder&gt;','&lt;/Licentiehouder&gt;')]" doc:name="Fix licentiehouder -&gt; Licentiehouder"/>
+        <choice doc:name="Languages available?">
+            <when expression="#[flowVars.mappedXml.indexOf('&lt;dc_languages type=&quot;list&quot;&gt;') == -1]">
+                <logger message="No language metadata available" level="INFO" doc:name="No language metadata available"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="languages" value="#[flowVars.mappedXml.substring(flowVars.mappedXml.indexOf('&lt;dc_languages type=&quot;list&quot;&gt;'), flowVars.mappedXml.indexOf('&lt;/dc_languages&gt;'))]" doc:name="Set languages"/>
+                <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replace(flowVars.languages, flowVars.languages.toLowerCase())]" doc:name="Fix languages to lowercase"/>
+            </otherwise>
+        </choice>
     </sub-flow>
 </mule>

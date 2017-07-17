@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
@@ -15,7 +15,8 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
-http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
     <http:request-config name="mimetype2extensionAPI" host="${mime2ext.host}" port="${mime2ext.port}" basePath="/" responseTimeout="30000" doc:name="HTTP Request Configuration"/>
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
@@ -24,6 +25,15 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
             <choice doc:name="Choice">
                 <when expression="#[!payload.key.equals(&quot;sidecar&quot;)]">
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
+                    <choice doc:name="When manual or redelivery of tape, check AR for destination path">
+                        <when expression="#[flowVars.origin == 'manual' || flowVars.originallocation != null]">
+                            <logger message="#[flowVars.local_id] is manual request or tape redelivery" level="INFO" doc:name="manual request or tape redelivery"/>
+                            <flow-ref name="RetrieveAspectRatio" doc:name="RetrieveAspectRatio"/>
+                        </when>
+                        <otherwise>
+                            <logger message="#[flowVars.local_id] is dailies" level="INFO" doc:name="Dailies"/>
+                        </otherwise>
+                    </choice>
                     
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
@@ -35,7 +45,8 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
     "destination_host": p('ftpDestination.vrt.host'),
     "destination_password": p('ftpDestination.vrt.password'),
-    "destination_path": p('ftpDestination.vrt.path'),
+    "destination_path": (p('ftpDestination.vrt.path') ++ flowVars.arAddition ++ flowVars.cropAddition) when (flowVars.origin != "vrt" or flowVars.originallocation != null) 
+    				otherwise p('ftpDestination.vrt.path'),
     "destination_user": p('ftpDestination.vrt.username'),
     "source_file": flowVars.filenameEssence,
     "source_host": flowVars.host,
@@ -404,4 +415,39 @@ AXFRoot: {
         <set-variable variableName="comment" value="#['Subtitles delivered as VTT collateral.']" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
+    <sub-flow name="RetrieveAspectRatio">
+        <http:request config-ref="Aspect_ratio_API" path="#['/vrt/' + flowVars.mediaId]" method="GET" doc:name="Request aspect ratios of the original (vrt) pid to see difference between metadata and essence (must be mediaId!)"/>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <set-variable variableName="aspect_ratio_essence" value="#[payload.data.aspect_ratio_essence]" doc:name="Set aspect_ratio_essence"/>
+        <set-variable variableName="height_metadata" value="#[payload.data.hires_height]" doc:name="Set height_metadata"/>
+        <set-variable variableName="aspect_ratio_metadata" value="#[payload.data.aspect_ratio_metadata]" doc:name="Set aspect_ratio_metadata"/>
+        <choice doc:name="Valid AR?">
+            <when expression="#[flowVars.aspect_ratio_metadata == null || (!flowVars.aspect_ratio_metadata.equals('4:3') &amp;&amp; !flowVars.aspect_ratio_metadata.equals('16:9'))]">
+                <scripting:component doc:name="Throw exception">
+                    <scripting:script engine="Groovy"><![CDATA[throw new IllegalArgumentException('Invalid aspect ratio!')
+    ]]></scripting:script>
+                </scripting:component>
+            </when>
+            <otherwise>
+                <logger message="AR looks ok! #[flowVars.aspect_ratio_metadata]" level="INFO" doc:name="AR looks ok!"/>
+            </otherwise>
+        </choice>
+        <choice doc:name="Essence and metadata aspect ratios are equal?">
+            <when expression="#[flowVars.aspect_ratio_essence.equals(flowVars.aspect_ratio_metadata)]">
+                <set-variable variableName="arAddition" value="#[&quot;&quot;]" doc:name="Set arAddition to empty"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="arAddition" value="#[&quot;-&quot; + flowVars.aspect_ratio_metadata]" doc:name="Set arAddition"/>
+            </otherwise>
+        </choice>
+        <choice doc:name="Essence has timecodes (height = 608 or 1112)">
+            <when expression="#[flowVars.height_metadata != null &amp;&amp; (flowVars.height_metadata == (576+32) || flowVars.height_metadata == (1080+32))]">
+                <set-variable variableName="cropAddition" value="-CROP" doc:name="Set cropAddition to &quot;-CROP&quot;"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="cropAddition" value="#[&quot;&quot;]" doc:name="Set cropAddition to empty"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
 </mule>

@@ -34,6 +34,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
                             <logger message="#[flowVars.local_id] is dailies" level="INFO" doc:name="Dailies"/>
                         </otherwise>
                     </choice>
+                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload empty"/>
                     
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>

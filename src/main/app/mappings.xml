@@ -24,7 +24,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <sub-flow name="PI_METADATA_MAPPING_MHEM">
         <set-variable variableName="eventName" value="PI_METADATA_MAPPING" doc:name="Set Name"/>
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
-        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload"/>
+        <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with incomingXml"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="CreationDate" value="#[xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;).replaceAll('-', ':').substring(0,10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
@@ -260,6 +260,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with sidecar"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
+        <set-variable variableName="filenameEssence" value="#[flowVars.filenameEssence != null ? flowVars.filenameEssence : xpath3(&quot;//dc_source/text()&quot;)]" doc:name="Set filenameEssence"/>
         <set-variable variableName="total" value="#[flowVars.filenameEssence.replaceAll('^.*_[1-9]+v([1-9]+)\\..*', '$1') != flowVars.filenameEssence ? flowVars.filenameEssence.replaceAll('^.*_[1-9]+v([1-9]+)\\..*', '$1') : &quot;1&quot;]" doc:name="Set total"/>
         <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
             <http:request config-ref="vlaamsparlement_api" path="#['/e/opendata/verg/' + flowVars.local_id]" method="GET" doc:name="Get metadata from open data portal">
@@ -401,7 +402,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_description_transcriptie: flowVars.transcriptie replace "&#13;" with "",
 			dc_rights_licenses @(type: "list"): {
 				multiselect: "VIAA-ONDERWIJS",
-				multiselect: "VIAA-PUBLIEK-CONTENT"
+				multiselect: "VIAA-ONDERZOEK",
+				multiselect: "VIAA-INTRA_CP-CONTENT",
+				multiselect: "VIAA-INTRA_CP-METADATA-ALL",
+				multiselect: "VIAA-PUBLIEK-METADATA-LTD",
+				multiselect: "VIAA-PUBLIEK-METADATA-ALL"
 			},
 			dc_rights_rightsOwners @(type: "list"): {
 				Auteursrechthouder: "Vlaams Parlement"
@@ -495,6 +500,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <set-variable variableName="journaalllijn_subtitel" value="#[payload.get(&quot;titel&quot;)]" doc:name="Set journaalllijn_subtitel"/>
             <set-variable variableName="journaallijn_voorzitter" value="#[&quot;Voorzitter: &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;aanspreking&quot;) + &quot; &quot; + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;voornaam&quot;) + &quot; &quot;  + payload.get(&quot;vergadering&quot;).get(&quot;voorzitter&quot;).get(&quot;naam&quot;)]" doc:name="Set journaallijn_voorzitter"/>
             <set-variable variableName="journaallijn_titel" value="#[payload.get(&quot;titel&quot;)]" doc:name="Set journaallijn_titel"/>
+            <set-variable variableName="titel-samenstelling" value="#[payload.get(&quot;titel-samenstelling&quot;)]" doc:name="Set titel-samenstelling"/>
             <set-variable variableName="url" value="#[payload.get('link')[0].get('href')]" doc:name="Set url"/>
             <set-variable variableName="path" value="#[flowVars.url.substring(flowVars.url.indexOf('/e/opendata/'))]" doc:name="Set path"/>
             <http:request config-ref="vlaamsparlement_api" path="#[flowVars.path]" method="GET" doc:name="Get journaallijn">
@@ -531,7 +537,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <custom-transformer class="utils.UnescapeHtml" doc:name="Remove HTML escaping"/>
         <set-variable variableName="transcriptie" value="#[payload]" doc:name="Set transcriptie with unescaped HTML"/>
         <foreach collection="#[flowVars.vergadering_response.get('vergadering').get('journaallijn')]" doc:name="For Each journaallijn">
-            <set-variable variableName="journaallijn_titel" value="#[payload.titel]" doc:name="Set journaallijn_titel"/>
+            <set-variable variableName="journaallijn_titel" value="#[payload.titel + &quot;\n&quot;]" doc:name="Set journaallijn_titel"/>
             <set-variable variableName="debat" value="#[&quot;&quot;]" doc:name="Reset debat"/>
             <choice tracking:enable-default-events="true" doc:name="debat &gt; 0?">
                 <when expression="#[payload.'debat'.size() &gt; 0]">
@@ -583,7 +589,39 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                     <set-variable variableName="verzoekschrift" value="#[&quot;&quot;]" doc:name="Set verzoekschrift empty"/>
                 </otherwise>
             </choice>
-            <set-variable variableName="dc_description_lang" value="#[dc_description_lang != null ? (flowVars.dc_description_lang + &quot;\n&quot; + flowVars.journaallijn_titel + &quot;\n&quot; + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) : (flowVars.journaallijn_titel + &quot;\n&quot; + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) ]" doc:name="Append to dc_description_lang"/>
+            <set-variable variableName="vrageninterpellatie" value="#[null]" doc:name="Reset vrageninterpellatie"/>
+            <choice doc:name="Vrageninterpellaties &gt; 0?">
+                <when expression="#[payload.vrageninterpellatie.size() &gt; 0]">
+                    <foreach collection="#[payload.vrageninterpellatie]" doc:name="For Each vrageninterpellatie">
+                        <set-variable variableName="zittingsjaar" value="#[payload.zittingsjaar != null  &amp;&amp; payload.zittingsjaar != &quot;&quot; ? &quot;(&quot; + payload.zittingsjaar + &quot;)&quot; : &quot;&quot;]" doc:name="Set zittingsjaar"/>
+                        <set-variable variableName="nummer" value="#[payload.nummer != null  &amp;&amp; payload.nummer != &quot;&quot; ? payload.nummer + &quot; &quot; : &quot;&quot;]" doc:name="Set nummer"/>
+                        <set-variable variableName="materie" value="#[payload.materie != null  &amp;&amp; payload.materie != &quot;&quot; ? payload.materie + &quot;\n&quot; : &quot;&quot;]" doc:name="Set materie"/>
+                        <set-variable variableName="volgnummer" value="#[payload.volgnr != null  &amp;&amp; payload.volgnr != &quot;&quot; ? &quot; nr. &quot; + payload.volgnr : &quot;&quot;]" doc:name="Set volgnummer"/>
+                        <set-variable variableName="vrageninterpellatie" value="#[flowVars.vrageninterpellatie != null  ? (flowVars.vrageninterpellatie + payload.titel + &quot;\n&quot; + flowVars.nummer +  flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot; + flowVars.materie + &quot;\n&quot;) : (payload.titel + &quot;\n&quot; + flowVars.nummer +  flowVars.zittingsjaar + flowVars.volgnummer + &quot;\n&quot;+ flowVars.materie + &quot;\n&quot;)]" doc:name="Set vrageninterpellatie"/>
+                    </foreach>
+                </when>
+                <otherwise>
+                    <set-variable variableName="vrageninterpellatie" value="#[&quot;&quot;]" doc:name="Set vrageninterpellatie empty"/>
+                </otherwise>
+            </choice>
+            <choice doc:name="Welke titel-samenstelling?">
+                <when expression="#[flowVars.'titel-samenstelling' == 'N']">
+                    <choice doc:name="When initiatieven are empty, use vrije tekst titel">
+                        <when expression="#[(flowVars.vrageninterpellatie + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) == &quot;&quot;]">
+                            <set-variable variableName="dc_description_lang" value="#[dc_description_lang != &quot;&quot; ? (flowVars.dc_description_lang + &quot;\n&quot; + flowVars.journaallijn_titel) : flowVars.journaallijn_titel]" doc:name="Append to dc_description_lang (only vrije tekst titel)"/>
+                        </when>
+                        <otherwise>
+                            <set-variable variableName="dc_description_lang" value="#[dc_description_lang != &quot;&quot; ? (flowVars.dc_description_lang + &quot;\n&quot; + flowVars.vrageninterpellatie + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) : (flowVars.vrageninterpellatie + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) ]" doc:name="Append to dc_description_lang (when N = geen vrije tekst titel, enkel initiatieven)"/>
+                        </otherwise>
+                    </choice>
+                </when>
+                <when expression="#[flowVars.'titel-samenstelling' == 'V']">
+                  <set-variable variableName="dc_description_lang" value="#[dc_description_lang != &quot;&quot; ? (flowVars.dc_description_lang + &quot;\n&quot; + flowVars.journaallijn_titel) : flowVars.journaallijn_titel]" doc:name="Append to dc_description_lang (when V = enkel vrije tekst titel)"/>
+                </when>
+                <otherwise>
+        	    	<set-variable variableName="dc_description_lang" value="#[dc_description_lang != &quot;&quot; ? (flowVars.dc_description_lang + &quot;\n&quot; + flowVars.journaallijn_titel +  &quot;\n&quot; +  flowVars.vrageninterpellatie + &quot;\n&quot; + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) : (flowVars.journaallijn_titel + flowVars.vrageninterpellatie +  &quot;\n&quot; + flowVars.debat + flowVars.gedachtewisseling + flowVars.parlementair_initiatieven + flowVars.verzoekschrift) ]" doc:name="Append to dc_description_lang (normal)"/>
+                </otherwise>
+            </choice>
         </foreach>
     </sub-flow>
     <sub-flow name="PI_METADATA_MAPPING_MEDIALAAN">

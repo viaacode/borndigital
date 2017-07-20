@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
@@ -16,8 +18,19 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
-http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
     <http:request-config name="mimetype2extensionAPI" host="${mime2ext.host}" port="${mime2ext.port}" basePath="/" responseTimeout="30000" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="Mediahaven" host="${mediahaven_api.host_intern}" port="443" basePath="/mediahaven-rest-api/resources" doc:name="HTTP Request Configuration" responseTimeout="30000" protocol="HTTPS">
+        <tls:context>
+            <tls:key-store alias="${keystore.alias}" keyPassword="${keystore.password}" password="${keystore.password}"/>
+        </tls:context>
+    </http:request-config>
+    <http:request-config name="Update_fragments" host="${mediahaven_api.host_intern}" port="443" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="30000" protocol="HTTPS">
+        <tls:context>
+            <tls:key-store alias="${keystore.alias}" keyPassword="${keystore.password}" password="${keystore.password}"/>
+        </tls:context>
+    </http:request-config>
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
@@ -450,5 +463,49 @@ AXFRoot: {
                 <set-variable variableName="cropAddition" value="#[&quot;&quot;]" doc:name="Set cropAddition to empty"/>
             </otherwise>
         </choice>
+    </sub-flow>
+    <flow name="PI_DELIVERY_METADATA_RECON">
+        <flow-ref name="setMediahavenAuthHeader" doc:name="setMediahavenAuthHeader"/>
+        <set-payload value="#[&quot;&quot;]" doc:name="Set Payload empty"/>
+        <set-variable variableName="pid" value="#['qs07qn5zv57']" doc:name="Set pid"/>
+        <http:request config-ref="Mediahaven" path="/media/" method="GET" doc:name="Check status with pid">
+            <http:request-builder>
+                <http:query-param paramName="q" value="+(MediaObjectExternalId:#[flowVars.pid])"/>
+                <http:header headerName="Authorization" value="#[flowVars.authHeader]"/>
+            </http:request-builder>
+        </http:request>
+        <byte-array-to-object-transformer doc:name="Byte Array to Object" mimeType="application/json"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.mediaDataList.size() == 0]">
+                <logger message="Not found for metadata updating #[flowVars.pid]" level="INFO" doc:name="Not found for metadata updating"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="fragment_id" value="#[payload.mediaDataList[0].fragmentId]" doc:name="Set fragment_id"/>
+                <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
+                <set-attachment attachmentName="#['metadata']" value="#[payload]" contentType="text/plain" doc:name="Set metadata"/>
+                <set-payload value="#[&quot;&quot;]" doc:name="Set Payload as empty string"/>
+                <logger message="Sending metadata update for #[flowVars.pid]" level="INFO" doc:name="Sending metadata update"/>
+                <until-successful maxRetries="5" synchronous="true" doc:name="Until Successful">
+                    <http:request config-ref="Update_fragments" path="#['/mediahaven-rest-api/resources/media/' + flowVars.fragment_id]" method="POST" followRedirects="false" parseResponse="false" doc:name="Update metadata with API">
+                        <http:request-builder>
+                            <http:header headerName="Authorization" value="#[flowVars.authHeader]"/>
+                        </http:request-builder>
+                    </http:request>
+                </until-successful>
+                <logger message="Succes! Metadata is updated for #[flowVars.pid]" level="INFO" doc:name="Succes! Metadata is updated"/>
+            </otherwise>
+        </choice>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
+            <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
+        </catch-exception-strategy>
+    </flow>
+    <sub-flow name="setMediahavenAuthHeader">
+        <set-variable variableName="mediahaven_api_username" value="${mediahaven_api.username}" doc:name="Set mediahaven_api_username"/>
+        <set-variable variableName="mediahaven_api_password" value="${mediahaven_api.password}" doc:name="Set mediahaven_api_password"/>
+        <set-variable variableName="auth" value="#[flowVars.mediahaven_api_username + &quot;:&quot; + flowVars.mediahaven_api_password]" doc:name="Set auth for mediahaven_api user"/>
+        <set-variable variableName="authHeader" value="#[&quot;Basic &quot; + Base64.getEncoder().encodeToString(flowVars.auth.getBytes())]" doc:name="Set authHeader"/>
     </sub-flow>
 </mule>

@@ -1,5 +1,6 @@
 package utils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +16,7 @@ public class Utils implements Callable {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object onCall(MuleEventContext eventContext) throws Exception {
-		Map<String, CustomFile> files = new HashMap<>();
+		Map<String, ArrayList<CustomFile>> files = new HashMap<>();
 		
 		for (HashMap<String, ?> file_entry : (List<HashMap<String, ?>>) ((HashMap<String, ?>) eventContext.getMessage().getInvocationProperty("input")).get("sip_package")) {
 			CustomFile file = new CustomFile();
@@ -26,9 +27,17 @@ public class Utils implements Callable {
 			file.md5 = file_entry.get("md5") == null ? null : file_entry.get("md5").toString();
 			file.timestamp = DateTime.now(); // DateTime.parse(file_entry.get("timestamp").toString());
 			
-			files.put(file.file_type, file);
+			ArrayList<CustomFile> newVal = new ArrayList<CustomFile>();
+			newVal.add(file);
+			
+			if (files.get(file.file_type) != null) {
+				ArrayList<CustomFile> oldVal = (ArrayList<CustomFile>) files.get(file.file_type);
+				newVal.addAll(oldVal);
+			}
+
+			files.put(file.file_type, newVal);			
 		}
-		
+
 		return files;
 	}
 

@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
@@ -15,15 +17,37 @@ http://www.springframework.org/schema/beans http://www.springframework.org/schem
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
-http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd">
+http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
     <http:request-config name="mimetype2extensionAPI" host="${mime2ext.host}" port="${mime2ext.port}" basePath="/" responseTimeout="30000" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="Mediahaven" host="${mediahaven_api.host_intern}" port="443" basePath="/mediahaven-rest-api/resources" doc:name="HTTP Request Configuration" responseTimeout="30000" protocol="HTTPS">
+        <tls:context>
+            <tls:key-store alias="${keystore.alias}" keyPassword="${keystore.password}" password="${keystore.password}"/>
+        </tls:context>
+    </http:request-config>
+    <http:request-config name="Update_fragments" host="${mediahaven_api.host_intern}" port="443" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="30000" protocol="HTTPS">
+        <tls:context>
+            <tls:key-store alias="${keystore.alias}" keyPassword="${keystore.password}" password="${keystore.password}"/>
+        </tls:context>
+    </http:request-config>
     <sub-flow name="PI_SIP_DELIVERY_VRT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
+        <foreach collection="#[flowVars.files.entrySet()]" doc:name="For Each">
             <choice doc:name="Choice">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
+                <when expression="#[!payload.key.equals(&quot;sidecar&quot;)]">
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
+                    <choice doc:name="When manual or redelivery of tape, check AR for destination path">
+                        <when expression="#[flowVars.origin == 'manual' || flowVars.originallocation != null]">
+                            <logger message="#[flowVars.local_id] is manual request or tape redelivery" level="INFO" doc:name="manual request or tape redelivery"/>
+                            <flow-ref name="RetrieveAspectRatio" doc:name="RetrieveAspectRatio"/>
+                        </when>
+                        <otherwise>
+                            <logger message="#[flowVars.local_id] is dailies" level="INFO" doc:name="Dailies"/>
+                        </otherwise>
+                    </choice>
+                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload empty"/>
                     
                     <dw:transform-message doc:name="Transform Message">
                         <dw:input-variable variableName="currentItem"/>
@@ -35,7 +59,8 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
 	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
     "destination_host": p('ftpDestination.vrt.host'),
     "destination_password": p('ftpDestination.vrt.password'),
-    "destination_path": p('ftpDestination.vrt.path'),
+    "destination_path": (p('ftpDestination.vrt.path') ++ flowVars.arAddition ++ flowVars.cropAddition) when (flowVars.origin != "vrt" or flowVars.originallocation != null) 
+    				otherwise p('ftpDestination.vrt.path'),
     "destination_user": p('ftpDestination.vrt.username'),
     "source_file": flowVars.filenameEssence,
     "source_host": flowVars.host,
@@ -83,17 +108,14 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
-    <sub-flow name="PI_SIP_DELIVERY_SIDECAR">
+    <sub-flow name="PI_SIP_DELIVERY_GENERIC_ESSENCE">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
-            <choice doc:name="Choice">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
-                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    <dw:transform-message doc:name="Build fxp request">
-                        <dw:input-variable variableName="currentItem"/>
-                        <dw:set-payload><![CDATA[%dw 1.0
+        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
+        <flow-ref name="while_free_space" doc:name="while_free_space"/>
+        <dw:transform-message doc:name="Build fxp request">
+            <dw:input-variable variableName="currentItem"/>
+            <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/java
 %output application/json
 ---
@@ -110,19 +132,15 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
     "source_user": flowVars.sourceUsername,
     "move": false
 }]]></dw:set-payload>
-                    </dw:transform-message>
-                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                  	<amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
-                </when>
-                <otherwise>
-                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
-                </otherwise>
-            </choice>
-        </foreach>
-        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
-        <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
+        </dw:transform-message>
+        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+        <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </sub-flow>
+    <sub-flow name="PI_SIP_DELIVERY_GENERIC_SIDECAR">
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
+        <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
     </sub-flow>
     <sub-flow name="PI_SIP_DELIVERY_PROVANT">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
@@ -210,14 +228,14 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
         <foreach collection="#[flowVars.files]" doc:name="For Each">
             <choice doc:name="Is sidecar?">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
+                <when expression="#[!payload[0].file_type.equals(&quot;sidecar&quot;)]">
+                    <set-variable variableName="currentItem" value="#[payload[0]]" doc:name="Set currentItem"/>
                     <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
                     <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
                     <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
                     <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
                     <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="extension" value="#[payload.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
+                    <set-variable variableName="extension" value="#[flowVars.currentItem.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <logger message="Continuing transfer after while loops" level="INFO" doc:name="Logger"/>
@@ -317,7 +335,7 @@ http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amq
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="#[flowVars.origin != &quot;vrt&quot; or flowVars.originallocation != null ? ('${ftpDestination.vrt.path}' + flowVars.arAddition + flowVars.cropAddition) : ('${ftpDestination.vrt.path}')]" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
@@ -411,4 +429,91 @@ AXFRoot: {
         <set-variable variableName="comment" value="#['Subtitles delivered as VTT collateral.']" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
+    <sub-flow name="RetrieveAspectRatio">
+        <choice doc:name="Don't request AR when the file is audio">
+            <when expression="#[flowVars.extension != &quot;mp2&quot; &amp;&amp; flowVars.extension != &quot;wav&quot;]">
+                <http:request config-ref="Aspect_ratio_API" path="#['/vrt/' + flowVars.mediaId]" method="GET" doc:name="Request aspect ratios of the original (vrt) pid to see difference between metadata and essence (must be mediaId!)"/>
+                <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <set-variable variableName="aspect_ratio_essence" value="#[payload.data.aspect_ratio_essence]" doc:name="Set aspect_ratio_essence"/>
+                <set-variable variableName="height_metadata" value="#[payload.data.hires_height]" doc:name="Set height_metadata"/>
+                <set-variable variableName="aspect_ratio_metadata" value="#[payload.data.aspect_ratio_metadata]" doc:name="Set aspect_ratio_metadata"/>
+                <choice doc:name="Valid AR?">
+                    <when expression="#[flowVars.aspect_ratio_metadata == null || (!flowVars.aspect_ratio_metadata.equals('4:3') &amp;&amp; !flowVars.aspect_ratio_metadata.equals('16:9'))]">
+                        <scripting:component doc:name="Throw exception">
+                            <scripting:script engine="Groovy"><![CDATA[throw new IllegalArgumentException('Invalid aspect ratio!')
+    ]]></scripting:script>
+                        </scripting:component>
+                    </when>
+                    <otherwise>
+                        <logger message="AR looks ok! #[flowVars.aspect_ratio_metadata]" level="INFO" doc:name="AR looks ok!"/>
+                    </otherwise>
+                </choice>
+                <choice doc:name="Essence and metadata aspect ratios are equal?">
+                    <when expression="#[flowVars.aspect_ratio_essence.equals(flowVars.aspect_ratio_metadata)]">
+                        <set-variable variableName="arAddition" value="#[&quot;&quot;]" doc:name="Set arAddition to empty"/>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="arAddition" value="#[&quot;-&quot; + flowVars.aspect_ratio_metadata]" doc:name="Set arAddition"/>
+                    </otherwise>
+                </choice>
+                <choice doc:name="Essence has timecodes (height = 608 or 1112)">
+                    <when expression="#[flowVars.height_metadata != null &amp;&amp; (flowVars.height_metadata == (576+32) || flowVars.height_metadata == (1080+32))]">
+                        <set-variable variableName="cropAddition" value="-CROP" doc:name="Set cropAddition to &quot;-CROP&quot;"/>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="cropAddition" value="#[&quot;&quot;]" doc:name="Set cropAddition to empty"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <set-variable variableName="arAddition" value="#[&quot;&quot;]" doc:name="Set arAddition to empty"/>
+                <set-variable variableName="cropAddition" value="#[&quot;&quot;]" doc:name="Set cropAddition to empty"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
+    <flow name="PI_DELIVERY_METADATA_RECON">
+        <flow-ref name="setMediahavenAuthHeader" doc:name="setMediahavenAuthHeader"/>
+        <set-payload value="#[&quot;&quot;]" doc:name="Set Payload empty"/>
+        <set-variable variableName="pid" value="#['qs07qn5zv57']" doc:name="Set pid"/>
+        <http:request config-ref="Mediahaven" path="/media/" method="GET" doc:name="Check status with pid">
+            <http:request-builder>
+                <http:query-param paramName="q" value="+(MediaObjectExternalId:#[flowVars.pid])"/>
+                <http:header headerName="Authorization" value="#[flowVars.authHeader]"/>
+            </http:request-builder>
+        </http:request>
+        <byte-array-to-object-transformer doc:name="Byte Array to Object" mimeType="application/json"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.mediaDataList.size() == 0]">
+                <logger message="Not found for metadata updating #[flowVars.pid]" level="INFO" doc:name="Not found for metadata updating"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="fragment_id" value="#[payload.mediaDataList[0].fragmentId]" doc:name="Set fragment_id"/>
+                <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
+                <set-attachment attachmentName="#['metadata']" value="#[payload]" contentType="text/plain" doc:name="Set metadata"/>
+                <set-payload value="#[&quot;&quot;]" doc:name="Set Payload as empty string"/>
+                <logger message="Sending metadata update for #[flowVars.pid]" level="INFO" doc:name="Sending metadata update"/>
+                <until-successful maxRetries="5" synchronous="true" doc:name="Until Successful">
+                    <http:request config-ref="Update_fragments" path="#['/mediahaven-rest-api/resources/media/' + flowVars.fragment_id]" method="POST" followRedirects="false" parseResponse="false" doc:name="Update metadata with API">
+                        <http:request-builder>
+                            <http:header headerName="Authorization" value="#[flowVars.authHeader]"/>
+                        </http:request-builder>
+                    </http:request>
+                </until-successful>
+                <logger message="Succes! Metadata is updated for #[flowVars.pid]" level="INFO" doc:name="Succes! Metadata is updated"/>
+            </otherwise>
+        </choice>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
+            <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
+        </catch-exception-strategy>
+    </flow>
+    <sub-flow name="setMediahavenAuthHeader">
+        <set-variable variableName="mediahaven_api_username" value="${mediahaven_api.username}" doc:name="Set mediahaven_api_username"/>
+        <set-variable variableName="mediahaven_api_password" value="${mediahaven_api.password}" doc:name="Set mediahaven_api_password"/>
+        <set-variable variableName="auth" value="#[flowVars.mediahaven_api_username + &quot;:&quot; + flowVars.mediahaven_api_password]" doc:name="Set auth for mediahaven_api user"/>
+        <set-variable variableName="authHeader" value="#[&quot;Basic &quot; + Base64.getEncoder().encodeToString(flowVars.auth.getBytes())]" doc:name="Set authHeader"/>
+    </sub-flow>
 </mule>

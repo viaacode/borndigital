@@ -45,7 +45,7 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
                             <set-variable variableName="mh_result" value="#[payload[0]]" doc:name="Set mh_result"/>
                             <set-variable variableName="fragment_id" value="#[flowVars.mh_result.fragment_id]" doc:name="Set fragment_id"/>
                             <choice doc:name="Check last status of MH when this is not a retry OR preingest happened one hour ago">
-                            	<when expression="#[flowVars.retry_count == 0 || (System.currentTimeMillis() - flowVars.file.last_event_date.getTime())&gt;3600000]">
+                            	<when expression="#[flowVars.file.retry_count == 0 || (System.currentTimeMillis() - flowVars.file.last_event_date.getTime()&gt;3600000)]">
                                     <logger message="Last event MH happened after preingest" level="INFO" doc:name="Last event MH happened after preingest"/>
                             		                            <choice doc:name="Archived, deleted or something else?">
                                 <when expression="#[flowVars.mh_result.archive_status.equals('on_tape') || flowVars.mh_result.archive_status.equals('on_disk')]">
@@ -56,6 +56,8 @@ set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'Fil
 where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </db:update>
                                     <logger level="INFO" doc:name="Deleting source essence" message="Deleting source essence"/>
+                                            <set-variable variableName="ftp_passwd" value="${ftpSource.password}" doc:name="Set ftp_passwd"/>
+                                            <set-variable variableName="ftp_password" value="#[java.net.URLDecoder.decode(flowVars.ftp_passwd)]" doc:name="Set ftp_password (ftp_passwd decoded)"/>
                                     <dw:transform-message doc:name="Create delete request for essence">
                                         <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
@@ -65,7 +67,7 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
 	file_path: flowVars.file.filepath,
 	file_name: flowVars.file.filename,
 	username: p('ftpSource.username'),
-	password: p('ftpSource.password')
+	password: flowVars.ftp_password
 }]]></dw:set-payload>
                                     </dw:transform-message>
                                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
@@ -81,7 +83,7 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
 	file_path: flowVars.file.filepath,
 	file_name: flowVars.filenameWithoutExtension ++ ".xml",
 	username: p('ftpSource.username'),
-	password: p('ftpSource.password')
+	password: flowVars.ftp_password
 }]]></dw:set-payload>
                                     </dw:transform-message>
                                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>

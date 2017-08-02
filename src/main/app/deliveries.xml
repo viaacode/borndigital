@@ -335,7 +335,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="${ftpDestination.vrt.path}" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
+        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="#[flowVars.origin != &quot;vrt&quot; or flowVars.originallocation != null ? ('${ftpDestination.vrt.path}' + flowVars.arAddition + flowVars.cropAddition) : ('${ftpDestination.vrt.path}')]" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
@@ -430,36 +430,44 @@ AXFRoot: {
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
     <sub-flow name="RetrieveAspectRatio">
-        <http:request config-ref="Aspect_ratio_API" path="#['/vrt/' + flowVars.mediaId]" method="GET" doc:name="Request aspect ratios of the original (vrt) pid to see difference between metadata and essence (must be mediaId!)"/>
-        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-        <set-variable variableName="aspect_ratio_essence" value="#[payload.data.aspect_ratio_essence]" doc:name="Set aspect_ratio_essence"/>
-        <set-variable variableName="height_metadata" value="#[payload.data.hires_height]" doc:name="Set height_metadata"/>
-        <set-variable variableName="aspect_ratio_metadata" value="#[payload.data.aspect_ratio_metadata]" doc:name="Set aspect_ratio_metadata"/>
-        <choice doc:name="Valid AR?">
-            <when expression="#[flowVars.aspect_ratio_metadata == null || (!flowVars.aspect_ratio_metadata.equals('4:3') &amp;&amp; !flowVars.aspect_ratio_metadata.equals('16:9'))]">
-                <scripting:component doc:name="Throw exception">
-                    <scripting:script engine="Groovy"><![CDATA[throw new IllegalArgumentException('Invalid aspect ratio!')
+        <choice doc:name="Don't request AR when the file is audio">
+            <when expression="#[flowVars.extension != &quot;mp2&quot; &amp;&amp; flowVars.extension != &quot;wav&quot;]">
+                <http:request config-ref="Aspect_ratio_API" path="#['/vrt/' + flowVars.mediaId]" method="GET" doc:name="Request aspect ratios of the original (vrt) pid to see difference between metadata and essence (must be mediaId!)"/>
+                <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <set-variable variableName="aspect_ratio_essence" value="#[payload.data.aspect_ratio_essence]" doc:name="Set aspect_ratio_essence"/>
+                <set-variable variableName="height_metadata" value="#[payload.data.hires_height]" doc:name="Set height_metadata"/>
+                <set-variable variableName="aspect_ratio_metadata" value="#[payload.data.aspect_ratio_metadata]" doc:name="Set aspect_ratio_metadata"/>
+                <choice doc:name="Valid AR?">
+                    <when expression="#[flowVars.aspect_ratio_metadata == null || (!flowVars.aspect_ratio_metadata.equals('4:3') &amp;&amp; !flowVars.aspect_ratio_metadata.equals('16:9'))]">
+                        <scripting:component doc:name="Throw exception">
+                            <scripting:script engine="Groovy"><![CDATA[throw new IllegalArgumentException('Invalid aspect ratio!')
     ]]></scripting:script>
-                </scripting:component>
+                        </scripting:component>
+                    </when>
+                    <otherwise>
+                        <logger message="AR looks ok! #[flowVars.aspect_ratio_metadata]" level="INFO" doc:name="AR looks ok!"/>
+                    </otherwise>
+                </choice>
+                <choice doc:name="Essence and metadata aspect ratios are equal?">
+                    <when expression="#[flowVars.aspect_ratio_essence.equals(flowVars.aspect_ratio_metadata)]">
+                        <set-variable variableName="arAddition" value="#[&quot;&quot;]" doc:name="Set arAddition to empty"/>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="arAddition" value="#[&quot;-&quot; + flowVars.aspect_ratio_metadata]" doc:name="Set arAddition"/>
+                    </otherwise>
+                </choice>
+                <choice doc:name="Essence has timecodes (height = 608 or 1112)">
+                    <when expression="#[flowVars.height_metadata != null &amp;&amp; (flowVars.height_metadata == (576+32) || flowVars.height_metadata == (1080+32))]">
+                        <set-variable variableName="cropAddition" value="-CROP" doc:name="Set cropAddition to &quot;-CROP&quot;"/>
+                    </when>
+                    <otherwise>
+                        <set-variable variableName="cropAddition" value="#[&quot;&quot;]" doc:name="Set cropAddition to empty"/>
+                    </otherwise>
+                </choice>
             </when>
             <otherwise>
-                <logger message="AR looks ok! #[flowVars.aspect_ratio_metadata]" level="INFO" doc:name="AR looks ok!"/>
-            </otherwise>
-        </choice>
-        <choice doc:name="Essence and metadata aspect ratios are equal?">
-            <when expression="#[flowVars.aspect_ratio_essence.equals(flowVars.aspect_ratio_metadata)]">
                 <set-variable variableName="arAddition" value="#[&quot;&quot;]" doc:name="Set arAddition to empty"/>
-            </when>
-            <otherwise>
-                <set-variable variableName="arAddition" value="#[&quot;-&quot; + flowVars.aspect_ratio_metadata]" doc:name="Set arAddition"/>
-            </otherwise>
-        </choice>
-        <choice doc:name="Essence has timecodes (height = 608 or 1112)">
-            <when expression="#[flowVars.height_metadata != null &amp;&amp; (flowVars.height_metadata == (576+32) || flowVars.height_metadata == (1080+32))]">
-                <set-variable variableName="cropAddition" value="-CROP" doc:name="Set cropAddition to &quot;-CROP&quot;"/>
-            </when>
-            <otherwise>
                 <set-variable variableName="cropAddition" value="#[&quot;&quot;]" doc:name="Set cropAddition to empty"/>
             </otherwise>
         </choice>

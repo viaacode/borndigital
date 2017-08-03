@@ -335,7 +335,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">
-        <set-variable variableName="destinationPathVRT" value="#[flowVars.origin != &quot;vrt&quot; or flowVars.originallocation != null ? ('${ftpDestination.vrt.path}' + flowVars.arAddition + flowVars.cropAddition) : ('${ftpDestination.vrt.path}')]" doc:name="Set destinationPathVRT"/>
+        <set-variable variableName="destinationPathVRT" value="#[flowVars.origin != &quot;vrt&quot; || flowVars.originallocation != null ? ('${ftpDestination.vrt.path}' + (flowVars.arAddition == null ? &quot;&quot; : flowVars.arAddition) + (flowVars.cropAddition == null ? &quot;&quot; : flowVars.cropAddition)) : ('${ftpDestination.vrt.path}')]" doc:name="Set destinationPathVRT"/>
         <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="#[flowVars.destinationPathVRT]" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>

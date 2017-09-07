@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
@@ -13,7 +13,8 @@ http://www.mulesoft.org/schema/mule/quartz http://www.mulesoft.org/schema/mule/q
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
-http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <quartz:connector name="Quartz" validateConnections="true" doc:name="Quartz"/>
     <flow name="pollerFlow" processingStrategy="synchronous">
         <amqp:inbound-endpoint queueName="borndigital_poller_token" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorPoller" doc:name="Receive from borndigital_poller_token" numberOfChannels="1">
@@ -55,39 +56,27 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
 set archive_status = 'OK', fragment_id = #[flowVars.fragment_id], comment = 'File is correct gearchiveerd', is_deleted = false, retry_count = 0, reported = false
 where id = #[flowVars.file.id]]]></db:parameterized-query>
                                     </db:update>
-                                    <logger level="INFO" doc:name="Deleting source essence" message="Deleting source essence"/>
+                                            <set-payload value="#[flowVars.file.message]" doc:name="Set Payload with message"/>
+                                            <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
                                             <set-variable variableName="ftp_passwd" value="${ftpSource.password}" doc:name="Set ftp_passwd"/>
                                             <set-variable variableName="ftp_password" value="#[java.net.URLDecoder.decode(flowVars.ftp_passwd)]" doc:name="Set ftp_password (ftp_passwd decoded)"/>
-                                    <dw:transform-message doc:name="Create delete request for essence">
-                                        <dw:set-payload><![CDATA[%dw 1.0
+                                            <foreach collection="#[payload.sip_package]" doc:name="For Each item in sip">
+                                                <logger message="Deleting #[payload.file_type]" level="INFO" doc:name="Deleting"/>
+                                                <dw:transform-message doc:name="Create delete request">
+                                                    <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
 ---
 {
 	host: flowVars.file.host,
-	file_path: flowVars.file.filepath,
-	file_name: flowVars.file.filename,
+	file_path: payload.file_path,
+	file_name: payload.file_name,
 	username: p('ftpSource.username'),
 	password: flowVars.ftp_password
 }]]></dw:set-payload>
-                                    </dw:transform-message>
-                                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                                    <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
-                                    <logger message="Sending delete for sidecar" level="INFO" doc:name="Sending delete for sidecar"/>
-                                    <set-variable variableName="filenameWithoutExtension" value="#[flowVars.file.filename.split(&quot;\\.&quot;)[0]]" doc:name="Set filenameWithoutExtension"/>
-                                    <dw:transform-message doc:name="Create delete request for sidecar">
-                                        <dw:set-payload><![CDATA[%dw 1.0
-%output application/json
----
-{
-	host: flowVars.file.host,
-	file_path: flowVars.file.filepath,
-	file_name: flowVars.filenameWithoutExtension ++ ".xml",
-	username: p('ftpSource.username'),
-	password: flowVars.ftp_password
-}]]></dw:set-payload>
-                                    </dw:transform-message>
-                                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                                    <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
+                                                </dw:transform-message>
+                                                <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                                                <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
+                                            </foreach>
                                 </when>
                                 <when expression="#[flowVars.mh_result.is_deleted &gt; 0]">
                                     <logger message="Essence is deleted (#[flowVars.file.pid])" level="INFO" doc:name="Essence is deleted"/>
@@ -151,27 +140,20 @@ where id = #[payload.id]]]></db:parameterized-query>
         <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="0" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <set-variable variableName="MAX_RETRIES" value="#[3]" doc:name="Set MAX_RETRIES (3)"/>
+        <set-variable variableName="MAX_RETRIES" value="#[1]" doc:name="Set MAX_RETRIES (3)"/>
         <db:select config-ref="borndigital" doc:name="Retry records that have (archive_status !OK AND aren't modified for X hours AND has retry_count &lt; 3) OR have preingest_status TODO (for manual retry)">
             <db:parameterized-query><![CDATA[select *
 from sips
-WHERE (archive_status = 'in_progress' and (last_event_date < (now() - interval '100 hours')))
-	OR preingest_status = 'TODO'
+WHERE ((archive_status = 'in_progress' and (last_event_date < (now() - interval '100 hours')))
+	OR preingest_status = 'TODO')
+	AND message is not null
 LIMIT 100;]]></db:parameterized-query>
         </db:select>
         <foreach doc:name="For Each">
             <logger level="INFO" doc:name="Retry" message="Retrying #[payload.id] with pid #[payload.pid]"/>
             <choice doc:name="Amount of retries &lt; MAX_RETRIES?">
                 <when expression="#[payload.retry_count &lt; flowVars.MAX_RETRIES]">
-                    <set-variable variableName="retry_count" value="#[payload.retry_count+1]" doc:name="Set retry_count++"/>
-                    <set-variable variableName="message" value="#[payload.message]" doc:name="Set message"/>
-                    <db:update config-ref="borndigital" doc:name="update retry_count">
-                        <db:parameterized-query><![CDATA[update sips
-set retry_count = #[flowVars.retry_count], archive_status = 'in_progress'
-where id = #[payload.id]]]></db:parameterized-query>
-                    </db:update>
-                    <set-payload value="#[flowVars.message]" doc:name="Set Payload with message"/>
-                    <flow-ref name="ingestByMessage" doc:name="ingestByMessage"/>
+                    <flow-ref name="retry" doc:name="retry"/>
                 </when>
                 <otherwise>
                     <logger message="Max amount of retries reached. Set archive_status NOK" level="INFO" doc:name="Max amount of retries reached. Set archive_status NOK"/>
@@ -183,5 +165,30 @@ where id = #[payload.id]]]></db:parameterized-query>
                 </otherwise>
             </choice>
         </foreach>
+    </flow>
+    <flow name="retry">
+        <set-variable variableName="retry_count" value="#[payload.retry_count+1]" doc:name="Set retry_count++"/>
+        <set-variable variableName="message" value="#[payload.message]" doc:name="Set message"/>
+        <db:update config-ref="borndigital" doc:name="update retry_count">
+            <db:parameterized-query><![CDATA[update sips
+set retry_count = #[flowVars.retry_count], archive_status = 'in_progress'
+where id = #[payload.id]]]></db:parameterized-query>
+        </db:update>
+        <set-payload value="#[flowVars.message]" doc:name="Set Payload with message"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <set-variable variableName="input" value="#[payload]" doc:name="Set input"/>
+        <set-variable variableName="cp" value="#[flowVars.input.cp_name]" doc:name="Set cp"/>
+        <component class="utils.Utils" doc:name="Extract files"/>
+        <set-variable variableName="files" value="#[payload]" doc:name="Set files (with message metadata)"/>
+        <set-variable variableName="filenameWithoutExtension" value="#[flowVars.input.get('sip_package')[0].file_name.substring(0, flowVars.input.get('sip_package')[0].file_name.lastIndexOf('.'))]" doc:name="Set filenameWithoutExtension"/>
+        <set-variable variableName="extension" value="#[flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension"/>
+        <set-payload value="#[flowVars.input]" doc:name="Set Payload with original input"/>
+        <flow-ref name="init_variables" doc:name="init_variables"/>
+        <flow-ref name="init_info" doc:name="init_info"/>
+        <flow-ref name="PI_SET_PID" doc:name="PI_SET_PID"/>
+        <flow-ref name="ingestByMessage" doc:name="ingestByMessage"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <logger message="Failed to retry for id #[flowVars.id] and filename #[flowVars.filenameWithoutExtension]" level="INFO" doc:name="Failed to retry"/>
+        </catch-exception-strategy>
     </flow>
 </mule>

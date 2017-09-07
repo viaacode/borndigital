@@ -1,9 +1,10 @@
 package srt;
 
+import java.io.StringWriter;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import java.io.StringWriter;
 
 /**
  * Created by dieter on 08/09/15.

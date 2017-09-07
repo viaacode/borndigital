@@ -1,7 +1,5 @@
 package utils;
 
-import java.util.HashMap;
-
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;

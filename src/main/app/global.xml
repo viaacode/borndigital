@@ -67,7 +67,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
         <set-variable variableName="result" value="#['NOK']" doc:name="Set result NOK"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
         <set-payload value="#[flowVars.message]" doc:name="Set Payload with message"/>
-        <amqp:outbound-endpoint queueName="borndigital_errors" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorError" doc:name="Send to borndigital_errors">
+        <amqp:outbound-endpoint queueName="borndigital.errors" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorError" doc:name="Send to borndigital.errors">
             <reconnect/>
         </amqp:outbound-endpoint>
     </sub-flow>
@@ -76,7 +76,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             <db:parameterized-query><![CDATA[INSERT INTO ${db.eventstable}(pid, "local_id", filename, md5, organisation, "organisation_id", "type", outcome, "date", "comment")
 VALUES ((#[flowVars.pid == null ? "UNKNOWN" : flowVars.pid]),
 (#[flowVars.'local_id' == null ? "UNKNOWN" : flowVars.'local_id']),
-(#[flowVars.filenameEssence == null ? "UNKNOWN" : flowVars.filenameEssence]),
+(#[flowVars.filenameWithoutExtension == null || flowVars.extension == null ? "UNKNOWN" : flowVars.filenameWithoutExtension + "." + flowVars.extension]),
 (#[flowVars.md5metadata == null ? "UNKNOWN" : flowVars.md5metadata]),
 #[flowVars.cp],
 #[flowVars.'cp_id'],

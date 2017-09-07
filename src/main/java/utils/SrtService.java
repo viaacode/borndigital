@@ -8,11 +8,11 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 
+import com.sun.xml.bind.marshaller.DataWriter;
+
 import srt.Fragment;
 import srt.FragmentCollection;
 import srt.Timestamp;
-
-import com.sun.xml.bind.marshaller.DataWriter;
 
 public class SrtService {
 

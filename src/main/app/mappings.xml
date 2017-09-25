@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <set-variable variableName="comment" value="#[flowVars.httpResult]" doc:name="Set Comment"/>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload with incomingXml"/>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
-        <set-variable variableName="CreationDate" value="#[xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;).replaceAll('-', ':').substring(0,10) + &quot; 00:00:00&quot;]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
+        <set-variable variableName="CreationDate" value="#[xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;) != &quot;&quot; ? (xpath3(&quot;//*[local-name() = 'dcterms_issued']/text()&quot;).replaceAll('-', ':').substring(0,10) + &quot; 00:00:00&quot;) : null]" doc:name="Set CreationDate from dcterms_issued (from EDTF to EXIF)"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml"/>
             <dw:input-variable variableName="comment"/>
@@ -53,7 +53,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
 			(dc_relations @(type: "list"): { (flowVars.collaterals map (bevat: $)) }) when flowVars.pid_collateral?,
-			CreationDate: flowVars.CreationDate,
+			(CreationDate: flowVars.CreationDate) when flowVars.CreationDate != null,
 			(dc_source: flowVars.filenameEssence) when payload.VIAA.dc_source == null
 			// Default VIAA license?
 			//dc_rights_licenses @(type: "list"): {
@@ -409,7 +409,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 				multiselect: "VIAA-INTRA_CP-CONTENT",
 				multiselect: "VIAA-INTRA_CP-METADATA-ALL",
 				multiselect: "VIAA-PUBLIEK-METADATA-LTD",
-				multiselect: "VIAA-PUBLIEK-METADATA-ALL"
+				multiselect: "VIAA-PUBLIEK-METADATA-ALL",
+				multiselect: "VIAA-PUBLIEK-CONTENT", 
+				multiselect: "CC-BY-SA-CONTENT"
 			},
 			dc_rights_rightsOwners @(type: "list"): {
 				Auteursrechthouder: "Vlaams Parlement"
@@ -493,6 +495,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="agenda_lijnen" value="#[flowVars.agenda_lijnen += flowVars.agendalijntype + flowVars.debat + flowVars.gedachtewisseling + flowVars.'parlementair_initiatieven' + flowVars.vrageninterpellatie + flowVars.titel + flowVars.omschrijving + &quot;\n&quot;]" doc:name="Set agenda_lijnen"/>
             </foreach>
             <set-variable variableName="dc_description" value="#[flowVars.dc_description += flowVars.agenda_lijnen]" doc:name="Set dc_description by concat agenda_lijnen"/>
+            <set-variable variableName="dc_description" value="#[flowVars.dc_description.replaceAll('&lt;br/&gt;', &quot;\n&quot;)]" doc:name="Change &lt;br/&gt; to newlines"/>
             <set-variable variableName="dc_description" value="#[flowVars.dc_description.replaceAll(&quot;\\&lt;[^&gt;]*&gt;&quot;,&quot;&quot;)]" doc:name="Remove html tags from dc_description"/>
         </foreach>
     </sub-flow>

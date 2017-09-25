@@ -137,6 +137,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <logger message="Sending fxp request: #[payload]" level="INFO" doc:name="Sending fxp request"/>
         <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
+        <logger message="Fxp message sent" level="INFO" doc:name="Logger"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>

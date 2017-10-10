@@ -223,7 +223,7 @@ where (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars
 FROM ${db.buffer} 
 WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
                 </db:select>
-                <set-variable variableName="pid" value="#[payload[0].pid]" doc:name="Set pid"/>
+                <set-variable variableName="pid" value="#[payload[0].pid.substring(0,10)]" doc:name="Set pid (first 10 chars!)"/>
                 <set-variable variableName="origin" value="#[payload[0].origin]" doc:name="Set origin"/>
                 <set-variable variableName="status" value="#[&quot;New file from VRT&quot;]" doc:name="Set status"/>
                 <set-variable variableName="originallocation" value="#[payload[0].originallocation]" doc:name="Set originallocation"/>

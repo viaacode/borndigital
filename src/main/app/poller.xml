@@ -26,7 +26,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
 from sips
 WHERE (preingest_status is not null and preingest_status != 'TODO')
 	and (archive_status = 'in_progress' or archive_status is null)
-order by last_event_date desc]]></db:parameterized-query>
+order by last_event_date desc;]]></db:parameterized-query>
         </db:select>
         <foreach doc:name="For Each">
             <choice doc:name="Is preingest_status OK or NOK?">
@@ -75,7 +75,7 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
 }]]></dw:set-payload>
                                                 </dw:transform-message>
                                                 <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                                                <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
+                                                <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
                                             </foreach>
                                 </when>
                                 <when expression="#[flowVars.mh_result.is_deleted &gt; 0]">
@@ -137,9 +137,9 @@ where id = #[payload.id]]]></db:parameterized-query>
         </catch-exception-strategy>
     </flow>
     <flow name="Redo" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="0" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
+        <!-- <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="60000" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>
-        </quartz:inbound-endpoint>
+        </quartz:inbound-endpoint> -->
         <set-variable variableName="MAX_RETRIES" value="#[1]" doc:name="Set MAX_RETRIES (3)"/>
         <db:select config-ref="borndigital" doc:name="Retry records that have (archive_status !OK AND aren't modified for X hours AND has retry_count &lt; 3) OR have preingest_status TODO (for manual retry)">
             <db:parameterized-query><![CDATA[select *

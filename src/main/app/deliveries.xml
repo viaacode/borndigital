@@ -364,7 +364,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
                 <set-variable variableName="height_metadata" value="#[payload.data.hires_height]" doc:name="Set height_metadata"/>
                 <set-variable variableName="aspect_ratio_metadata" value="#[payload.data.aspect_ratio_metadata]" doc:name="Set aspect_ratio_metadata"/>
                 <choice doc:name="Valid AR?">
-                    <when expression="#[flowVars.aspect_ratio_metadata == null || (!flowVars.aspect_ratio_metadata.equals('4:3') &amp;&amp; !flowVars.aspect_ratio_metadata.equals('16:9'))]">
+                    <when expression="#[flowVars.aspect_ratio_metadata != &quot;unknown&quot; &amp;&amp; (flowVars.aspect_ratio_metadata == null || (!flowVars.aspect_ratio_metadata.equals('4:3') &amp;&amp; !flowVars.aspect_ratio_metadata.equals('16:9')))]">
                         <scripting:component doc:name="Throw exception">
                             <scripting:script engine="Groovy"><![CDATA[throw new IllegalArgumentException('Invalid aspect ratio!')
     ]]></scripting:script>

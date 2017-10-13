@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:quartz="http://www.mulesoft.org/schema/mule/quartz" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
@@ -24,12 +24,12 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <db:select config-ref="borndigital" doc:name="Fetch records with preingest_status not null and archive_status null">
             <db:parameterized-query><![CDATA[select *
 from sips
-WHERE (preingest_status is not null and preingest_status != 'TODO')
+WHERE (preingest_status is not null and preingest_status != 'TODO' and preingest_status != 'in_progress')
 	and (archive_status = 'in_progress' or archive_status is null)
 order by last_event_date desc;]]></db:parameterized-query>
         </db:select>
         <foreach doc:name="For Each">
-            <choice doc:name="Is preingest_status OK or NOK?">
+            <choice doc:name="Is preingest_status OK?">
                 <when expression="#[payload.preingest_status.equals('OK')]">
                     <logger message="preingest_status OK" level="INFO" doc:name="preingest_status OK"/>
                     <set-variable variableName="file" value="#[payload]" doc:name="Set file"/>

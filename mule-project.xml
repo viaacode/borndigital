@@ -4,4 +4,5 @@
     <description></description>
     <muleExtension name="Mule Requester" qualifier="org.mule.tooling.ui.contribution.mulerequester.3.5.0"/>
     <muleExtension name="AMQP-0-9" qualifier="mule-transport-amqp-contribution"/>
+    <muleExtension name="FTPLite" qualifier="org.mule.tooling.ui.contribution.ftplite.3.5.0"/>
 </mule-project>

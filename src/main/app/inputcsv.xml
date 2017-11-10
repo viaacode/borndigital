@@ -20,7 +20,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
             <when expression="#[message.inboundProperties.'http.method' == 'POST']">
                 <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
                 <set-variable variableName="filename_csv" value="#[payload['filename']]" doc:name="Set filename_csv"/>
-                <set-variable variableName="cp" value="#[payload['cp']]" doc:name="Set cp"/>
+                <set-variable variableName="cp" value="vlaamsparlement" doc:name="Set cp"/>
                 <set-variable variableName="destination_path" value="#['/export/home/' + flowVars.cp + '/incoming/']" doc:name="Set destination_path by cp"/>
                 <set-payload value="#[payload['data']]" doc:name="Set Payload"/>
                 <async processingStrategy="Asynchronous_Processing_Strategy" doc:name="Async">

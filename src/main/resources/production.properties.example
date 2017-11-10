@@ -40,24 +40,56 @@ db.database=
 db.eventstable=
 db.buffer=
 
+db.zeticon.host=
+db.zeticon.port=
+db.zeticon.username=
+db.zeticon.password=
+db.zeticon.database=
+db.zeticon.tablename=
+
 ftpDestination.vrt.username=
 ftpDestination.vrt.password=
 ftpDestination.vrt.host=
 ftpDestination.vrt.path=
 
+ftpDestination.meise.username=
+ftpDestination.meise.password=
+ftpDestination.meise.host=
+ftpDestination.meise.path=
+
 ftpDestination.provant.username=
 ftpDestination.provant.password=
 ftpDestination.provant.host=
 ftpDestination.provant.path=
-
-ftpDestination.rmm.username=
-ftpDestination.rmm.password=
-ftpDestination.rmm.host=
-ftpDestination.rmm.path=
+ftpDestination.provant.errors_path=
 
 ftp.failuresFolder=
 
 cp=
 
+ftpDestinationSidecar.username=
+ftpDestinationSidecar.password=
+ftpDestinationSidecar.host=
+
+ftpDestinationCollateral.username=
+ftpDestinationCollateral.password=
+ftpDestinationCollateral.host=
+
+ftpDestinationMetadata.username=
+ftpDestinationMetadata.password=
+ftpDestinationMetadata.host=
+
 mime2ext.host=
 mime2ext.port=
+
+ftpSource.host=
+ftpSource.username=
+#ftpSource.password=
+ftpSource.password=
+
+ftpSourceTape.username=
+ftpSourceTape.password=
+ftpSourceTape.host=
+
+aspect_ratio_api.host=
+aspect_ratio_api.port=

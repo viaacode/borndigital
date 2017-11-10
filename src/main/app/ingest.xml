@@ -51,6 +51,9 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
         <flow-ref name="check_filename_special_characters" doc:name="check_filename_special_characters"/>
         <choice doc:name="contains bad characters?">
             <when expression="#[flowVars.filename_contains_bad_characters]">
+                <flow-ref name="init_variables" doc:name="init_variables"/>
+                <set-variable variableName="extension" value="#[flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension"/>
+                
                 <flow-ref name="move_files_for_correct_name" doc:name="move_files_for_correct_name"/>
             </when>
             <otherwise>

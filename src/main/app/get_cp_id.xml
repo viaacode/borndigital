@@ -542,6 +542,9 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 <when expression="#[flowVars.cp == &quot;viaaarchief&quot;]">
 <set-payload doc:name="Set Payload" value="OR-bz61758"/>
 </when>
+<when expression="#[flowVars.cp == &quot;Focus-WTV&quot;]">
+<set-payload doc:name="Set Payload" value="OR-kh0dz3q"/>
+</when>
             <otherwise>
                 <expression-component doc:name="Expression"><![CDATA[throw new java.lang.RuntimeException("No OR-ID was found for this CP");]]></expression-component>
             </otherwise>

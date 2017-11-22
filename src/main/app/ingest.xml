@@ -74,8 +74,6 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
                         </choice>
                         <flow-ref name="map_metadata" doc:name="map_metadata"/>
                         <flow-ref name="PI_DELIVERY_METADATA_RECON" doc:name="PI_DELIVERY_METADATA_RECON"/>
-                        <flow-ref name="DELETE_ORIGINAL_COLLATERALS" doc:name="DELETE_ORIGINAL_COLLATERALS"/>
-                        <flow-ref name="DELETE_ORIGINAL_SIDECAR" doc:name="DELETE_ORIGINAL_SIDECAR"/>
                     </when>
                     <otherwise>
                         <set-variable variableName="extension" value="#[flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension"/>
@@ -508,7 +506,7 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
     "source_password": flowVars.sourcePassword,
     "source_path": flowVars.filepath,
     "source_user": flowVars.sourceUsername,
-    "move": false
+    "move": true
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>

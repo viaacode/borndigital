@@ -452,7 +452,8 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
                 <flow-ref name="metadata_corrections" doc:name="metadata_corrections"/>
-                <logger message="Todo:validate with XSD" level="INFO" doc:name="Todo: validate with XSD"/>
+                <flow-ref name="validateMetadataFromVIAAtoMAM" doc:name="validateMetadataFromVIAAtoMAM"/>
+                <flow-ref name="validateEDTFdates" doc:name="Flow Reference"/>
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>

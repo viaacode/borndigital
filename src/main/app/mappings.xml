@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:mulerequester="http://www.mulesoft.org/schema/mule/mulerequester" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
 	xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
@@ -19,6 +21,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <filter ref="Provant_Schema_Validation"/>
     </and-filter>
     <http:request-config name="vlaamsparlement_api" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="20000">
+        <http:proxy host="proxy.do.viaa.be" port="80"/>
+    </http:request-config>
+    <http:request-config name="edtf_validator" host="digital2.library.unt.edu" port="80" basePath="/edtf" doc:name="HTTP Request Configuration" responseTimeout="20000">
         <http:proxy host="proxy.do.viaa.be" port="80"/>
     </http:request-config>
     <sub-flow name="PI_METADATA_MAPPING_MHEM">
@@ -643,5 +648,80 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="mappedXml" value="#[flowVars.mappedXml.replace(flowVars.languages, flowVars.languages.toLowerCase())]" doc:name="Fix languages to lowercase"/>
             </otherwise>
         </choice>
+    </sub-flow>
+    <flow name="validateMetadataFromVIAAtoMAM" >
+        <set-variable variableName="eventName" value="PI_VALIDATE_METADATA_VIAA_MAM" doc:name="Set eventName"/>
+        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
+        
+        <mulexml:dom-to-xml-transformer doc:name="DOM to XML" />
+        <message-filter onUnaccepted="error_invalid_data" doc:name="Validate mappedXml" >
+            <mulexml:schema-validation-filter schemaLocations="viaa_metadatamodel_van_viaa_naar_mam.xsd" returnResult="false" name="VIAA_MAM_Schema_Validation"
+        doc:name="Schema Validation" />
+        </message-filter>
+        <logger message="FILE OK: #[message.payload]" level="INFO" doc:name="Logger" />
+        <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
+        <set-variable variableName="comment" value="The mapped XML is valid." doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </flow>
+ 
+    <flow name="error_invalid_data" >
+        <logger message="ERROR: MESSAGE PAYLOAD: #[message.payload]" level="INFO" doc:name="Logger" />
+        <set-variable variableName="result" value="NOK" doc:name="Set result NOK"/>
+        <set-variable variableName="comment" value="The mapped XML is NOT valid." doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
+    </flow>
+    <sub-flow name="validateEDTFdates">
+        <set-variable variableName="eventName" value="#['PI_VALIDATE_DATE']" doc:name="Set eventName"/>
+        <set-variable variableName="dcterms_issued" value="#[xpath3(&quot;//dcterms_issued/text()&quot;, flowVars.mappedXml)]" doc:name="Get dcterms_issued"/>
+        <set-variable variableName="dcterms_created" value="#[xpath3(&quot;//dcterms_created/text()&quot;, flowVars.mappedXml)]" doc:name="Get dcterms_created"/>
+        <choice doc:name="When dcterms_created is empty">
+            <when expression="#[flowVars.dcterms_created == &quot;&quot;]">
+                <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="dcterms_created_is_valid is true"/>
+            </when>
+            <otherwise>
+                <http:request config-ref="edtf_validator" path="isValid.json" method="GET" doc:name="Send request to validate">
+                    <http:request-builder>
+                        <http:query-param paramName="date" value="#[flowVars.dcterms_issued]"/>
+                    </http:request-builder>
+                    <http:success-status-code-validator values="1..999"/>
+                </http:request>
+                <choice doc:name="When not http 200">
+                    <when expression="message.inboundProperties.'http.status' != 200">
+                        <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="Set dcterms_created_is_valid true"/>
+                    </when>
+                    <otherwise>
+                        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
+                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                        <set-variable variableName="dcterms_created_is_valid" value="#[payload.validEDTF == true]" doc:name="Set dcterms_created_is_valid"/>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <choice doc:name="When dcterms_issued is empty">
+            <when expression="#[flowVars.dcterms_issued == &quot;&quot;]">
+                <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid is true"/>
+            </when>
+            <otherwise>
+                <http:request config-ref="edtf_validator" path="isValid.json" method="GET" doc:name="Send request to validate dcterms_created">
+                    <http:request-builder>
+                        <http:query-param paramName="date" value="#[flowVars.dcterms_created]"/>
+                    </http:request-builder>
+                    <http:success-status-code-validator values="1..999"/>
+                </http:request>
+                <choice doc:name="When not http 200">
+                    <when expression="message.inboundProperties.'http.status' != 200">
+                        <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid true"/>
+                    </when>
+                    <otherwise>
+                        <byte-array-to-string-transformer mimeType="application/json" doc:name="Byte Array to String"/>
+                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                        <set-variable variableName="dcterms_issued_is_valid" value="#[payload.validEDTF == true]" doc:name="Set dcterms_issued_is_valid"/>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <set-variable variableName="result" value="#[flowVars.dcterms_issued_is_valid &amp;&amp; flowVars.dcterms_created_is_valid ? &quot;OK&quot; : &quot;NOK&quot;]" doc:name="Set result OK when dcterms_issued and created are valid"/>
+        <set-variable variableName="comment" value="dcterms_created and issued are #[flowVars.result]" doc:name="Set comment"/>
+        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
 </mule>

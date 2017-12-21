@@ -378,19 +378,19 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 			dc_source: flowVars.filenameEssence,
 			dc_identifier_localid: flowVars.local_id,
 			dc_identifier_localids @(type: "list"): {
-				pdf: payload.vergadering.commissiehandelingen.pdffilewebpath when flowVars.type == "Commissie"
-					otherwise payload.vergadering.plenairehandelingen.pdffilewebpath,
+				(pdf: payload.vergadering.commissiehandelingen.pdffilewebpath when flowVars.type == "Commissie"
+					otherwise payload.vergadering.plenairehandelingen.pdffilewebpath) when payload.vergadering != null,
 				bestandsnaam: flowVars.filenameEssence,
 				api: 'http://ws.vlpar.be/e/opendata/verg/' ++ flowVars.local_id
 			},
-			dc_titles @(type: "list"): {
+			(dc_titles @(type: "list"): {
 				reeks: payload.vergadering.commissie[0].titel when flowVars.type == "Commissie"
 						otherwise "Plenair"
-			},
+			}) when payload.vergadering != null,
 			CreationDate: flowVars.CreationDate,
 			dcterms_issued: flowVars.datumBegin,
 			dcterms_created: flowVars.datumBegin,
-			dc_contributors @(type: "list"): {
+			(dc_contributors @(type: "list"): {
 				voorzitter: payload.vergadering.voorzitter.voornaam ++ " " ++
 							payload.vergadering.voorzitter.naam ++ " (" ++
 							 payload.vergadering.voorzitter.fractie.naam ++ ")",
@@ -400,11 +400,11 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 						}
 					)
 				})		
-			},
-			dc_subjects @(type: "list"): {
+			}) when payload.vergadering != null,
+			(dc_subjects @(type: "list"): {
 				Trefwoord: "Vergaderzaal: " ++ payload.vergadering.vergaderzaal.naam when payload.vergadering.vergaderzaal.naam?
 					otherwise ("Koepel" when flowVars.type == "Plenair" otherwise "onbekend")
-			},
+			}) when payload.vergadering != null,
 			dc_description: flowVars.dc_description,
 			dc_description_lang: flowVars.dc_description_lang,
 			dc_description_transcriptie: flowVars.transcriptie replace "&#13;" with "",

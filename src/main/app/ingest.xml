@@ -362,16 +362,7 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
                 <logger message="Local id Meise" level="INFO" doc:name="Meise"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_cpid/text()&quot;)]" doc:name="Set local_id from dc_identifier_cpid (legacy)"/>
             </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;OR-7h1dk9t&quot;)]">
-                <logger message="Fetching local_id from Vlaams Parlement" level="INFO" doc:name="Vlaams Parlement"/>
-                <dw:transform-message doc:name="Set local_id" metadata:id="c278c944-0d88-41e3-a9a9-e5ee2a206566">
-                    <dw:input-payload doc:sample="/Users/brechtvdv/Documents/vlaamsparlement/example_vlaams_parlement.xml" mimeType="application/xml"/>
-                    <dw:set-variable variableName="local_id"><![CDATA[%dw 1.0
-%output application/java
- ---
-payload.logdepotmetadata.channels.channel.meetings.meeting.reference]]></dw:set-variable>
-                </dw:transform-message>
-            </when>
+
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>

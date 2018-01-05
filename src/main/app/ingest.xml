@@ -377,13 +377,7 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
         <choice doc:name="When vlaamsparlement">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;OR-7h1dk9t&quot;)]">
-                <dw:transform-message doc:name="Set md5metadata">
-                    <dw:set-variable variableName="md5metadata"><![CDATA[%dw 1.0
-%output application/java
----
-payload.logdepotmetadata.channels.channel.meetings.meeting.checksum when payload.logdepotmetadata.channels.channel.meetings.meeting.checksum != null otherwise ""
-	]]></dw:set-variable>
-                </dw:transform-message>
+            <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
             </when>
             <otherwise>
                 <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>

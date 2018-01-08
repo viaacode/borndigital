@@ -74,8 +74,6 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
                         </choice>
                         <flow-ref name="map_metadata" doc:name="map_metadata"/>
                         <flow-ref name="PI_DELIVERY_METADATA_RECON" doc:name="PI_DELIVERY_METADATA_RECON"/>
-                        <flow-ref name="DELETE_ORIGINAL_COLLATERALS" doc:name="DELETE_ORIGINAL_COLLATERALS"/>
-                        <flow-ref name="DELETE_ORIGINAL_SIDECAR" doc:name="DELETE_ORIGINAL_SIDECAR"/>
                     </when>
                     <otherwise>
                         <set-variable variableName="extension" value="#[flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.files.essence[0].file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension"/>
@@ -364,16 +362,7 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
                 <logger message="Local id Meise" level="INFO" doc:name="Meise"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_cpid/text()&quot;)]" doc:name="Set local_id from dc_identifier_cpid (legacy)"/>
             </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;OR-7h1dk9t&quot;)]">
-                <logger message="Fetching local_id from Vlaams Parlement" level="INFO" doc:name="Vlaams Parlement"/>
-                <dw:transform-message doc:name="Set local_id" metadata:id="c278c944-0d88-41e3-a9a9-e5ee2a206566">
-                    <dw:input-payload doc:sample="/Users/brechtvdv/Documents/vlaamsparlement/example_vlaams_parlement.xml" mimeType="application/xml"/>
-                    <dw:set-variable variableName="local_id"><![CDATA[%dw 1.0
-%output application/java
- ---
-payload.logdepotmetadata.channels.channel.meetings.meeting.reference]]></dw:set-variable>
-                </dw:transform-message>
-            </when>
+
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
@@ -388,13 +377,7 @@ payload.logdepotmetadata.channels.channel.meetings.meeting.reference]]></dw:set-
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
         <choice doc:name="When vlaamsparlement">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;OR-7h1dk9t&quot;)]">
-                <dw:transform-message doc:name="Set md5metadata">
-                    <dw:set-variable variableName="md5metadata"><![CDATA[%dw 1.0
-%output application/java
----
-payload.logdepotmetadata.channels.channel.meetings.meeting.checksum when payload.logdepotmetadata.channels.channel.meetings.meeting.checksum != null otherwise ""
-	]]></dw:set-variable>
-                </dw:transform-message>
+            <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
             </when>
             <otherwise>
                 <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
@@ -454,7 +437,8 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
                 <flow-ref name="metadata_corrections" doc:name="metadata_corrections"/>
-                <logger message="Todo:validate with XSD" level="INFO" doc:name="Todo: validate with XSD"/>
+                <flow-ref name="validateMetadataFromVIAAtoMAM" doc:name="validateMetadataFromVIAAtoMAM"/>
+                <flow-ref name="validateEDTFdates" doc:name="Flow Reference"/>
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -508,7 +492,7 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
     "source_password": flowVars.sourcePassword,
     "source_path": flowVars.filepath,
     "source_user": flowVars.sourceUsername,
-    "move": false
+    "move": true
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
@@ -577,7 +561,7 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         <logger message="BAD_CHAR_CHECKED: #[flowVars.filename_contains_bad_characters]" level="INFO" doc:name="BAD_CHAR_CHECKED"/>
     </sub-flow>
     <sub-flow name="move_files_for_correct_name">
-        <set-variable variableName="filename_corrected" value="#[flowVars.filenameWithoutExtension.replaceAll(&quot;\\(&quot;,&quot; &quot;).replaceAll(&quot;\\)&quot;,&quot; &quot;).replaceAll(&quot;#&quot;,&quot; &quot;).replaceAll(&quot;&#235;&quot;,&quot;e&quot;).replaceAll(&quot;&#233;&quot;,&quot;e&quot;).replaceAll(&quot;\\+&quot;,&quot;&quot;).replaceAll(&quot;\\%&quot;,&quot;&quot;).replaceAll(&quot;&#8217;&quot;,&quot;&quot;).replaceAll(&quot;\\[&quot;,&quot; &quot;).replaceAll(&quot;\\]&quot;,&quot; &quot;).trim()]" doc:name="Set filename_corrected"/>
+        <set-variable variableName="filename_corrected" value="#[flowVars.filenameWithoutExtension.replaceAll(&quot;\\(&quot;,&quot; &quot;).replaceAll(&quot;\\)&quot;,&quot; &quot;).replaceAll(&quot;#&quot;,&quot; &quot;).replaceAll(&quot;&#235;&quot;,&quot;e&quot;).replaceAll(&quot;&#233;&quot;,&quot;e&quot;).replaceAll(&quot;\\+&quot;,&quot;&quot;).replaceAll(&quot;\\%&quot;,&quot;&quot;).replaceAll(&quot;&#8217;&quot;,&quot;&quot;).replaceAll(&quot;\\[&quot;,&quot; &quot;).replaceAll(&quot;\\]&quot;,&quot; &quot;).replaceAll(&quot;\\+&quot;,&quot; &quot;).trim()]" doc:name="Set filename_corrected"/>
         <set-variable variableName="destinationpath" value="#[flowVars.filepath.substring(0, flowVars.filepath.lastIndexOf('/'))]" doc:name="Set destinationpath to source folder one higher"/>
         <dw:transform-message doc:name="Build move request for sidecar">
             <dw:input-variable variableName="currentItem"/>

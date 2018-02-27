@@ -394,11 +394,10 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 				(voorzitter: payload.vergadering.voorzitter.voornaam ++ " " ++
 							payload.vergadering.voorzitter.naam ++ " (" ++
 							 payload.vergadering.voorzitter.fractie.naam ++ ")") when payload.vergadering.voorzitter?,
-				(payload.vergadering.aanwezigheid default [] map using (aanwezigheid = $) {
+				(payload.vergadering.aanwezigheid map using (aanwezigheid = $) {
 					(aanwezigheid.persoon map using (persoon = $) {
 						(lower aanwezigheid.aanwezigheid-status): (persoon.voornaam ++ " " ++ persoon.naam ++ " (" ++ persoon.fractie.naam ++ ")")
-						}
-					)
+					})
 				})
 			}) when payload.vergadering != null,
 			(dc_subjects @(type: "list"): {

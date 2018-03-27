@@ -35,6 +35,12 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/empty.xml"/>
             <dw:input-variable variableName="comment"/>
+            <dw:input-variable doc:sample="sample_data/string.dwl" variableName="CreationDate"/>
+            <dw:input-variable doc:sample="sample_data/string_1.dwl" mimeType="application/java" variableName="filenameEssence"/>
+            <dw:input-variable doc:sample="sample_data/list_string.dwl" mimeType="application/java" variableName="pid_collateral"/>
+            <dw:input-variable doc:sample="sample_data/map.dwl" variableName="cp"/>
+            <dw:input-variable doc:sample="sample_data/map_1.dwl" variableName="pid"/>
+            <dw:input-variable doc:sample="sample_data/MyPojo.dwl" variableName="cp_id"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/xml
 %output application/xml skipNullOn="everywhere"
@@ -394,11 +400,10 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 				(voorzitter: payload.vergadering.voorzitter.voornaam ++ " " ++
 							payload.vergadering.voorzitter.naam ++ " (" ++
 							 payload.vergadering.voorzitter.fractie.naam ++ ")") when payload.vergadering.voorzitter?,
-				(payload.vergadering.aanwezigheid default [] map using (aanwezigheid = $) {
+				(((payload.vergadering.aanwezigheid) when payload.vergadering.aanwezigheid? otherwise []) map using (aanwezigheid = $) {
 					(aanwezigheid.persoon map using (persoon = $) {
 						(lower aanwezigheid.aanwezigheid-status): (persoon.voornaam ++ " " ++ persoon.naam ++ " (" ++ persoon.fractie.naam ++ ")")
-						}
-					)
+					})
 				})
 			}) when payload.vergadering != null,
 			(dc_subjects @(type: "list"): {

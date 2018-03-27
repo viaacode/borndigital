@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+<mule xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
 	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
@@ -8,7 +8,7 @@
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
@@ -72,7 +72,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
                     <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
-                        <reconnect-forever/>
                     </amqp:outbound-endpoint>
                     <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
                     <flow-ref name="SidecarFTPVRT" doc:name="Flow Reference"/>
@@ -100,7 +99,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
                     <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" doc:name="Send message to delete_requests" connector-ref="RabbitMQConnectorDelete">
-                        <reconnect-forever/>
                     </amqp:outbound-endpoint>
                 </otherwise>
             </choice>
@@ -213,7 +211,8 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
+                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
+                    </amqp:outbound-endpoint>
                 </when>
                 <otherwise>
                     <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
@@ -320,7 +319,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
     <flow name="SidecarFTPMeise" processingStrategy="synchronous">
         <logger message="Start FTP meise" level="INFO" doc:name="Start FTP meise"/>
         <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP">
-            <reconnect-forever frequency="3000"/>
         </ftp:outbound-endpoint>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message=" Failed to FTP for Meise" level="WARN" doc:name="Logger"/>

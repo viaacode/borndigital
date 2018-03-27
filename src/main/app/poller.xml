@@ -18,7 +18,6 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
     <quartz:connector name="Quartz" validateConnections="true" doc:name="Quartz"/>
     <flow name="pollerFlow" processingStrategy="synchronous">
         <amqp:inbound-endpoint queueName="borndigital_poller_token" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorPoller" doc:name="Receive from borndigital_poller_token" numberOfChannels="1">
-            <reconnect/>
         </amqp:inbound-endpoint>
         <logger message="Start polling status of files" level="INFO" doc:name="Start polling status of files"/>
         <db:select config-ref="borndigital" doc:name="Fetch borndigital_ingest_choistatus">
@@ -140,7 +139,6 @@ where id = #[payload.id]]]></db:parameterized-query>
             </choice>
         <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(30000);]]></expression-component>
         <amqp:outbound-endpoint queueName="borndigital_poller_token" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorPoller" doc:name="Send to borndigital_poller_token">
-            <reconnect/>
         </amqp:outbound-endpoint>
         <amqp:acknowledge-message doc:name="AMQP-0-9 Acknowledge Message"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">

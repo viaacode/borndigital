@@ -39,7 +39,6 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 
     <flow name="main" processingStrategy="synchronous" initialState="started"> 
         <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="1">
-            <reconnect/>
         </amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message" mimeType="application/json"/>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
@@ -581,7 +580,6 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
-            <reconnect-forever/>
         </amqp:outbound-endpoint>
         <dw:transform-message doc:name="Build move request for essence">
             <dw:input-variable variableName="currentItem"/>
@@ -601,7 +599,6 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
-            <reconnect-forever/>
         </amqp:outbound-endpoint>
         <set-variable variableName="state" value="FILES_MOVED" doc:name="Set state (FILES_MOVED)"/>
         <logger message="FILES_MOVED" level="INFO" doc:name="FILES_MOVED"/>

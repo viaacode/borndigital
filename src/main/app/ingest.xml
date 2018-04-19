@@ -580,7 +580,6 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
-            <reconnect-forever/>
         </amqp:outbound-endpoint>
         <dw:transform-message doc:name="Build move request for essence">
             <dw:input-variable variableName="currentItem"/>
@@ -600,7 +599,6 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
-            <reconnect-forever/>
         </amqp:outbound-endpoint>
         <set-variable variableName="state" value="FILES_MOVED" doc:name="Set state (FILES_MOVED)"/>
         <logger message="FILES_MOVED" level="INFO" doc:name="FILES_MOVED"/>

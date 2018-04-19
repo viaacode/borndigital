@@ -22,7 +22,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
     <context:property-placeholder location="${mule.env}.properties"></context:property-placeholder>
     <amqp:connector name="RabbitMQConnector" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
-        <reconnect-forever />
+        <service-overrides sessionHandler="org.mule.session.NullSessionHandler"/>
     </amqp:connector>
     <amqp:connector name="RabbitMQConnectorPoller" validateConnections="true" doc:name="AMQP-0-9 Connector" host="${rabbit.host}" password="${rabbit.password}" port="${rabbit.port}" username="${rabbit.username}" prefetchCount="1" numberOfChannels="1" ackMode="MANUAL"> 
         <reconnect-forever />

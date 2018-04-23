@@ -36,6 +36,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
     <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
     <asynchronous-processing-strategy name="Asynchronous_Processing_Strategy" maxThreads="4" minThreads="1" doc:name="Asynchronous Processing Strategy"/>
     <validation:config name="Validation_Configuration" doc:name="Validation Configuration"/>
+    <ftplite:config name="FTPLite__Configuration" doc:name="FTPLite: Configuration"/>
 
     <flow name="main" processingStrategy="synchronous" initialState="started"> 
         <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="1">
@@ -329,7 +330,7 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
         <set-variable variableName="local_id" value="#[flowVars.filenameWithoutExtension]" doc:name="Set local_id as filenameWithoutExtension"/>
         <set-variable variableName="md5metadata" value="#['']" doc:name="Set md5metadata empty"/>
         <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'][0].file_path]/#[flowVars.files['sidecar'][0].file_name]?connector=FTP" timeout="10000" doc:name="Get XML file from FTP"/>
+            <ftplite:get-file-content config-ref="FTPLite__Configuration" fileName="#[flowVars.files['sidecar'][0].file_name]" filePath="#[flowVars.files['sidecar'][0].file_path]" hostName="#[flowVars.input.server]" password="#[flowVars.input.password]" userName="#[flowVars.input.username]" doc:name="FTPLite"/>
         </until-successful>
         <choice doc:name="When Medialaan, set encoding to UTF-16">
             <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">

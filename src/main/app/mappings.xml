@@ -41,6 +41,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <dw:input-variable doc:sample="sample_data/map.dwl" variableName="cp"/>
             <dw:input-variable doc:sample="sample_data/map_1.dwl" variableName="pid"/>
             <dw:input-variable doc:sample="sample_data/MyPojo.dwl" variableName="cp_id"/>
+            <dw:input-variable doc:sample="/Users/dieter/VIAA/borndigital/src/test/resources/sample_data/list_String.dwl" mimeType="application/java" variableName="collaterals"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/xml
 %output application/xml skipNullOn="everywhere"
@@ -57,13 +58,18 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 					otherwise ""),
 		MDProperties: {
 			(payload.*VIAA map (
-				$
+				$ mapObject {
+					'$$': $ when ('$$' != 'dc_relations' and '$$' != 'CP_id') otherwise null
+				}
 			)),
 			(sp_name: 'borndigital') when payload.VIAA.sp_name == null,
 			(CP: flowVars.cp) when payload.VIAA.CP == null,
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
-			(dc_relations @(type: "list"): { (flowVars.collaterals map (bevat: $)) }) when flowVars.pid_collateral?,
+			dc_relations @(type: "list"): {
+				(flowVars.collaterals default [] map (bevat: $)),
+				((payload.VIAA.dc_relations mapObject ('$$': $)) when payload.VIAA.dc_relations? and (sizeOf payload.VIAA.dc_relations) > 0 and not payload.VIAA.dc_relations is :string otherwise {})
+			},
 			(CreationDate: flowVars.CreationDate) when flowVars.CreationDate != null,
 			(dc_source: flowVars.filenameEssence) when payload.VIAA.dc_source == null
 			// Default VIAA license?

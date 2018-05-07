@@ -8,13 +8,13 @@
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
 http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
@@ -142,88 +142,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
         <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
     </sub-flow>
-    <sub-flow name="PI_SIP_DELIVERY_PROVANT">
-        <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
-        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <choice doc:name="APA | FOMU | MOMU | museumedelsmeedkunstjuwelenendiamant ?">
-            <when expression="#[flowVars.cp.equals(&quot;FoMu&quot;)]">
-                <set-variable variableName="destinationPath" value="#[&quot;/fomu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
-            </when>
-            <when expression="#[flowVars.cp.equals(&quot;MoMu&quot;)]">
-                <set-variable variableName="destinationPath" value="#[&quot;/momu&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
-            </when>
-            <when expression="#[flowVars.cp.equals(&quot;Museum Edelsmeedkunst, Juwelen en Diamant&quot;)]">
-                <set-variable variableName="destinationPath" value="#[&quot;/museumedelsmeedkunstjuwelenendiamant&quot; + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath"/>
-            </when>
-            <otherwise>
-				<message-filter throwOnUnaccepted="true" doc:name="Error if destinationPath is null">
-                    <and-filter>
-                        <expression-filter expression="#[payload.destinationPath != null]"/>
-                        <expression-filter expression="#[flowVars.comment = &quot;CP was invalid (&quot; + flowVars.CP + &quot;). No destination folder known.&quot;]"/>
-                    </and-filter>
-                    </message-filter>
-            </otherwise>
-        </choice>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
-            <choice doc:name="Choice">
-                <when expression="#[!payload.file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload]" doc:name="Set currentItem"/>
-                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
-                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
-                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
-                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
-                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="mime_type" value="#[xpath3('//original/*[local-name()=&quot;content&quot;]/*[local-name()=&quot;mimeType&quot;]', flowVars.incomingXml)]" doc:name="Set mime_type from metadata"/>
-                    <http:request config-ref="mimetype2extensionAPI" path="/api/extension" method="GET" doc:name="Get extension">
-                        <http:request-builder>
-                            <http:query-param paramName="mimetype" value="#[flowVars.mime_type]"/>
-                        </http:request-builder>
-                    </http:request>
-                    <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-                    <choice doc:name="Status == success?">
-                        <when expression="#[payload.status != &quot;success&quot;]">
-                            <logger message="Extension not found." level="INFO" doc:name="Extension not found."/>
-                            <set-variable variableName="extension" value="#[&quot;&quot;]" doc:name="Set extension empty"/>
-                        </when>
-                        <otherwise>
-                            <set-variable variableName="extension" value="#[payload['data'].extension]" doc:name="Set extension"/>
-                        </otherwise>
-                    </choice>
-                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    <dw:transform-message doc:name="Transform Message">
-                        <dw:input-variable variableName="currentItem"/>
-                        <dw:set-payload><![CDATA[%dw 1.0
-%input payload application/java
-%output application/json
----
-{
-	"destination_file": flowVars.pid ++ '.' + flowVars.extension,
-    "destination_host": p('ftpDestination.provant.host'),
-    "destination_password": p('ftpDestination.provant.password'),
-    "destination_path": flowVars.destinationPath,
-    "destination_user": p('ftpDestination.provant.username'),
-    "source_file": flowVars.sourceFileName,
-    "source_host": flowVars.sourceServer,
-    "source_password": flowVars.sourcePassword,
-    "source_path": flowVars.sourcePath,
-    "source_user": flowVars.sourceUsername
-}]]></dw:set-payload>
-                    </dw:transform-message>
-                    <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
-                    </amqp:outbound-endpoint>
-                </when>
-                <otherwise>
-                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
-                </otherwise>
-            </choice>
-        </foreach>
-        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <flow-ref name="SidecarFTPProvant" doc:name="SidecarFTPProvant"/>
-        <flow-ref name="SetResultAndCommentFXP" doc:name="Flow Reference"/>
-        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
-    </sub-flow>
     <sub-flow name="PI_SIP_DELIVERY_MEISE">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
@@ -324,14 +242,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
             <logger message=" Failed to FTP for Meise" level="WARN" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
             <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
-        </catch-exception-strategy>
-    </flow>
-    <flow name="SidecarFTPProvant" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.provant.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestination.provant.username}" password="${ftpDestination.provant.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
-        <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
-            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
-            <flow-ref name="SidecarFTPProvant" doc:name="SidecarFTPProvant"/>
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">

@@ -36,7 +36,8 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
     <byte-array-to-string-transformer name="Byte_Array_to_String" doc:name="Byte Array to String"/>
     <asynchronous-processing-strategy name="Asynchronous_Processing_Strategy" maxThreads="4" minThreads="1" doc:name="Asynchronous Processing Strategy"/>
     <validation:config name="Validation_Configuration" doc:name="Validation Configuration"/>
-
+    <ftplite:config name="FTPLite__Configuration" doc:name="FTPLite: Configuration"/>
+    
     <flow name="main" processingStrategy="synchronous" initialState="started"> 
         <amqp:inbound-endpoint queueName="${rabbit.queuename}" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="RabbitMQ inbound"  transformer-refs="Byte_Array_to_String" numberOfChannels="1">
         </amqp:inbound-endpoint>
@@ -159,9 +160,6 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                     <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                         <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
                     </when>
-                    <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
-                        <flow-ref name="PI_SIP_DELIVERY_PROVANT" doc:name="PI_SIP_DELIVERY_PROVANT"/>
-                    </when>
                     <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                         <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
                     </when>
@@ -203,7 +201,7 @@ where (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars
         <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
         <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
         <choice doc:name="When not a custom CP, use flow_id as CP_id">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;provant&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;) || flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;) || flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
                 <flow-ref name="get_cp_id" doc:name="get_cp_id"/>
                 <set-variable variableName="cp_id" value="#[payload]" doc:name="Set cp_id"/>
             </when>
@@ -329,7 +327,7 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
         <set-variable variableName="local_id" value="#[flowVars.filenameWithoutExtension]" doc:name="Set local_id as filenameWithoutExtension"/>
         <set-variable variableName="md5metadata" value="#['']" doc:name="Set md5metadata empty"/>
         <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-            <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.files['sidecar'][0].file_path]/#[flowVars.files['sidecar'][0].file_name]?connector=FTP" timeout="10000" doc:name="Get XML file from FTP"/>
+            <ftplite:get-file-content config-ref="FTPLite__Configuration" fileName="#[flowVars.files['sidecar'][0].file_name]" filePath="/#[flowVars.files['sidecar'][0].file_path]" hostName="#[flowVars.input.server]" password="#[flowVars.input.password]" userName="#[flowVars.input.username]" doc:name="FTPLite"/>
         </until-successful>
         <choice doc:name="When Medialaan, set encoding to UTF-16">
             <when expression="#[flowVars.cp.equals(&quot;Medialaan&quot;)]">
@@ -352,10 +350,6 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
                 <logger message="local_id VRT" level="INFO" doc:name="VRT"/>
                 <set-variable variableName="mediaId" value="#[xpath3(&quot;//mediaId/text()&quot;)]" doc:name="Set mediaId"/>
                 <set-variable variableName="local_id" value="#[flowVars.mediaId]" doc:name="Set local_id equal to mediaId"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
-                <logger message="local_id Provant" level="INFO" doc:name="Provant"/>
-                <set-variable variableName="local_id" value="#[xpath3(&quot;//custom_uuid/text()&quot;)]" doc:name="Set local_id from custom_uuid"/>
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <logger message="Local id Meise" level="INFO" doc:name="Meise"/>
@@ -422,9 +416,6 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;provant&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_PROVANT" doc:name="PI_METADATA_MAPPING_PROVANT"/>
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_MEISE" doc:name="PI_METADATA_MAPPING_MEISE"/>

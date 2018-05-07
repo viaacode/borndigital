@@ -212,9 +212,6 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 <when expression="#[flowVars.cp == &quot;cegesoma&quot;]">
 <set-payload doc:name="Set Payload" value="OR-fx73x4x"/>
 </when>
-<when expression="#[flowVars.cp == &quot;provant&quot;]">
-<set-payload doc:name="Set Payload" value="OR-t727f6z"/>
-</when>
 <when expression="#[flowVars.cp == &quot;FoMu&quot;]">
 <set-payload doc:name="Set Payload" value="OR-pg1hn2h"/>
 </when>

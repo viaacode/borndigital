@@ -39,7 +39,7 @@ order by last_event_date desc;]]></db:parameterized-query>
                 <foreach doc:name="For Each">
                     <choice doc:name="Is preingest_status OK?">
                         <when expression="#[payload.preingest_status.equals('OK')]">
-                            <logger message="preingest_status OK" level="INFO" doc:name="preingest_status OK"/>
+                            <logger message="[#[payload.pid]]: preingest_status OK" level="DEBUG" doc:name="preingest_status OK"/>
                             <set-variable variableName="file" value="#[payload]" doc:name="Set file"/>
                             <db:select config-ref="mediahaven" doc:name="Check pid with Mediahaven monitoring">
                                 <db:parameterized-query><![CDATA[select *
@@ -55,7 +55,7 @@ where external_id = #[payload.pid]]]></db:parameterized-query>
                                     <set-variable variableName="fragment_id" value="#[flowVars.mh_result.fragment_id]" doc:name="Set fragment_id"/>
                                     <choice doc:name="Check last status of MH when this is not a retry OR preingest happened one hour ago">
                                         <when expression="#[flowVars.file.retry_count == 0 || (System.currentTimeMillis() - flowVars.file.last_event_date.getTime()&gt;3600000)]">
-                                            <logger message="Last event MH happened after preingest" level="INFO" doc:name="Last event MH happened after preingest"/>
+                                            <logger message="Last event MH happened after preingest" level="DEBUG" doc:name="Last event MH happened after preingest"/>
                                             <choice doc:name="Archived, deleted or something else?">
                                                 <when expression="#[flowVars.mh_result.archive_status.equals('on_tape') || flowVars.mh_result.archive_status.equals('on_disk')]">
                                                     <logger message="Essence is archived on tape or disk (#[flowVars.file.pid])" level="INFO" doc:name="Essence is archived on tape or disk"/>
@@ -103,7 +103,7 @@ where id = #[flowVars.file.id]]]></db:parameterized-query>
                                                     </db:update>
                                                 </when>
                                                 <otherwise>
-                                                    <logger message="mediahaven status = #[flowVars.mh_result.archive_status] (#[flowVars.file.pid])" level="INFO" doc:name="something else, do nothing"/>
+                                                    <logger message="mediahaven status = #[flowVars.mh_result.archive_status] (#[flowVars.file.pid])" level="DEBUG" doc:name="something else, do nothing"/>
                                                     <choice doc:name="Fragment_id filled in?">
                                                         <when expression="#[flowVars.file.fragment_id == &quot;&quot; || flowVars.file.fragment_id == null]">
                                                             <db:update config-ref="borndigital" doc:name="Update fragment_id">

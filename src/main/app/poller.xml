@@ -26,7 +26,7 @@ from borndigital_ingest_status]]></db:parameterized-query>
         </db:select>
         <choice doc:name="When NOK, don't retry">
             <when expression="#[payload[0].status == 'NOK']">
-                <expression-component doc:name="Expression"><![CDATA[// do nothing]]></expression-component>
+                <logger message="borndigital_ingest_status: #[payload[0].status]" level="INFO" doc:name="Log: borndigital_ingest_status"/>
             </when>
             <otherwise>
                 <db:select config-ref="borndigital" doc:name="Fetch records with preingest_status not null and archive_status null">

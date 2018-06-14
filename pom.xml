@@ -171,6 +171,11 @@
         <artifactId>ftp-lite-connector</artifactId>
         <version>1.0</version>
       </dependency>
+    <dependency>
+            <groupId>6c7daa17-b709-4fa9-b830-848afddff753</groupId>
+            <artifactId>ftp-lite-connector</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
   
   <repositories>
@@ -198,7 +203,12 @@
       <url>http://do-qas-mvn-01.do.viaa.be:8081/nexus/content/repositories/releases</url>
       <layout>default</layout>
     </repository>
-  </repositories>
+  <repository>
+            <id>MulesoftCorporateRepository</id>
+            <name>Corporate Repository</name>
+            <url>https://maven.anypoint.mulesoft.com/api/v1/organizations/6c7daa17-b709-4fa9-b830-848afddff753/maven</url>
+        </repository>
+    </repositories>
   
   <pluginRepositories>
     <pluginRepository>

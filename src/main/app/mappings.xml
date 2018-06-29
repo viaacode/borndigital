@@ -558,12 +558,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="dcterms_created_is_valid is true"/>
             </when>
             <otherwise>
-                <http:request config-ref="edtf_validator" path="isValid.json" method="GET" doc:name="Send request to validate">
-                    <http:request-builder>
-                        <http:query-param paramName="date" value="#[flowVars.dcterms_issued]"/>
-                    </http:request-builder>
-                    <http:success-status-code-validator values="1..999"/>
-                </http:request>
+                <until-successful maxRetries="20" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
+                    <http:request config-ref="edtf_validator" path="isValid.json" method="GET" doc:name="Send request to validate">
+                        <http:request-builder>
+                            <http:query-param paramName="date" value="#[flowVars.dcterms_issued]"/>
+                        </http:request-builder>
+                        <http:success-status-code-validator values="1..999"/>
+                    </http:request>
+                </until-successful>
                 <choice doc:name="When not http 200">
                     <when expression="message.inboundProperties.'http.status' != 200">
                         <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="Set dcterms_created_is_valid true"/>

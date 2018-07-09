@@ -583,7 +583,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid is true"/>
             </when>
             <otherwise>
-                <http:request config-ref="edtf_validator" path="isValid.json" method="GET" doc:name="Send request to validate dcterms_created">
+                <http:request config-ref="edtf_validator" path="/" method="GET" doc:name="Send request to validate dcterms_created">
                     <http:request-builder>
                         <http:query-param paramName="date" value="#[flowVars.dcterms_created]"/>
                     </http:request-builder>

@@ -19,7 +19,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     <http:request-config name="vlaamsparlement_api" host="ws.vlpar.be" port="80" basePath="/" doc:name="HTTP Request Configuration" responseTimeout="20000">
         <http:proxy host="proxy.do.viaa.be" port="80"/>
     </http:request-config>
-    <http:request-config name="edtf_validator" host="digital2.library.unt.edu" port="80" basePath="/edtf" doc:name="HTTP Request Configuration" responseTimeout="20000">
+    <http:request-config name="edtf_validator" host="edtf-validate-python2.apps.ori-qas.do.viaa.be" port="80"  doc:name="HTTP Request Configuration" responseTimeout="20000">
         <http:proxy host="proxy.do.viaa.be" port="80"/>
     </http:request-config>
     <sub-flow name="PI_METADATA_MAPPING_MHEM">
@@ -559,7 +559,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             </when>
             <otherwise>
                 <until-successful maxRetries="20" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-                    <http:request config-ref="edtf_validator" path="isValid.json" method="GET" doc:name="Send request to validate">
+                    <http:request config-ref="edtf_validator" path="/" method="GET" doc:name="Send request to validate">
                         <http:request-builder>
                             <http:query-param paramName="date" value="#[flowVars.dcterms_issued]"/>
                         </http:request-builder>

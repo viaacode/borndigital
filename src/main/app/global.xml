@@ -61,9 +61,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <mulexml:schema-validation-filter name="xsdValidator" schemaLocations="mediahaven_output_schema.xsd" doc:name="Check output format" returnResult="true"></mulexml:schema-validation-filter>
     <http:listener-config name="InputCSVListener" host="0.0.0.0" port="8063" doc:name="HTTP Listener Configuration"></http:listener-config>
     <http:listener-config name="MonitoringListener" host="0.0.0.0" port="8062" doc:name="HTTP Listener Configuration"></http:listener-config>
-    
-    <http:listener-config name="HTTP_Listener_Configuration1"
-		host="localhost" port="8081" doc:name="HTTP Listener Configuration" />
 	<http:request-config name="datevalidator"
 		host="digital2.library.unt.edu/edtf" port="80" responseTimeout="2000"
 		doc:name="HTTP Request Configuration">

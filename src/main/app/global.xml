@@ -94,8 +94,6 @@ CAST(#[flowVars.result] as outcome),
         </db:insert>  
     </sub-flow>
 	<flow name="date_validator">
-		<http:listener config-ref="HTTP_Listener_Configuration1"
-			path="/date" allowedMethods="GET" doc:name="HTTP" />
         <set-variable variableName="setDate" value="1991-06-19" doc:name="Set Date"/>
         <logger message="Data param: #[flowVars.setDate]" level="INFO" doc:name="Logger: dateparam"/>
 		<choice doc:name="When Fallback is False">

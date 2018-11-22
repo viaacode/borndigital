@@ -94,8 +94,6 @@ CAST(#[flowVars.result] as outcome),
         </db:insert>  
     </sub-flow>
 	<flow name="date_validator">
-        <set-variable variableName="setDate" value="1991-06-19" doc:name="Set Date"/>
-        <logger message="Data param: #[flowVars.setDate]" level="INFO" doc:name="Logger: dateparam"/>
 		<choice doc:name="When Fallback is False">
             <when expression="flowVars.fallback == true">
                 <logger message="Dit is de fallback service" level="INFO" doc:name="Logger: fallback_message"/>

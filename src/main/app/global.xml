@@ -61,6 +61,14 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
     <mulexml:schema-validation-filter name="xsdValidator" schemaLocations="mediahaven_output_schema.xsd" doc:name="Check output format" returnResult="true"></mulexml:schema-validation-filter>
     <http:listener-config name="InputCSVListener" host="0.0.0.0" port="8063" doc:name="HTTP Listener Configuration"></http:listener-config>
     <http:listener-config name="MonitoringListener" host="0.0.0.0" port="8062" doc:name="HTTP Listener Configuration"></http:listener-config>
+    
+    <http:listener-config name="HTTP_Listener_Configuration1"
+		host="localhost" port="8081" doc:name="HTTP Listener Configuration" />
+	<http:request-config name="datevalidator"
+		host="digital2.library.unt.edu/edtf" port="80" responseTimeout="2000"
+		doc:name="HTTP Request Configuration">
+	</http:request-config>
+    <http:request-config name="datevalidator_python" host="edtf-validate-python2.apps.do-prd-okp-m0.do.viaa.be" port="80" doc:name="HTTP Request Configuration"/>
     <sub-flow name="sendErrorMessage">
         <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"/>
         <set-variable variableName="result" value="#['NOK']" doc:name="Set result NOK"/>
@@ -85,14 +93,6 @@ CAST(#[flowVars.result] as outcome),
   
         </db:insert>  
     </sub-flow>
-    
-    <http:listener-config name="HTTP_Listener_Configuration1"
-		host="localhost" port="8081" doc:name="HTTP Listener Configuration" />
-	<http:request-config name="edtf_validator"
-		host="digital2.library.unt.edu/edtf" port="80" responseTimeout="2000"
-		doc:name="HTTP Request Configuration">
-	</http:request-config>
-    <http:request-config name="edtf_validator_python" host="edtf-validate-python2.apps.do-prd-okp-m0.do.viaa.be" port="80" doc:name="HTTP Request Configuration"/>
 	<flow name="date_validator">
 		<http:listener config-ref="HTTP_Listener_Configuration1"
 			path="/date" allowedMethods="GET" doc:name="HTTP" />
@@ -101,7 +101,7 @@ CAST(#[flowVars.result] as outcome),
 		<choice doc:name="When Fallback is False">
             <when expression="flowVars.fallback == true">
                 <logger message="Dit is de fallback service" level="INFO" doc:name="Logger: fallback_message"/>
-                <http:request config-ref="edtf_validator_python" path="/" method="GET" doc:name="Send Request to Validate Date">
+                <http:request config-ref="datevalidator_python" path="/" method="GET" doc:name="Send Request to Validate Date">
                     <http:request-builder>
                         <http:query-param paramName="date" value="#[flowVars.setDate]"/>
                     </http:request-builder>
@@ -137,7 +137,7 @@ CAST(#[flowVars.result] as outcome),
 			<logger
 				message="Can't reach EDTF Validator. Value Fallback : #[flowVars.fallback]. Error: The request cannot be processed, the error is #[exception.getSummaryMessage()]"
 				level="INFO" doc:name="Logger: exception_summary_and_value_fallback" metadata:id="2688c82b-8e54-4c64-80e5-a1ae1d6b155b" />
-			<flow-ref name="date_validator" doc:name="date_validator_flow_reference" />
+			<flow-ref name="date_validator" doc:name="date_validator" />
 		</catch-exception-strategy>
 	</flow>
     

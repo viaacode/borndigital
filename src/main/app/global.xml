@@ -85,6 +85,63 @@ CAST(#[flowVars.result] as outcome),
   
         </db:insert>  
     </sub-flow>
+    
+    <http:listener-config name="HTTP_Listener_Configuration1"
+		host="localhost" port="8081" doc:name="HTTP Listener Configuration" />
+	<http:request-config name="edtf_validator"
+		host="digital2.library.unt.edu/edtf" port="80" responseTimeout="2000"
+		doc:name="HTTP Request Configuration">
+	</http:request-config>
+    <http:request-config name="edtf_validator_python" host="edtf-validate-python2.apps.do-prd-okp-m0.do.viaa.be" port="80" doc:name="HTTP Request Configuration"/>
+	<flow name="date_validator">
+		<http:listener config-ref="HTTP_Listener_Configuration1"
+			path="/date" allowedMethods="GET" doc:name="HTTP" />
+        <set-variable variableName="setDate" value="1991-06-19" doc:name="Set Date"/>
+        <logger message="Data param: #[flowVars.setDate]" level="INFO" doc:name="Logger: dateparam"/>
+		<choice doc:name="When Fallback is False">
+            <when expression="flowVars.fallback == true">
+                <logger message="Dit is de fallback service" level="INFO" doc:name="Logger: fallback_message"/>
+                <http:request config-ref="edtf_validator_python" path="/" method="GET" doc:name="Send Request to Validate Date">
+                    <http:request-builder>
+                        <http:query-param paramName="date" value="#[flowVars.setDate]"/>
+                    </http:request-builder>
+                    <http:success-status-code-validator values="0..999"/>
+                </http:request>
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <logger level="INFO" doc:name="Logger: is_valid_date_and_value_fallback" message="#[flowVars.setDate] is valid? : #[payload.validEDTF]. Value Fallback : #[flowVars.fallback]"/>
+            </when>
+			<otherwise>
+				<http:request config-ref="edtf_validator" path="/edtf/isValid.json"
+					method="GET" doc:name="Send Request to Validate Date">
+					<http:request-builder>
+						<http:query-param paramName="date" value="#[flowVars.setDate]" />
+					</http:request-builder>
+					<http:success-status-code-validator
+						values="0..999" />
+				</http:request>
+				<json:json-to-object-transformer
+					returnClass="java.util.HashMap" doc:name="JSON to Object" />
+				<logger
+					message="#[flowVars.setDate] is valid? : #[payload.validEDTF]. Value Fallback : #[flowVars.fallback]"
+					level="INFO" doc:name="Logger: is_valid_date_and_value_fallback" metadata:id="2688c82b-8e54-4c64-80e5-a1ae1d6b155b" />
+			</otherwise>
+		</choice>
+		<catch-exception-strategy doc:name="Catch Exception Strategy">
+			<set-payload
+				value="The request cannot be processed, the error is #[exception.getSummaryMessage()]"
+				doc:name="Set Exception Summary" />
+			<set-property propertyName="http.status" value="500"
+				doc:name="Set Http Status Property" />
+			<set-variable variableName="fallback" value="true"
+				doc:name="Set Fallback" />
+			<logger
+				message="Can't reach EDTF Validator. Value Fallback : #[flowVars.fallback]. Error: The request cannot be processed, the error is #[exception.getSummaryMessage()]"
+				level="INFO" doc:name="Logger: exception_summary_and_value_fallback" metadata:id="2688c82b-8e54-4c64-80e5-a1ae1d6b155b" />
+			<flow-ref name="date_validator" doc:name="date_validator_flow_reference" />
+		</catch-exception-strategy>
+	</flow>
+    
+    
     <!-- 
     <catch-exception-strategy name="globalCatch_Exception_Strategy"> 
         <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"></set-variable>  

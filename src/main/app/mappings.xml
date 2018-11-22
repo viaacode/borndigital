@@ -571,6 +571,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                         </http:request-builder>
                         <http:success-status-code-validator values="1..999"/>
                     </http:request>
+                    <flow-ref name="date_validator" doc:name="Date_validator Flow Reference"/>
                 </until-successful>
                 <choice doc:name="When not http 200">
                     <when expression="message.inboundProperties.'http.status' != 200">

@@ -244,7 +244,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_DESCRIPTION" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_DESCRIPTION"/>
-        <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE_AND_DESCRIPTION_LANG" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE"/>
+        <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE_AND_DESCRIPTION_LANG" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE_AND_DESCRIPTION_LANG"/>
         <set-payload value="#[flowVars.vergadering_response]" doc:name="Set Payload with vergadering_response"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/json.json"/>

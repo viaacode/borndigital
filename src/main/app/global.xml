@@ -93,7 +93,7 @@ CAST(#[flowVars.result] as outcome),
 	<flow name="date_validator">
 		<choice doc:name="When Fallback is False">
             <when expression="flowVars.fallback == true">
-                <logger message="Dit is de fallback service" level="INFO" doc:name="Logger: fallback_message"/>
+                <logger message="This is the fallback service" level="INFO" doc:name="Logger: fallback_message"/>
                 <http:request config-ref="datevalidator_python" path="/" method="GET" doc:name="Send Request to Validate Date">
                     <http:request-builder>
                         <http:query-param paramName="date" value="#[flowVars.setDate]"/>

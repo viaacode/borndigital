@@ -130,7 +130,7 @@ CAST(#[flowVars.result] as outcome),
 			<logger
 				message="Can't reach EDTF Validator. Value Fallback : #[flowVars.fallback]. Error: The request cannot be processed, the error is #[exception.getSummaryMessage()]"
 				level="INFO" doc:name="Logger: exception_summary_and_value_fallback" metadata:id="2688c82b-8e54-4c64-80e5-a1ae1d6b155b" />
-			<flow-ref name="date_validator" doc:name="date_validator" />
+			<flow-ref name="date_validator" doc:name="date_validator Flowreference" />
 		</catch-exception-strategy>
 	</flow>
     

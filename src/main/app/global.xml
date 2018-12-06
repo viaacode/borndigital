@@ -63,10 +63,10 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
     <http:listener-config name="InputCSVListener" host="0.0.0.0" port="8063" doc:name="HTTP Listener Configuration"></http:listener-config>
     <http:listener-config name="MonitoringListener" host="0.0.0.0" port="8062" doc:name="HTTP Listener Configuration"></http:listener-config>
 	<http:request-config name="Texasunidatevalidator"
-		host="digital2.library.unt.edu" port="80" responseTimeout="2000"
+		host="${edtfTexas.host}" port="80" responseTimeout="2000"
 		doc:name="HTTP Request Configuration" basePath="/edtf">
 	</http:request-config>
-    <http:request-config name="Localdatevalidator" host="edtf-validate-python2.apps.do-prd-okp-m0.do.viaa.be" port="80" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="Localdatevalidator" host="${edtfLocal.host}" port="80" doc:name="HTTP Request Configuration"/>
     <sub-flow name="sendErrorMessage">
         <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"/>
         <set-variable variableName="result" value="#['NOK']" doc:name="Set result NOK"/>

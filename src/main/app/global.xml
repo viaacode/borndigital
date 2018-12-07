@@ -122,9 +122,9 @@ CAST(#[flowVars.result] as outcome),
         <logger message="#[flowVars.setDate] is valid? : #[payload.validEDTF]." level="INFO" doc:name="Logger: is_valid_date"></logger>
         <set-payload value="#[payload.validEDTF]" doc:name="Set Payload"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <set-payload value="The request cannot be processed, the error is #[exception.getSummaryMessage()]" doc:name="Set Exception Summary"/>
             <flow-ref name="GroovyAmqpExceptionFlow" doc:name="GroovyAmqpExceptionFlow"/>
-            <logger level="ERROR" doc:name="Error Log" message="#[exception.getSummaryMessage()]"/>
+            <logger message="#[exception.getSummaryMessage()]" level="ERROR" doc:name="Error Log"></logger>
+            <set-payload value="#[true]" doc:name="Set valid to true"></set-payload>
         </catch-exception-strategy>
     </flow>
     <flow name="GroovyAmqpExceptionFlow">

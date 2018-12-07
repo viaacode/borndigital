@@ -564,17 +564,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="dcterms_created_is_valid is true"/>
             </when>
             <otherwise>
+                <set-payload value="#[flowVars.dcterms_created]" doc:name="Set Payload"/>
                     <flow-ref name="date_validator" doc:name="date_validator Flow Reference"/>
-                <choice doc:name="When not http 200">
-                    <when expression="message.inboundProperties.'http.status' != 200">
-                        <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="Set dcterms_created_is_valid true"/>
-                    </when>
-                    <otherwise>
-                        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-                        <set-variable variableName="dcterms_created_is_valid" value="#[payload.validEDTF == true]" doc:name="Set dcterms_created_is_valid"/>
-                    </otherwise>
-                </choice>
+                <set-variable variableName="dcterms_created_is_valid" value="#[payload]" doc:name="Set dcterms_created_is_valid"/>
             </otherwise>
         </choice>
         <choice doc:name="When dcterms_issued is empty">
@@ -582,17 +574,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid is true"/>
             </when>
             <otherwise>
+                <set-payload value="#[flowVars.dcterms_issued]" doc:name="Set Payload"/>
                 <flow-ref name="date_validator" doc:name="date_validator Flow Reference"/>
-                <choice doc:name="When not http 200">
-                    <when expression="message.inboundProperties.'http.status' != 200">
-                        <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid true"/>
-                    </when>
-                    <otherwise>
-                        <byte-array-to-string-transformer mimeType="application/json" doc:name="Byte Array to String"/>
-                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-                        <set-variable variableName="dcterms_issued_is_valid" value="#[payload.validEDTF == true]" doc:name="Set dcterms_issued_is_valid"/>
-                    </otherwise>
-                </choice>
+                <set-variable variableName="dcterms_issued_is_valid" value="#[payload]" doc:name="Set dcterms_issued_is_valid"/>
             </otherwise>
         </choice>
         <set-variable variableName="result" value="#[flowVars.dcterms_issued_is_valid &amp;&amp; flowVars.dcterms_created_is_valid ? &quot;OK&quot; : &quot;NOK&quot;]" doc:name="Set result OK when dcterms_issued and created are valid"/>

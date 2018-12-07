@@ -92,14 +92,14 @@ CAST(#[flowVars.result] as outcome),
         </db:insert>  
     </sub-flow>
 	<flow name="date_validator">
-        <set-variable variableName="setDate" value="#[flowVars.setDate]" doc:name="setDate"/>
-        <http:request config-ref="edtf_validator" path="/" method="GET" doc:name="Send Request to Validate Date">
+        <set-variable variableName="setDate" value="#[payload]" doc:name="setDate"/>
+        <http:request config-ref="Localdatevalidator" path="/" method="GET" doc:name="Send Request to Validate Date">
             <http:request-builder>
                 <http:query-param paramName="date" value="#[flowVars.setDate]"/>
             </http:request-builder>
         </http:request>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"></json:json-to-object-transformer>
-        <logger message="#[flowVars.setDate] is valid? : #[payload.validEDTF]. Value Fallback : #[flowVars.fallback]" level="INFO" metadata-id="2688c82b-8e54-4c64-80e5-a1ae1d6b155b" doc:name="Logger: is_valid_date"></logger>
+        <logger message="#[flowVars.setDate] is valid? : #[payload.validEDTF]. Value Fallback : #[flowVars.fallback]" level="INFO" doc:name="Logger: is_valid_date"></logger>
         <set-payload value="#[payload.validEDTF]" doc:name="Set Payload"/>
 		<catch-exception-strategy doc:name="Catch Exception Strategy">
 			<set-payload
@@ -107,7 +107,7 @@ CAST(#[flowVars.result] as outcome),
 				doc:name="Set Exception Summary" />
 			<logger
 				message="Can't reach EDTF Validator. Value Fallback : #[flowVars.fallback]. Error: The request cannot be processed, the error is #[exception.getSummaryMessage()]"
-				level="INFO" doc:name="Logger: exception_summary" metadata:id="2688c82b-8e54-4c64-80e5-a1ae1d6b155b" />
+				level="INFO" doc:name="Logger: exception_summary" />
 			<flow-ref name="date_validator_fallback" doc:name="date_validator_fallback" />
 		</catch-exception-strategy>
 	</flow>
@@ -131,21 +131,23 @@ CAST(#[flowVars.result] as outcome),
         <async doc:name="Async">
             <scripting:component doc:name="Groovy">
                 <scripting:script engine="Groovy">
-                    <property key="cp_id" value="#[flowVars.cp_id]"/>
-                    <property key="exception_summary" value="#[exception.getSummaryMessage()]"/>
-                    <property key="date" value="#[flowVars.setDate]"/><![CDATA[def alertMessage = [:];
 
-def title = "Alert Message"
-def description = "Both validators failed"
+                    <![CDATA[def alertMessage = [:];
+
+alertMessage.title = "Alert Message"
+alertMessage.description = "Both validators failed"
 
 alertMessage.cp_id = flowVars.cp_id;
 alertMesssage.date = flowVars.setDate;
 alertMessage.exception_summary = exception.getSummaryMessage();
 
 return new groovy.json.JsonBuilder(alertMessage).toPrettyString();]]>
+                    <property key="cp_id" value="#[flowVars.cp_id]"/>
+                    <property key="exception_summary" value="#[exception.getSummaryMessage()]"/>
+                    <property key="date" value="#[flowVars.setDate]"/>
                 </scripting:script>
             </scripting:component>
-            <amqp:outbound-endpoint queueDurable="true" responseTimeout="10000" exchange-pattern="request-response" doc:name="Collect Fallback Error Data" connector-ref="RabbitMQConnectorError" queueName="Viaa_AlertMessage"/>
+            <amqp:outbound-endpoint queueDurable="true" responseTimeout="10000" exchange-pattern="request-response" doc:name="Collect Fallback Error Data" connector-ref="RabbitMQConnectorError" queueName="viaa_alerts"/>
         </async>
     </flow>
     

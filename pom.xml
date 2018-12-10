@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <groupId>be.viaa</groupId>
   <artifactId>borndigital</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>mule</packaging>
+
   <name>Mule borndigital Application</name>
+
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -14,58 +17,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
-  
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.mule.tools.maven</groupId>
-        <artifactId>mule-app-maven-plugin</artifactId>
-        <version>${mule.tools.version}</version>
-        <extensions>true</extensions>
-        <configuration>
-          <copyToAppsDirectory>true</copyToAppsDirectory>
-          <inclusions>
-            <inclusion>
-              <groupId>org.mule.transports</groupId>
-              <artifactId>mule-transport-amqp</artifactId>
-            </inclusion>
-            <inclusion>
-              <groupId>org.mule.modules</groupId>
-              <artifactId>mule-module-requester</artifactId>
-            </inclusion>
-          </inclusions>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.7</version>
-        <executions>
-          <execution>
-            <id>add-resource</id>
-            <phase>generate-resources</phase>
-            <goals>
-              <goal>add-resource</goal>
-            </goals>
-            <configuration>
-              <resources>
-                <resource>
-                  <directory>src/main/app/</directory>
-                </resource>
-                <resource>
-                  <directory>src/main/api/</directory>
-                </resource>
-                <resource>
-                  <directory>mappings/</directory>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
-  
+
   <!-- Mule Dependencies -->
   <dependencies>
     <!-- Xml configuration -->
@@ -166,18 +118,13 @@
       <version>${mule.version}</version>
       <scope>provided</scope>
     </dependency>
-      <dependency>
-        <groupId>org.mule.modules</groupId>
-        <artifactId>ftp-lite-connector</artifactId>
-        <version>1.0</version>
-      </dependency>
     <dependency>
-            <groupId>6c7daa17-b709-4fa9-b830-848afddff753</groupId>
-            <artifactId>ftp-lite-connector</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-    </dependencies>
-  
+      <groupId>6c7daa17-b709-4fa9-b830-848afddff753</groupId>
+      <artifactId>ftp-lite-connector</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+  </dependencies>
+
   <repositories>
     <repository>
       <id>Central</id>
@@ -203,13 +150,12 @@
       <url>http://do-qas-mvn-01.do.viaa.be:8081/nexus/content/repositories/releases</url>
       <layout>default</layout>
     </repository>
-  <repository>
-            <id>MulesoftCorporateRepository</id>
-            <name>Corporate Repository</name>
-            <url>https://maven.anypoint.mulesoft.com/api/v1/organizations/6c7daa17-b709-4fa9-b830-848afddff753/maven</url>
-        </repository>
-    </repositories>
-  
+    <repository>
+      <id>MulesoftCorporateRepository</id>
+      <name>Corporate Repository</name>
+      <url>https://maven.eu1.anypoint.mulesoft.com/api/v1/organizations/6c7daa17-b709-4fa9-b830-848afddff753/maven</url>
+    </repository>
+  </repositories>
   <pluginRepositories>
     <pluginRepository>
       <id>mulesoft-release</id>
@@ -222,4 +168,54 @@
     </pluginRepository>
   </pluginRepositories>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.mule.tools.maven</groupId>
+        <artifactId>mule-app-maven-plugin</artifactId>
+        <version>${mule.tools.version}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <copyToAppsDirectory>true</copyToAppsDirectory>
+          <inclusions>
+            <inclusion>
+              <groupId>org.mule.transports</groupId>
+              <artifactId>mule-transport-amqp</artifactId>
+            </inclusion>
+            <inclusion>
+              <groupId>org.mule.modules</groupId>
+              <artifactId>mule-module-requester</artifactId>
+            </inclusion>
+          </inclusions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.7</version>
+        <executions>
+          <execution>
+            <id>add-resource</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>add-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>src/main/app/</directory>
+                </resource>
+                <resource>
+                  <directory>src/main/api/</directory>
+                </resource>
+                <resource>
+                  <directory>mappings/</directory>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

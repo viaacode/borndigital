@@ -33,9 +33,6 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
                 <http:static-resource-handler resourceBase="${app.home}/form" doc:name="HTTP Static Resource Handler"/>
             </otherwise>
         </choice>
-        <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger level="ERROR" doc:name="Logger"/>
-        </catch-exception-strategy>
     </flow>
     <flow name="makeSidecar">
         <set-variable variableName="filename" value="#[payload.filename]" doc:name="Set filename"/>

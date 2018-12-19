@@ -543,14 +543,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <mulexml:schema-validation-filter schemaLocations="viaa_metadatamodel_van_viaa_naar_mam.xsd" returnResult="false" name="VIAA_MAM_Schema_Validation"
         doc:name="Schema Validation" />
         </message-filter>
-        <logger message="FILE OK: #[message.payload]" level="INFO" doc:name="Logger" />
+        <logger message="FILE OK: #[message.payload]" level="DEBUG" doc:name="Logger" />
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="The mapped XML is valid." doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
  
     <flow name="error_invalid_data" >
-        <logger message="ERROR: MESSAGE PAYLOAD: #[message.payload]" level="INFO" doc:name="Logger" />
+        <logger message="ERROR: MESSAGE PAYLOAD: #[message.payload]" level="DEBUG" doc:name="Logger" />
         <set-variable variableName="result" value="NOK" doc:name="Set result NOK"/>
         <set-variable variableName="comment" value="The mapped XML is NOT valid." doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>

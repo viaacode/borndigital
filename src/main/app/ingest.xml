@@ -429,7 +429,7 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
                 <flow-ref name="metadata_corrections" doc:name="metadata_corrections"/>
                 <flow-ref name="validateMetadataFromVIAAtoMAM" doc:name="validateMetadataFromVIAAtoMAM"/>
-                <flow-ref name="validateEDTFdates" doc:name="Flow Reference"/>
+                <flow-ref name="validateEDTFdates" doc:name="validateEDTFdates_flowreference"/>
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>

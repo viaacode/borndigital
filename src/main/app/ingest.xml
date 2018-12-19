@@ -166,9 +166,9 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                     </when>
                     <otherwise>
                         <flow-ref name="PI_SIP_DELIVERY_GENERIC_ESSENCE" doc:name="PI_SIP_DELIVERY_GENERIC_ESSENCE"/>
-                <logger message="Start sidecar" level="INFO" doc:name="Log: &quot;Start sidecar&quot;"/>
+                <logger message="Start sidecar" level="DEBUG" doc:name="Log: &quot;Start sidecar&quot;"/>
                         <flow-ref name="PI_SIP_DELIVERY_GENERIC_SIDECAR" doc:name="PI_SIP_DELIVERY_GENERIC_SIDECAR"/>
-                <logger message="Done sidecar" level="INFO" doc:name="Log: &quot;Done sidecar&quot;"/>
+                <logger message="Done sidecar" level="DEBUG" doc:name="Log: &quot;Done sidecar&quot;"/>
                     </otherwise>
                 </choice>
                 <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -259,7 +259,6 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
                         </choice>
                     </when>
                     <otherwise>
-                        <logger level="INFO" doc:name="new item"/>
                         <flow-ref name="PI_GET_PID" doc:name="PI_GET_PID"/>
                     </otherwise>
                 </choice>
@@ -429,7 +428,7 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
                 <flow-ref name="metadata_corrections" doc:name="metadata_corrections"/>
                 <flow-ref name="validateMetadataFromVIAAtoMAM" doc:name="validateMetadataFromVIAAtoMAM"/>
-                <flow-ref name="validateEDTFdates" doc:name="Flow Reference"/>
+                <flow-ref name="validateEDTFdates" doc:name="validateEDTFdates_flowreference"/>
             </otherwise>
         </choice>
         <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -549,7 +548,7 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
     <sub-flow name="check_filename_special_characters">
         <set-variable variableName="filename_contains_bad_characters" value="#[flowVars.filenameWithoutExtension.matches(&quot;.*[\\[\\]()#&#235;+%&#233;&#8217;].*&quot;)]" doc:name="Set filename_contains_bad_characters (e.g.: ()#&#235;+%)"/>
         <set-variable variableName="state" value="BAD_CHAR_CHECKED" doc:name="Set state (BAD_CHAR_CHECKED)"/>
-        <logger message="BAD_CHAR_CHECKED: #[flowVars.filename_contains_bad_characters]" level="INFO" doc:name="BAD_CHAR_CHECKED"/>
+        <logger message="BAD_CHAR_CHECKED: #[flowVars.filename_contains_bad_characters]" level="DEBUG" doc:name="BAD_CHAR_CHECKED"/>
     </sub-flow>
     <sub-flow name="move_files_for_correct_name">
         <set-variable variableName="filename_corrected" value="#[flowVars.filenameWithoutExtension.replaceAll(&quot;\\(&quot;,&quot; &quot;).replaceAll(&quot;\\)&quot;,&quot; &quot;).replaceAll(&quot;#&quot;,&quot; &quot;).replaceAll(&quot;&#235;&quot;,&quot;e&quot;).replaceAll(&quot;&#233;&quot;,&quot;e&quot;).replaceAll(&quot;\\+&quot;,&quot;&quot;).replaceAll(&quot;\\%&quot;,&quot;&quot;).replaceAll(&quot;&#8217;&quot;,&quot;&quot;).replaceAll(&quot;\\[&quot;,&quot; &quot;).replaceAll(&quot;\\]&quot;,&quot; &quot;).replaceAll(&quot;\\+&quot;,&quot; &quot;).trim()]" doc:name="Set filename_corrected"/>

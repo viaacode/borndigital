@@ -37,6 +37,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <dw:input-variable doc:sample="sample_data/map.dwl" variableName="cp"/>
             <dw:input-variable doc:sample="sample_data/map_1.dwl" variableName="pid"/>
             <dw:input-variable doc:sample="sample_data/MyPojo.dwl" variableName="cp_id"/>
+            <dw:input-variable doc:sample="/Users/dieter/VIAA/borndigital/src/test/resources/sample_data/list_String.dwl" mimeType="application/java" variableName="collaterals"/>
             <dw:set-payload><![CDATA[%dw 1.0
 %input payload application/xml
 %output application/xml skipNullOn="everywhere"
@@ -53,13 +54,18 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 					otherwise ""),
 		MDProperties: {
 			(payload.*VIAA map (
-				$
+				$ mapObject {
+					'$$': $ when ('$$' != 'dc_relations' and '$$' != 'CP_id') otherwise null
+				}
 			)),
 			(sp_name: 'borndigital') when payload.VIAA.sp_name == null,
 			(CP: flowVars.cp) when payload.VIAA.CP == null,
 			CP_id: flowVars.cp_id,
 			PID: flowVars.pid,
-			(dc_relations @(type: "list"): { (flowVars.collaterals map (bevat: $)) }) when flowVars.pid_collateral?,
+			dc_relations @(type: "list"): {
+				(flowVars.collaterals default [] map (bevat: $)),
+				((payload.VIAA.dc_relations mapObject ('$$': $)) when payload.VIAA.dc_relations? and (sizeOf payload.VIAA.dc_relations) > 0 and not payload.VIAA.dc_relations is :string otherwise {})
+			},
 			(CreationDate: flowVars.CreationDate) when flowVars.CreationDate != null,
 			(dc_source: flowVars.filenameEssence) when payload.VIAA.dc_source == null
 			// Default VIAA license?
@@ -238,7 +244,7 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
         <expression-component doc:name="Set deel from filename"><![CDATA[#[flowVars.deel = flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') != flowVars.filenameEssence ?  (" (Deel " + flowVars.filenameEssence.replaceAll('^.*_([1-9]+)v[1-9]+\\..*', '$1') + "/" + flowVars.total + ") ") : "" ]]]></expression-component>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_DESCRIPTION" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_DESCRIPTION"/>
-        <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE_AND_DESCRIPTION_LANG" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE"/>
+        <flow-ref name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE_AND_DESCRIPTION_LANG" doc:name="PI_METADATA_MAPPING_VLAAMSPARLEMENT_TRANSCRIPTIE_AND_DESCRIPTION_LANG"/>
         <set-payload value="#[flowVars.vergadering_response]" doc:name="Set Payload with vergadering_response"/>
         <dw:transform-message metadata:id="d696f7ed-e9b9-4f34-8265-1191510a0be4" doc:name="Transform Message">
             <dw:input-payload doc:sample="sample_data/json.json"/>
@@ -537,14 +543,14 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
             <mulexml:schema-validation-filter schemaLocations="viaa_metadatamodel_van_viaa_naar_mam.xsd" returnResult="false" name="VIAA_MAM_Schema_Validation"
         doc:name="Schema Validation" />
         </message-filter>
-        <logger message="FILE OK: #[message.payload]" level="INFO" doc:name="Logger" />
+        <logger message="FILE OK: #[message.payload]" level="DEBUG" doc:name="Logger" />
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="The mapped XML is valid." doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
  
     <flow name="error_invalid_data" >
-        <logger message="ERROR: MESSAGE PAYLOAD: #[message.payload]" level="INFO" doc:name="Logger" />
+        <logger message="ERROR: MESSAGE PAYLOAD: #[message.payload]" level="DEBUG" doc:name="Logger" />
         <set-variable variableName="result" value="NOK" doc:name="Set result NOK"/>
         <set-variable variableName="comment" value="The mapped XML is NOT valid." doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
@@ -558,24 +564,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="dcterms_created_is_valid is true"/>
             </when>
             <otherwise>
-                <until-successful maxRetries="20" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
-                    <http:request config-ref="edtf_validator" path="/" method="GET" doc:name="Send request to validate">
-                        <http:request-builder>
-                            <http:query-param paramName="date" value="#[flowVars.dcterms_issued]"/>
-                        </http:request-builder>
-                        <http:success-status-code-validator values="1..999"/>
-                    </http:request>
-                </until-successful>
-                <choice doc:name="When not http 200">
-                    <when expression="message.inboundProperties.'http.status' != 200">
-                        <set-variable variableName="dcterms_created_is_valid" value="#[true]" doc:name="Set dcterms_created_is_valid true"/>
-                    </when>
-                    <otherwise>
-                        <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-                        <set-variable variableName="dcterms_created_is_valid" value="#[payload.validEDTF == true]" doc:name="Set dcterms_created_is_valid"/>
-                    </otherwise>
-                </choice>
+                <set-payload value="#[flowVars.dcterms_created]" doc:name="Set Payload"/>
+                    <flow-ref name="date_validator" doc:name="date_validator Flow Reference"/>
+                <set-variable variableName="dcterms_created_is_valid" value="#[payload]" doc:name="Set dcterms_created_is_valid"/>
             </otherwise>
         </choice>
         <choice doc:name="When dcterms_issued is empty">
@@ -583,22 +574,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
                 <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid is true"/>
             </when>
             <otherwise>
-                <http:request config-ref="edtf_validator" path="/" method="GET" doc:name="Send request to validate dcterms_created">
-                    <http:request-builder>
-                        <http:query-param paramName="date" value="#[flowVars.dcterms_created]"/>
-                    </http:request-builder>
-                    <http:success-status-code-validator values="1..999"/>
-                </http:request>
-                <choice doc:name="When not http 200">
-                    <when expression="message.inboundProperties.'http.status' != 200">
-                        <set-variable variableName="dcterms_issued_is_valid" value="#[true]" doc:name="Set dcterms_issued_is_valid true"/>
-                    </when>
-                    <otherwise>
-                        <byte-array-to-string-transformer mimeType="application/json" doc:name="Byte Array to String"/>
-                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-                        <set-variable variableName="dcterms_issued_is_valid" value="#[payload.validEDTF == true]" doc:name="Set dcterms_issued_is_valid"/>
-                    </otherwise>
-                </choice>
+                <set-payload value="#[flowVars.dcterms_issued]" doc:name="Set Payload"/>
+                <flow-ref name="date_validator" doc:name="date_validator Flow Reference"/>
+                <set-variable variableName="dcterms_issued_is_valid" value="#[payload]" doc:name="Set dcterms_issued_is_valid"/>
             </otherwise>
         </choice>
         <set-variable variableName="result" value="#[flowVars.dcterms_issued_is_valid &amp;&amp; flowVars.dcterms_created_is_valid ? &quot;OK&quot; : &quot;NOK&quot;]" doc:name="Set result OK when dcterms_issued and created are valid"/>

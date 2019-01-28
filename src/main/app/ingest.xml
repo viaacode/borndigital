@@ -106,8 +106,8 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
                     <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
                 </otherwise>
             </choice>
-            <choice doc:name="Do nothing when vrt or meise or metadata recon">
-                <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;) || (flowVars.file != null &amp;&amp; flowVars.files.get('essence') == null)]">
+            <choice doc:name="Do nothing when VRT or metadata recon">
+                <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || (flowVars.file != null &amp;&amp; flowVars.files.get('essence') == null)]">
                     <expression-component doc:name="Do nothing"><![CDATA[// Do nothing]]></expression-component>
                 </when>
                 <otherwise>
@@ -147,8 +147,8 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
     <sub-flow name="ingestByMessage">
         <set-payload value="#[flowVars.message]" doc:name="Set Payload with message"/>
    	 <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-                <choice doc:name="Don't add to sips when vrt or plantentuinmeise">
-                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                <choice doc:name="Don't add to sips when VRT">
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                         <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
                     </when>
                     <otherwise>
@@ -157,12 +157,9 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                 </choice>
                 <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
                 <flow-ref name="map_metadata" doc:name="map_metadata"/>
-                <choice doc:name="Choice">
+                <choice doc:name="Choice: VRT or not?">
                     <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                         <flow-ref name="PI_SIP_DELIVERY_VRT" doc:name="PI_SIP_DELIVERY_VRT"/>
-                    </when>
-                    <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                        <flow-ref name="PI_SIP_DELIVERY_MEISE" doc:name="PI_SIP_DELIVERY_MEISE"/>
                     </when>
                     <otherwise>
                         <flow-ref name="PI_SIP_DELIVERY_GENERIC_ESSENCE" doc:name="PI_SIP_DELIVERY_GENERIC_ESSENCE"/>
@@ -172,8 +169,8 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                     </otherwise>
                 </choice>
                 <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
-                <choice doc:name="Don't update sips for vrt and meise">
-                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
+                <choice doc:name="Don't update sips for VRT">
+                    <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                         <expression-component doc:name="Do nothing"><![CDATA[// do nothing]]></expression-component>
                     </when>
                     <otherwise>
@@ -202,7 +199,7 @@ where (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars
         <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
         <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
         <choice doc:name="When not a custom CP, use flow_id as CP_id">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;) || flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
                 <flow-ref name="get_cp_id" doc:name="get_cp_id"/>
                 <set-variable variableName="cp_id" value="#[payload]" doc:name="Set cp_id"/>
             </when>
@@ -213,7 +210,7 @@ where (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars
     </sub-flow>
     <sub-flow name="PI_SET_PID">
         <set-variable variableName="eventName" value="PI_SET_PID" doc:name="Set eventName"/>
-        <choice doc:name="SIP from VRT, Meise or generic?">
+        <choice doc:name="SIP from VRT or generic?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>
                 <set-variable variableName="correlation_id" value="#[xpath3('//correlationId/text()')]" doc:name="Set correlation_id"/>
@@ -226,14 +223,6 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
                 <set-variable variableName="origin" value="#[payload[0].origin]" doc:name="Set origin"/>
                 <set-variable variableName="status" value="#[&quot;New file from VRT&quot;]" doc:name="Set status"/>
                 <set-variable variableName="originallocation" value="#[payload[0].originallocation]" doc:name="Set originallocation"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>
-                <set-variable variableName="pid" value="#[xpath3('//PID/text()')]" doc:name="Set pid"/>
-                <set-variable variableName="md5" value="#[xpath3('//md5/text()')]" doc:name="Set md5"/>
-                <set-variable variableName="filepath" value="#[xpath3('//file_path/text()')]" doc:name="Set filepath"/>
-                <set-variable variableName="filename" value="#[xpath3('//file_name/text()')]" doc:name="Set filename"/>
-                <set-variable variableName="status" value="#[&quot;New file from Meise&quot;]" doc:name="Set status"/>
             </when>
             <otherwise >
                 <set-variable variableName="filenameEssence" value="#[flowVars.filenameWithoutExtension + '.' + flowVars.extension]" doc:name="Set filenameEssence"/>
@@ -351,10 +340,6 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
                 <set-variable variableName="mediaId" value="#[xpath3(&quot;//mediaId/text()&quot;)]" doc:name="Set mediaId"/>
                 <set-variable variableName="local_id" value="#[flowVars.mediaId]" doc:name="Set local_id equal to mediaId"/>
             </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <logger message="Local id Meise" level="INFO" doc:name="Meise"/>
-                <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_cpid/text()&quot;)]" doc:name="Set local_id from dc_identifier_cpid (legacy)"/>
-            </when>
 
             <otherwise>
                 <logger message="Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
@@ -416,9 +401,6 @@ VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVar
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
-            </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;plantentuinmeise&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_MEISE" doc:name="PI_METADATA_MAPPING_MEISE"/>
             </when>
             <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>

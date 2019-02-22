@@ -74,7 +74,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
                     <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
                     </amqp:outbound-endpoint>
                     <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-                    <flow-ref name="SidecarFTPVRT" doc:name="Flow Reference"/>
+                    <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
                     <!-- 
                     <invoke object-ref="requestTransformer" method="Transform" methodArguments="#[payload], #[flowVars.pid], ${ftpDestination.path}, #[flowVars.input.cp_name]" doc:name="Invoke"/>
                     <set-variable variableName="temppath" value="#[payload.destinationPath + payload.destination_file]" doc:name="Set file path"/>
@@ -109,7 +109,10 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
     <sub-flow name="PI_SIP_DELIVERY_GENERIC_ESSENCE">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
+        <enricher source="#[payload.cp_name_mam]" target="#[flowVars.cp_name_mam]" doc:name="Set cp_name_mam">
+            <flow-ref name="getCpByOrId" doc:name="getCpByOrId"/>
+        </enricher>
+        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp_name_mam + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
         <flow-ref name="while_free_space" doc:name="while_free_space"/>
         <dw:transform-message doc:name="Build fxp request">
             <dw:input-variable variableName="currentItem"/>

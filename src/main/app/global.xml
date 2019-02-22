@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:tcp="http://www.mulesoft.org/schema/mule/tcp" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml"
 	xmlns:jdbc-ee="http://www.mulesoft.org/schema/mule/ee/jdbc" xmlns:jdbc="http://www.mulesoft.org/schema/mule/jdbc"
 	xmlns:context="http://www.springframework.org/schema/context" xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
@@ -56,8 +56,8 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
     <spring:beans> 
         <spring:bean id="RequestTransformer" name="requestTransformer" class="utils.RequestTransformer"></spring:bean>  
         <spring:bean id="SrtService" name="srtService" class="utils.SrtService"></spring:bean>  
-        <spring:bean id="moveRequestTransformer" name="MoveRequestTransformer" class="utils.MoveRequestTransformer"></spring:bean>  
-        <spring:bean id="objectStore" class="org.mule.util.store.SimpleMemoryObjectStore"></spring:bean>  
+        <spring:bean id="moveRequestTransformer" name="MoveRequestTransformer" class="utils.MoveRequestTransformer"></spring:bean>
+        <spring:bean id="memoryStore" name="memoryStore" class="utils.InMemoryStore" scope="singleton" />
     </spring:beans>
     <mulexml:schema-validation-filter name="xsdValidator" schemaLocations="mediahaven_output_schema.xsd" doc:name="Check output format" returnResult="true"></mulexml:schema-validation-filter>
     <http:listener-config name="InputCSVListener" host="0.0.0.0" port="8063" doc:name="HTTP Listener Configuration"></http:listener-config>
@@ -67,6 +67,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 		doc:name="HTTP Request Configuration" basePath="/edtf">
 	</http:request-config>
     <http:request-config name="Localdatevalidator" host="${edtfLocal.host}" port="80" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="Organisation_API" host="${http.orgapi.host}" port="${http.orgapi.port}" basePath="${http.orgapi.basepath}" doc:name="HTTP Request Configuration"/>
     <sub-flow name="sendErrorMessage">
         <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"/>
         <set-variable variableName="result" value="#['NOK']" doc:name="Set result NOK"/>
@@ -91,6 +92,24 @@ CAST(#[flowVars.result] as outcome),
   
         </db:insert>  
     </sub-flow>
+	<sub-flow name="getCpByOrId">
+        <choice doc:name="Do we have this cp_id in memory already?">
+            <when expression="#[!app.registry.get(&quot;memoryStore&quot;).contains(flowVars.cp_id)]">
+                <logger message="Memory does not contain data for #[flowVars.cp_id]. Requesting the data from the organisations api." level="DEBUG" doc:name="Logger"/>
+                <http:request config-ref="Organisation_API" path="/org/{id}" method="GET" doc:name="Request info for CP" metadata:id="de8176d2-f328-49b9-9750-f811809e87f3">
+                    <http:request-builder>
+                        <http:uri-param paramName="id" value="#[flowVars.cp_id]"/>
+                    </http:request-builder>
+                </http:request>
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <expression-component doc:name="Add the 'data' result to the memory 'store'"><![CDATA[payload = app.registry.get("memoryStore").put(flowVars.cp_id, payload.data)]]></expression-component>
+            </when>
+            <otherwise>
+                <logger message="Memory store already contains data for #[flowVars.cp_id]. Returning that data" level="DEBUG" doc:name="Logger"/>
+                <set-payload value="#[app.registry.get(&quot;memoryStore&quot;).get(flowVars.cp_id)]" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+	</sub-flow>
 	<flow name="date_validator">
         <set-variable variableName="setDate" value="#[payload]" doc:name="setDate"/>
         <http:request config-ref="Localdatevalidator" path="/" method="GET" doc:name="Send Request to Validate Date">

@@ -66,7 +66,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
 		host="${edtfTexas.host}" port="80" responseTimeout="2000"
 		doc:name="HTTP Request Configuration" basePath="/edtf">
 	</http:request-config>
-    <http:request-config name="Localdatevalidator" host="${edtfLocal.host}" port="80" doc:name="HTTP Request Configuration"/>
+    <http:request-config name="Localdatevalidator" host="${edtfLocal.host}" port="80" doc:name="HTTP Request Configuration" basePath="/edtf"/>
     <http:request-config name="Organisation_API" host="${http.orgapi.host}" port="${http.orgapi.port}" basePath="${http.orgapi.basepath}" doc:name="HTTP Request Configuration"/>
     <sub-flow name="sendErrorMessage">
         <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"/>
@@ -112,9 +112,10 @@ CAST(#[flowVars.result] as outcome),
 	</sub-flow>
 	<flow name="date_validator">
         <set-variable variableName="setDate" value="#[payload]" doc:name="setDate"/>
-        <http:request config-ref="Localdatevalidator" path="/" method="GET" doc:name="Send Request to Validate Date">
+        <http:request config-ref="Localdatevalidator" path="/isValid.json" method="GET" doc:name="Send Request to Validate Date">
             <http:request-builder>
                 <http:query-param paramName="date" value="#[flowVars.setDate]"/>
+                <http:query-param paramName="level" value="2"/>
             </http:request-builder>
         </http:request>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"></json:json-to-object-transformer>

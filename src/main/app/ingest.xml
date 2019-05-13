@@ -112,28 +112,64 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
                 </when>
                 <otherwise>
                     <db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
-                        <db:parameterized-query><![CDATA[select *
-from sips
-where ((local_id = #[flowVars.local_id] and md5 is null)
-		or (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars.filepath] and md5 is null)
-		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
-		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
-		or (#[flowVars.md5metadata] = '' and local_id = #[flowVars.filenameWithoutExtension])
-	)]]></db:parameterized-query>
+                        <db:parameterized-query><![CDATA[SELECT *
+FROM sips
+WHERE (
+      (local_id = #[flowVars.local_id]
+       AND md5 IS NULL)
+   OR (filename = #[flowVars.filenameWithoutExtension]
+       AND filepath = #[flowVars.filepath]
+       AND md5 IS NULL)
+   OR (md5 = #[flowVars.md5metadata]
+       AND #[flowVars.md5metadata] != '')
+   OR (local_id = #[flowVars.local_id]
+       AND md5 = #[flowVars.md5metadata])
+   OR (#[flowVars.md5metadata] = ''
+       AND local_id = #[flowVars.filenameWithoutExtension])
+);]]></db:parameterized-query>
                     </db:select>
                     <choice doc:name="Record found?">
                         <when expression="#[payload.size() &gt; 0]">
                             <db:update config-ref="borndigital" doc:name="Update existing record">
-                                <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'NOK', comment = #[flowVars.comment], message = #[flowVars.message], organisation_id = #[flowVars.cp_id], "archive_status" = 'in_progress'
-where id = #[payload[0].id]]]></db:parameterized-query>
+                                <db:parameterized-query><![CDATA[UPDATE sips
+SET "preingest_status" = 'NOK',
+    comment = #[flowVars.comment],
+    message = #[flowVars.message],
+    organisation_id = #[flowVars.cp_id],
+    "archive_status" = 'in_progress'
+WHERE id = #[payload[0].id];]]></db:parameterized-query>
                             </db:update>
                         </when>
                         <otherwise>
                             <db:insert config-ref="borndigital" doc:name="Insert into sips table as NOK">
-                                <db:parameterized-query><![CDATA[INSERT INTO sips
-(organisation, organisation_id, local_id, pid, md5, filename, filepath, host, comment, "preingest_status", message, "archive_status")
-VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid], #[flowVars.md5metadata], #[flowVars.filenameWithoutExtension], #[flowVars.filepath], #[flowVars.host], #[flowVars.comment], 'NOK', #[flowVars.message], 'in_progress')]]></db:parameterized-query>
+                                <db:parameterized-query><![CDATA[INSERT INTO sips (
+    organisation,
+    organisation_id,
+    local_id,
+    pid,
+    md5,
+    filename,
+    filepath,
+    host,
+    comment,
+    "preingest_status",
+    message,
+    "archive_status"
+)
+VALUES (
+    #[flowVars.cp],
+    #[flowVars.cp_id],
+    #[flowVars.local_id],
+    #[flowVars.pid],
+    #[flowVars.md5metadata],
+    #[flowVars.filenameWithoutExtension],
+    #[flowVars.filepath],
+    #[flowVars.host],
+    #[flowVars.comment],
+    'NOK',
+    #[flowVars.message],
+    'in_progress'
+);]]></db:parameterized-query>
                             </db:insert>
                         </otherwise>
                     </choice>
@@ -175,9 +211,21 @@ VALUES (#[flowVars.cp], #[flowVars.cp_id], #[flowVars.local_id], #[flowVars.pid]
                     </when>
                     <otherwise>
                         <db:update config-ref="borndigital" doc:name="Set preingest_status to OK">
-                            <db:parameterized-query><![CDATA[update sips
-set "preingest_status" = 'OK', local_id = #[flowVars.local_id], comment = 'Met succes verstuurd naar ingestfolder MAM', message = #[flowVars.message], organisation = #[flowVars.cp], organisation_id = #[flowVars.cp_id], archive_status = 'in_progress', md5 = #[flowVars.md5metadata]
-where (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars.filepath] and host = #[flowVars.host] and md5 = #[flowVars.md5metadata]) OR (filename = #[flowVars.filenameWithoutExtension] and md5 = '')]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[UPDATE sips
+SET "preingest_status" = 'OK',
+    local_id = #[flowVars.local_id],
+    comment = 'Met succes verstuurd naar ingestfolder MAM',
+    message = #[flowVars.message],
+    organisation = #[flowVars.cp],
+    organisation_id = #[flowVars.cp_id],
+    archive_status = 'in_progress',
+    md5 = #[flowVars.md5metadata]
+WHERE (filename = #[flowVars.filenameWithoutExtension]
+       AND filepath = #[flowVars.filepath]
+       AND HOST = #[flowVars.host]
+       AND md5 = #[flowVars.md5metadata])
+  OR (filename = #[flowVars.filenameWithoutExtension]
+      AND md5 = '');]]></db:parameterized-query>
                         </db:update>
                     </otherwise>
                 </choice>
@@ -227,13 +275,20 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
             <otherwise >
                 <set-variable variableName="filenameEssence" value="#[flowVars.filenameWithoutExtension + '.' + flowVars.extension]" doc:name="Set filenameEssence"/>
                 <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 (and cp)">
-                    <db:parameterized-query><![CDATA[select *
-from sips
-where ((local_id = #[flowVars.local_id] and md5 is null)
-		or ((filename = #[flowVars.filenameEssence] or filename = #[flowVars.filenameWithoutExtension]) and filepath = #[flowVars.filepath] and md5 is null)
-		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
-		or (local_id = #[flowVars.local_id] and md5 = #[flowVars.md5metadata])
-	)]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[SELECT *
+FROM sips
+WHERE (
+       (local_id = #[flowVars.local_id]
+        AND md5 IS NULL)
+       OR ((filename = #[flowVars.filenameEssence]
+            OR filename = #[flowVars.filenameWithoutExtension])
+           AND filepath = #[flowVars.filepath]
+           AND md5 IS NULL)
+       OR (md5 = #[flowVars.md5metadata]
+           AND #[flowVars.md5metadata] != '')
+       OR (local_id = #[flowVars.local_id]
+           AND md5 = #[flowVars.md5metadata])
+);]]></db:parameterized-query>
                 </db:select>
                 <choice doc:name="Found?">
                     <when expression="#[payload.size()&gt;0]">
@@ -296,9 +351,9 @@ where ((local_id = #[flowVars.local_id] and md5 is null)
     </sub-flow>
     <sub-flow name="PI_GET_PID_METADATA_RECON_BY_SIPS">
         <db:select config-ref="borndigital" doc:name="Get pid by local_id">
-            <db:parameterized-query><![CDATA[select *
-from sips
-where local_id = #[flowVars.local_id]]]></db:parameterized-query>
+            <db:parameterized-query><![CDATA[SELECT *
+FROM sips
+WHERE local_id = #[flowVars.local_id];]]></db:parameterized-query>
         </db:select>
         <choice doc:name="Choice">
             <when expression="#[payload.size() == 0]">
@@ -368,28 +423,63 @@ where local_id = #[flowVars.local_id]]]></db:parameterized-query>
     <flow name="ADD_TO_SIPS">
         <set-variable variableName="eventName" value="PI_ADD_TO_SIPS" doc:name="Set eventName"/>
     	<db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
-            <db:parameterized-query><![CDATA[select *
-from sips
-where ((local_id = #[flowVars.local_id] and md5 is null)
-		or (filename = #[flowVars.filenameWithoutExtension] and filepath = #[flowVars.filepath] and md5 is null)
-		or (md5 = #[flowVars.md5metadata] and #[flowVars.md5metadata] != '')
-		or (filename = #[flowVars.filenameWithoutExtension] and md5 = '')
-	)]]></db:parameterized-query>
+            <db:parameterized-query><![CDATA[SELECT *
+FROM sips
+WHERE (
+       (local_id = #[flowVars.local_id]
+        AND md5 IS NULL)
+       OR (filename = #[flowVars.filenameWithoutExtension]
+           AND filepath = #[flowVars.filepath]
+           AND md5 IS NULL)
+       OR (md5 = #[flowVars.md5metadata]
+           AND #[flowVars.md5metadata] != '')
+       OR (filename = #[flowVars.filenameWithoutExtension]
+           AND md5 = '')
+);]]></db:parameterized-query>
                         </db:select>
                         <choice doc:name="Found?">
                             <when expression="#[payload.size()&gt;0]">
                                 <db:update config-ref="borndigital" doc:name="Update existing record">
-                    <db:parameterized-query><![CDATA[update sips
-set filename = #[flowVars.filenameWithoutExtension], host = #[flowVars.host], filepath = #[flowVars.filepath], 
-	local_id = #[flowVars.local_id], md5 = #[flowVars.md5metadata], pid = #[flowVars.pid], organisation_id = #[flowVars.cp_id], preingest_status = 'in_progress', archive_status = 'in_progress'
-where id = #[payload[0].id]]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[UPDATE sips
+SET
+    filename = #[flowVars.filenameWithoutExtension],
+    host = #[flowVars.host],
+    filepath = #[flowVars.filepath],
+    local_id = #[flowVars.local_id],
+    md5 = #[flowVars.md5metadata],
+    pid = #[flowVars.pid],
+    organisation_id = #[flowVars.cp_id],
+    preingest_status = 'in_progress',
+    archive_status = 'in_progress'
+WHERE id = #[payload[0].id];]]></db:parameterized-query>
                                 </db:update>
                             </when>
                             <otherwise>
                                 <db:insert config-ref="borndigital" doc:name="Insert new record into sips table">
-                    <db:parameterized-query><![CDATA[INSERT INTO sips
-(local_id, md5, organisation, pid, filename, filepath, host, organisation_id, archive_status, preingest_status)
-VALUES (#[flowVars.local_id], #[flowVars.md5metadata], #[flowVars.cp], #[flowVars.pid], #[flowVars.filenameWithoutExtension], #[flowVars.filepath], #[flowVars.host], #[flowVars.cp_id], 'in_progress', 'in_progress')]]></db:parameterized-query>
+                    <db:parameterized-query><![CDATA[INSERT INTO sips (
+    local_id,
+    md5,
+    organisation,
+    pid,
+    filename,
+    filepath,
+    host,
+    organisation_id,
+    archive_status,
+    preingest_status
+)
+VALUES (
+    #[flowVars.local_id],
+    #[flowVars.md5metadata],
+    #[flowVars.cp],
+    #[flowVars.pid],
+    #[flowVars.filenameWithoutExtension],
+    #[flowVars.filepath],
+    #[flowVars.host],
+    #[flowVars.cp_id],
+    'in_progress',
+    'in_progress'
+);]]></db:parameterized-query>
                                 </db:insert>
                             </otherwise>
                         </choice>

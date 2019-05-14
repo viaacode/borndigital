@@ -483,6 +483,7 @@ SET
     local_id = #[flowVars.local_id],
     md5 = #[flowVars.md5metadata],
     pid = #[flowVars.pid],
+    retry_count = 0,
     organisation_id = #[flowVars.cp_id],
     preingest_status = 'in_progress',
     archive_status = 'in_progress'

@@ -277,7 +277,7 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
                 <flow-ref name="MultiMD5" doc:name="FlowRef: MultiMD5"/>
                 <choice doc:name="Choice: Can multiple MD5's exist for this CP?">
                     <when expression="#[flowVars.multi_md5 == true]">
-                        <logger message="Multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
+                        <logger message="PI_SET_PID: multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
                         <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 AND local_id (and cp)">
                             <db:parameterized-query><![CDATA[SELECT *
 FROM sips
@@ -309,7 +309,7 @@ WHERE (
                 </choice>
                 <choice doc:name="Found?">
                     <when expression="#[payload.size()&gt;0]">
-                        <logger message="md5 already present" level="INFO" doc:name="md5 already present"/>
+                        <logger message="md5 already present (#[flowVars.local_id] / #[flowVars.md5metadata])" level="INFO" doc:name="md5 already present"/>
                         <choice doc:name="Has already pid?">
                             <when expression="#[payload[0].pid == null || payload[0].pid == &quot;&quot;]">
                                 <flow-ref name="PI_GET_PID" doc:name="PI_GET_PID"/>
@@ -320,6 +320,7 @@ WHERE (
                         </choice>
                     </when>
                     <otherwise>
+                        <logger message="md5 not found (#[flowVars.local_id] / #[flowVars.md5metadata])" level="INFO" doc:name="md5 not found"/>
                         <flow-ref name="PI_GET_PID" doc:name="PI_GET_PID"/>
                     </otherwise>
                 </choice>

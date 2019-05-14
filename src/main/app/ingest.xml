@@ -274,8 +274,23 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
             </when>
             <otherwise >
                 <set-variable variableName="filenameEssence" value="#[flowVars.filenameWithoutExtension + '.' + flowVars.extension]" doc:name="Set filenameEssence"/>
-                <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 (and cp)">
-                    <db:parameterized-query><![CDATA[SELECT *
+                <flow-ref name="MultiMD5" doc:name="FlowRef: MultiMD5"/>
+                <choice doc:name="Choice: Can multiple MD5's exist for this CP?">
+                    <when expression="#[flowVars.multi_md5 == true]">
+                        <logger message="Multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
+                        <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 AND local_id (and cp)">
+                            <db:parameterized-query><![CDATA[SELECT *
+FROM sips
+WHERE (
+        local_id = #[flowVars.local_id]
+    AND md5 = #[flowVars.md5metadata]
+    AND organisation = #[flowVars.cp]
+);]]></db:parameterized-query>
+                        </db:select>
+                    </when>
+                    <otherwise>
+                        <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 (and cp)">
+                            <db:parameterized-query><![CDATA[SELECT *
 FROM sips
 WHERE (
        (local_id = #[flowVars.local_id]
@@ -289,7 +304,9 @@ WHERE (
        OR (local_id = #[flowVars.local_id]
            AND md5 = #[flowVars.md5metadata])
 );]]></db:parameterized-query>
-                </db:select>
+                        </db:select>
+                    </otherwise>
+                </choice>
                 <choice doc:name="Found?">
                     <when expression="#[payload.size()&gt;0]">
                         <logger message="md5 already present" level="INFO" doc:name="md5 already present"/>
@@ -422,8 +439,22 @@ WHERE local_id = #[flowVars.local_id];]]></db:parameterized-query>
     </sub-flow>
     <flow name="ADD_TO_SIPS">
         <set-variable variableName="eventName" value="PI_ADD_TO_SIPS" doc:name="Set eventName"/>
-    	<db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
-            <db:parameterized-query><![CDATA[SELECT *
+        <choice doc:name="Choice: Can multiple MD5's exist for this CP?">
+            <when expression="#[flowVars.multi_md5 == true]">
+                <logger message="ADD_TO_SIPS: multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
+                <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 AND local_id (and cp)">
+                    <db:parameterized-query><![CDATA[SELECT *
+FROM sips
+WHERE (
+        local_id = #[flowVars.local_id]
+    AND md5 = #[flowVars.md5metadata]
+    AND organisation = #[flowVars.cp]
+);]]></db:parameterized-query>
+                </db:select>
+            </when>
+            <otherwise>
+                <db:select config-ref="borndigital" doc:name="Check if a record with same local_id or filename+filepath combination or md5 already exists">
+                    <db:parameterized-query><![CDATA[SELECT *
 FROM sips
 WHERE (
        (local_id = #[flowVars.local_id]
@@ -436,7 +467,9 @@ WHERE (
        OR (filename = #[flowVars.filenameWithoutExtension]
            AND md5 = '')
 );]]></db:parameterized-query>
-                        </db:select>
+                </db:select>
+            </otherwise>
+        </choice>
                         <choice doc:name="Found?">
                             <when expression="#[payload.size()&gt;0]">
                                 <db:update config-ref="borndigital" doc:name="Update existing record">
@@ -487,6 +520,16 @@ VALUES (
         <set-variable variableName="comment" value="#[&quot;Record updated/added to sips&quot;]" doc:name="Set comment"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </flow>
+    <sub-flow name="MultiMD5">
+        <choice doc:name="Choice: which CP?">
+            <when expression="#[flowVars.cp == 'plantentuinmeise']">
+                <set-variable variableName="multi_md5" value="#[true]" doc:name="Var: multi_md5 = true"/>
+            </when>
+            <otherwise>
+                <set-variable variableName="multi_md5" value="#[false]" doc:name="Var: multi_md5 = false"/>
+            </otherwise>
+        </choice>
+    </sub-flow>
     <sub-flow name="map_metadata">
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">

@@ -473,6 +473,7 @@ WHERE (
         </choice>
                         <choice doc:name="Found?">
                             <when expression="#[payload.size()&gt;0]">
+                <logger message="Updating SIP record for: #[flowVars.pid] / #[flowVars.local_id]" level="INFO" doc:name="Log: Updating SIP record for..."/>
                                 <db:update config-ref="borndigital" doc:name="Update existing record">
                     <db:parameterized-query><![CDATA[UPDATE sips
 SET
@@ -489,6 +490,7 @@ WHERE id = #[payload[0].id];]]></db:parameterized-query>
                                 </db:update>
                             </when>
                             <otherwise>
+                <logger message="Adding SIP record for: #[flowVars.pid] / #[flowVars.local_id]" level="INFO" doc:name="Log: Adding SIP record for..."/>
                                 <db:insert config-ref="borndigital" doc:name="Insert new record into sips table">
                     <db:parameterized-query><![CDATA[INSERT INTO sips (
     local_id,

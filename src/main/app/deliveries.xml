@@ -112,7 +112,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         <enricher source="#[payload.cp_name_mam]" target="#[flowVars.cp_name_mam]" doc:name="Set cp_name_mam">
             <flow-ref name="getCpByOrId" doc:name="getCpByOrId"/>
         </enricher>
-        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp_name_mam + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
+        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp_name_mam + &quot;/&quot; + &quot;${ftpDestinationSidecar.dest_path}&quot;]" doc:name="Set destinationPath"/>
         <flow-ref name="while_free_space" doc:name="while_free_space"/>
         <dw:transform-message doc:name="Build fxp request">
             <dw:input-variable variableName="currentItem"/>

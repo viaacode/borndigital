@@ -74,7 +74,7 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
                     <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
                     </amqp:outbound-endpoint>
                     <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-                    <flow-ref name="SidecarFTPVRT" doc:name="Flow Reference"/>
+                    <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
                     <!-- 
                     <invoke object-ref="requestTransformer" method="Transform" methodArguments="#[payload], #[flowVars.pid], ${ftpDestination.path}, #[flowVars.input.cp_name]" doc:name="Invoke"/>
                     <set-variable variableName="temppath" value="#[payload.destinationPath + payload.destination_file]" doc:name="Set file path"/>
@@ -109,7 +109,10 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
     <sub-flow name="PI_SIP_DELIVERY_GENERIC_ESSENCE">
         <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
         <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp.toLowerCase() + &quot;/TAPE-SHARE-EVENTS&quot;]" doc:name="Set destinationPath to /CP(lowercase)/TAPE-SHARE-EVENTS"/>
+        <enricher source="#[payload.cp_name_mam]" target="#[flowVars.cp_name_mam]" doc:name="Set cp_name_mam">
+            <flow-ref name="getCpByOrId" doc:name="getCpByOrId"/>
+        </enricher>
+        <set-variable variableName="destinationPath" value="#[&quot;/&quot; + flowVars.cp_name_mam + &quot;/&quot; + &quot;${ftpDestinationSidecar.dest_path}&quot;]" doc:name="Set destinationPath"/>
         <flow-ref name="while_free_space" doc:name="while_free_space"/>
         <dw:transform-message doc:name="Build fxp request">
             <dw:input-variable variableName="currentItem"/>
@@ -141,57 +144,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
     <sub-flow name="PI_SIP_DELIVERY_GENERIC_SIDECAR">
         <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
         <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
-    </sub-flow>
-    <sub-flow name="PI_SIP_DELIVERY_MEISE">
-        <set-variable variableName="eventName" value="PI_SIP_DELIVERY" doc:name="Set Name"/>
-        <set-variable variableName="okstatus" value="#[true]" doc:name="Set OKstatus"/>
-        <foreach collection="#[flowVars.files]" doc:name="For Each">
-            <choice doc:name="Is sidecar?">
-                <when expression="#[!payload[0].file_type.equals(&quot;sidecar&quot;)]">
-                    <set-variable variableName="currentItem" value="#[payload[0]]" doc:name="Set currentItem"/>
-                    <set-variable variableName="sourceFileName" value="#[flowVars.currentItem.file_name]" doc:name="Set sourceFileName"/>
-                    <set-variable variableName="sourceServer" value="#[flowVars.input.server]" doc:name="Set sourceServer"/>
-                    <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
-                    <set-variable variableName="sourcePath" value="#[flowVars.currentItem.file_path]" doc:name="Set sourcePath"/>
-                    <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
-                    <set-variable variableName="extension" value="#[flowVars.currentItem.file_name.split(&quot;\\.(?=[^\\.]+$)&quot;)[1]]" doc:name="Set extension"/>
-                    <set-payload value="#[&quot;&quot;]" doc:name="Set Payload"/>
-                    <flow-ref name="while_free_space" doc:name="while_free_space"/>
-                    <logger message="Continuing transfer after while loops" level="INFO" doc:name="Logger"/>
-                    <dw:transform-message metadata:id="949d2f2e-d628-4465-b179-e235da46f674" doc:name="Build FXP requests (move: false)">
-                        <dw:input-variable variableName="currentItem"/>
-                        <dw:input-variable doc:sample="double.dwl" variableName="extension"/>
-                        <dw:input-variable doc:sample="string.dwl" variableName="pid"/>
-                        <dw:set-payload><![CDATA[%dw 1.0
-%output application/json
----
-{
-	"destination_file": flowVars.pid ++ '.' ++ flowVars.extension,
-    "destination_host": p('ftpDestination.meise.host'),
-    "destination_password": p('ftpDestination.meise.password'),
-    "destination_path": p('ftpDestination.meise.path'),
-    "destination_user": p('ftpDestination.meise.username'),
-    "source_file": flowVars.sourceFileName,
-    "source_host": flowVars.sourceServer,
-    "source_password": flowVars.sourcePassword,
-    "source_path": flowVars.sourcePath,
-    "source_user": flowVars.sourceUsername,
-    "move": false
-}]]></dw:set-payload>
-                    </dw:transform-message>
-                    <object-to-string-transformer doc:name="Object to String"/>
-                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
-                </when>
-                <otherwise>
-                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
-                </otherwise>
-            </choice>
-        </foreach>
-        <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
-        <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
-        <logger message="Success FTP" level="INFO" doc:name="Success FTP"/>
-        <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
-        <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
     <flow name="while_free_space" processingStrategy="synchronous">
     	<http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET"  doc:name="HTTP sensor">
@@ -234,16 +186,6 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
             <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
         </message-filter>
     </sub-flow>
-    <flow name="SidecarFTPMeise" processingStrategy="synchronous">
-        <logger message="Start FTP meise" level="INFO" doc:name="Start FTP meise"/>
-        <ftp:outbound-endpoint host="${ftpDestination.meise.host}" port="21" path="${ftpDestination.meise.path}" user="${ftpDestination.meise.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP">
-        </ftp:outbound-endpoint>
-        <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message=" Failed to FTP for Meise" level="WARN" doc:name="Logger"/>
-            <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
-            <flow-ref name="SidecarFTPMeise" doc:name="SidecarFTPMeise"/>
-        </catch-exception-strategy>
-    </flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">
         <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="#[flowVars.vrt_destination_path]" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">

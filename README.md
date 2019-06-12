@@ -44,6 +44,14 @@ Anypoint to the `pom.xml` file.
 If you cloned the project into your Anypoint workspace directory, then you
 should **not** tick the box `Copy project into workspace`
 
-### Deployment/Usage
+### Deployment
 
 **TODO**
+
+### Usage
+
+**TODO**
+
+Borndigital is triggered by a message originating from the
+[node_watchfolder](https://github.com/viaacode/node_watchfolder/) as documented
+[here](https://github.com/viaacode/node_watchfolder#message-format).

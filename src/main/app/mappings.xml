@@ -45,10 +45,10 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 ---
 {
 	MediaHAVEN_external_metadata: {
-		title: payload.VIAA.dc_title when payload.VIAA.dc_title?
-			otherwise (payload.VIAA.dc_titles[0] when (payload.VIAA.dc_titles?)
-			otherwise (payload.VIAA.dc_description_short when payload.VIAA.dc_description_short?
-			otherwise "")),
+		title: payload.VIAA.dc_title when (payload.VIAA.dc_title? and ((trim payload.VIAA.dc_title) != ""))
+			otherwise (payload.VIAA.dc_titles[0] when (payload.VIAA.dc_titles? and payload.VIAA.dc_titles[0]? and ((trim payload.VIAA.dc_titles[0]) != ""))
+			otherwise (payload.VIAA.dc_description_short when payload.VIAA.dc_description_short? and ((trim payload.VIAA.dc_description_short) != "")
+			otherwise flowVars.pid)),
 		description: payload.VIAA.dc_description when payload.VIAA.dc_description? 
 					otherwise (payload.VIAA.dc_description_short when payload.VIAA.dc_description_short?
 					otherwise ""),

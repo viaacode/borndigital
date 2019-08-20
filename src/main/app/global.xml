@@ -69,7 +69,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
     <http:request-config name="Localdatevalidator" host="${edtfLocal.host}" port="80" doc:name="HTTP Request Configuration" basePath="/edtf"/>
     <http:request-config name="Organisation_API" host="${http.orgapi.host}" port="${http.orgapi.port}" basePath="${http.orgapi.basepath}" doc:name="HTTP Request Configuration"/>
     <sub-flow name="sendErrorMessage">
-        <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"/>
+        <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getRootCauseMessage(exception)))))]" doc:name="Set Exception message"/>
         <set-variable variableName="result" value="#['NOK']" doc:name="Set result NOK"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
         <set-payload value="#[flowVars.message]" doc:name="Set Payload with message"/>
@@ -170,13 +170,9 @@ return new groovy.json.JsonBuilder(alertMessage).toPrettyString();]]>
             <amqp:outbound-endpoint queueDurable="true" responseTimeout="10000" exchange-pattern="request-response" doc:name="Collect Fallback Error Data" connector-ref="RabbitMQConnectorError" queueName="viaa_alerts"/>
         </async>
     </flow>
-    
-    
-    <!-- 
     <catch-exception-strategy name="globalCatch_Exception_Strategy"> 
         <set-variable variableName="comment" value="#[(exception == null ? flowVars.comment : (exception.cause == null ? (flowVars.comment == null ? &quot;&quot; : flowVars.comment) + &quot;\n&quot; + exception.message : (exception.cause.message == null ? flowVars.comment : (exception.cause.message.equals(&quot;&quot;) ? flowVars.comment : exception.cause.message + org.mule.util.ExceptionUtils.getFullStackTrace(exception)))))]" doc:name="Set Exception message"></set-variable>  
         <set-variable variableName="result" value="#['ERROR']" doc:name="Set result ERROR"></set-variable>  
         <flow-ref name="PI_LOG" doc:name="PI_LOG"></flow-ref>  
     </catch-exception-strategy>
-     -->
 </mule>

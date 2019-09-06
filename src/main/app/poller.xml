@@ -40,9 +40,9 @@ WHERE ((archive_status = 'in_progress'
   AND is_deleted IS FALSE;]]></db:parameterized-query>
                 </db:select>
                 <foreach doc:name="For Each">
-                    <logger message="Retrying #[payload.id] with pid #[payload.pid]" level="INFO" doc:name="Retry"/>
                     <choice doc:name="Amount of retries &lt; MAX_RETRIES?">
                         <when expression="#[payload.retry_count &lt; flowVars.MAX_RETRIES]">
+                            <logger message="Retrying #[payload.id] with pid #[payload.pid]" level="INFO" doc:name="Retry"/>
                             <flow-ref name="retry" doc:name="retry"/>
                         </when>
                         <otherwise>

@@ -715,7 +715,13 @@ VALUES (
         <logger message="FILES_MOVED" level="INFO" doc:name="FILES_MOVED"/>
     </sub-flow>
     <flow name="SidecarFTPCollateral" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestinationSidecar.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestinationSidecar.username}" password="${ftpDestinationSidecar.password}" connector-ref="FTP" outputPattern="#[flowVars.pid_collateral + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
+    		<ftplite:upload-stream
+    			hostName="${ftpDestinationSidecar.host}"
+    			userName="${ftpDestinationSidecar.username}"
+    			fileName="#[flowVars.pid_collateral + &quot;.xml&quot;]"
+    			filePath="#[flowVars.destinationPath]"
+    			config-ref="FTPLite__Configuration"
+    			password="${ftpDestinationSidecar.password}" doc:name="FTPLite"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:ftplite="http://www.mulesoft.org/schema/mule/ftplite" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -10,7 +10,8 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
-http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/ftplite/current/mule-ftplite.xsd">
     <ftp:connector name="SidecarXML" pollingFrequency="1000" validateConnections="true" doc:name="FTP" streaming="true">
         <reconnect/>
     </ftp:connector>
@@ -57,7 +58,13 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 	}
 }]]></dw:set-payload>
         </dw:transform-message>
-        <ftp:outbound-endpoint host="${ftpSource.host}" port="21" path="#[flowVars.destination_path]" user="${ftpSource.username}" password="${ftpSource.password}" connector-ref="SidecarXML" outputPattern="#[flowVars.filenameWithoutExtension + &quot;.xml&quot;]" responseTimeout="10000" doc:name="FTP"/>
+        <ftplite:upload-stream
+    			hostName="${ftpSource.host}"
+    			userName="${ftpSource.username}"
+    			fileName="#[flowVars.filenameWithoutExtension + &quot;.xml&quot;]"
+    			filePath="#[flowVars.destination_path]"
+    			config-ref="FTPLite__Configuration"
+    			password="${ftpSource.password}" />
         <logger message="Succesfully placed sidecar for #[flowVars.id] in #[flowVars.destination_path] on ${ftpSource.host}" level="INFO" doc:name="Succes!"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="Creating sidecar failed" level="WARN" doc:name="Creating sidecar failed"/>

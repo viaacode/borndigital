@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+<mule xmlns:ftplite="http://www.mulesoft.org/schema/mule/ftplite" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
 	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:amqp="http://www.mulesoft.org/schema/mule/amqp" xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:json="http://www.mulesoft.org/schema/mule/json"
 	xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp"
@@ -19,7 +19,8 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd
 http://www.mulesoft.org/schema/mule/amqp http://www.mulesoft.org/schema/mule/amqp/current/mule-amqp.xsd
 http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/ftplite/current/mule-ftplite.xsd">
     <http:request-config name="mimetype2extensionAPI" host="${mime2ext.host}" port="${mime2ext.port}" basePath="/" responseTimeout="30000" doc:name="HTTP Request Configuration"/>
     <http:request-config name="Mediahaven" host="${mediahaven_api.host_intern}" port="443" basePath="/mediahaven-rest-api/resources" doc:name="HTTP Request Configuration" responseTimeout="30000" protocol="HTTPS">
         <tls:context>
@@ -187,7 +188,13 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         </message-filter>
     </sub-flow>
     <flow name="SidecarFTPVRT" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestination.vrt.host}" port="21" path="#[flowVars.vrt_destination_path]" user="${ftpDestination.vrt.username}" password="${ftpDestination.vrt.password}"  connector-ref="FTP" outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP"/>
+    		<ftplite:upload-stream
+    			hostName="${ftpDestination.vrt.host}"
+    			userName="${ftpDestination.vrt.username}"
+    			fileName="#[flowVars.pid + &quot;.xml&quot;]"
+    			filePath="#[flowVars.vrt_destination_path]"
+    			config-ref="FTPLite__Configuration"
+    			password="${ftpDestination.vrt.password}" doc:name="FTPLite"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
@@ -195,7 +202,13 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
         </catch-exception-strategy>
     </flow>
     <flow name="SidecarFTPGeneric" processingStrategy="synchronous">
-        <ftp:outbound-endpoint host="${ftpDestinationSidecar.host}" port="21" path="#[flowVars.destinationPath]" user="${ftpDestinationSidecar.username}" password="${ftpDestinationSidecar.password}"   outputPattern="#[flowVars.pid + &quot;.xml&quot;]" responseTimeout="1000000" doc:name="FTP" connector-ref="FTP"/>
+    		<ftplite:upload-stream
+    			hostName="${ftpDestinationSidecar.host}"
+    			userName="${ftpDestinationSidecar.username}"
+    			fileName="#[flowVars.pid + &quot;.xml&quot;]"
+    			filePath="#[flowVars.destinationPath]"
+    			config-ref="FTPLite__Configuration"
+    			password="${ftpDestinationSidecar.password}" doc:name="FTPLite"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>

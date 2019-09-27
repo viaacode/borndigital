@@ -121,7 +121,7 @@
     <dependency>
       <groupId>6c7daa17-b709-4fa9-b830-848afddff753</groupId>
       <artifactId>ftp-lite-connector</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.2</version>
     </dependency>
   </dependencies>
 

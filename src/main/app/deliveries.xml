@@ -41,11 +41,11 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
                     <flow-ref name="while_free_space" doc:name="while_free_space"/>
                     <choice doc:name="When manual or redelivery of tape, check AR for destination path">
                         <when expression="#[flowVars.origin == 'manual' || flowVars.originallocation != null]">
-                            <logger message="#[flowVars.local_id] is manual request or tape redelivery" level="INFO" doc:name="manual request or tape redelivery"/>
+                            <logger message="[#[message.correlationId]] #[flowVars.local_id] is manual request or tape redelivery" level="INFO" doc:name="manual request or tape redelivery"/>
                             <flow-ref name="RetrieveAspectRatio" doc:name="RetrieveAspectRatio"/>
                         </when>
                         <otherwise>
-                            <logger message="#[flowVars.local_id] is dailies" level="INFO" doc:name="Dailies"/>
+                            <logger message="[#[message.correlationId]] #[flowVars.local_id] is dailies" level="INFO" doc:name="Dailies"/>
                         </otherwise>
                     </choice>
                     <set-payload value="#[&quot;&quot;]" doc:name="Set Payload empty"/>
@@ -84,7 +84,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
                     -->
                 </when>
                 <otherwise>
-                    <logger message="Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
+                    <logger message="[#[message.correlationId]] Deleting sidecar" level="INFO" doc:name="Log deletion of sidecar"/>
                     <dw:transform-message doc:name="Build delete request">
                         <dw:set-payload><![CDATA[%dw 1.0
 %output application/json
@@ -136,9 +136,9 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
 }]]></dw:set-payload>
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <logger message="Sending fxp request: #[payload]" level="DEBUG" doc:name="Sending fxp request"/>
+        <logger message="[#[message.correlationId]] Sending fxp request: #[payload]" level="INFO" doc:name="Sending fxp request"/>
         <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
-        <logger message="Fxp message sent" level="INFO" doc:name="Logger"/>
+        <logger message="[#[message.correlationId]] Fxp message sent: source: #[flowVars.filenameWithoutExtension] / pid: #[flowVars.pid]" level="INFO" doc:name="Log: Fxp message sent"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
     </sub-flow>
@@ -161,7 +161,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
             <flow-ref name="while_free_space_sub" doc:name="while_free_space_sub"/>
         </until-successful>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="No sensor found. Proceeding" level="WARN" doc:name="Logger"/>
+            <logger message="[#[message.correlationId]] No sensor found. Proceeding" level="WARN" doc:name="Logger"/>
         </catch-exception-strategy>
     </flow>
     <sub-flow name="SetResultAndCommentFXP">
@@ -169,7 +169,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
         <set-variable variableName="comment" value="#[&quot;Message has been sent to fxp_requests.&quot;]" doc:name="Set comment"/>
     </sub-flow>
     <sub-flow name="while_free_space_sub">
-        <logger message="Checking free space" level="INFO" doc:name="Logger"/>
+        <logger message="[#[message.correlationId]] Checking free space" level="INFO" doc:name="Logger"/>
         <http:request config-ref="Sensor_API_Configuration" path="${sensor.path}" method="GET"  doc:name="HTTP sensor">
             <http:request-builder>
                 <http:query-param paramName="output" value="xml"/>
@@ -182,7 +182,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
         </http:request>
         <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
         <set-variable variableName="freepercentage" value="#[java.lang.Integer.parseInt(xpath3(&quot;//channels/item[name='pctfree']/lastvalue/text()&quot;).split(' %')[0])]" doc:name="Set freepercentage"/>
-        <logger message="#[&quot;Free percentage: &quot; + flowVars.freepercentage + &quot; %&quot;]" level="INFO" doc:name="Logger"/>
+        <logger message="[#[message.correlationId]] #[&quot;Free percentage: &quot; + flowVars.freepercentage + &quot; %&quot;]" level="INFO" doc:name="Logger"/>
         <message-filter throwOnUnaccepted="true" doc:name="Message">
             <expression-filter expression="#[flowVars.freepercentage &gt; '${sensor.minfreepercentage}']"/>
         </message-filter>
@@ -196,7 +196,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
     			config-ref="FTPLite__Configuration"
     			password="${ftpDestination.vrt.password}" doc:name="FTPLite"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <logger message="[#[message.correlationId]] FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
             <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
         </catch-exception-strategy>
@@ -210,7 +210,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
     			config-ref="FTPLite__Configuration"
     			password="${ftpDestinationSidecar.password}" doc:name="FTPLite"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <logger message="[#[message.correlationId]] FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
             <flow-ref name="SidecarFTPGeneric" doc:name="SidecarFTPGeneric"/>
         </catch-exception-strategy>
@@ -232,7 +232,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
                         </scripting:component>
                     </when>
                     <otherwise>
-                        <logger message="AR looks ok! #[flowVars.aspect_ratio_metadata]" level="INFO" doc:name="AR looks ok!"/>
+                        <logger message="[#[message.correlationId]] AR looks ok! #[flowVars.aspect_ratio_metadata]" level="INFO" doc:name="AR looks ok!"/>
                     </otherwise>
                 </choice>
                 <choice doc:name="Essence and metadata aspect ratios are equal?">
@@ -272,7 +272,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
         <choice doc:name="Choice">
             <when expression="#[payload.mediaDataList.size() == 0]">
-                <logger message="Not found for metadata updating #[flowVars.pid]" level="INFO" doc:name="Not found for metadata updating"/>
+                <logger message="[#[message.correlationId]] Not found for metadata updating #[flowVars.pid]" level="INFO" doc:name="Not found for metadata updating"/>
                 <set-variable variableName="result" value="#[&quot;NOK&quot;]" doc:name="Set result NOK"/>
                 <set-variable variableName="comment" value="#[&quot;Failed to update medata&quot;]" doc:name="Set comment"/>
             </when>
@@ -281,7 +281,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
                 <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload with mappedXml"/>
                 <set-attachment attachmentName="#['metadata']" value="#[payload]" contentType="text/plain" doc:name="Set metadata"/>
                 <set-payload value="#[&quot;&quot;]" doc:name="Set Payload as empty string"/>
-                <logger message="Sending metadata update for #[flowVars.pid]" level="INFO" doc:name="Sending metadata update"/>
+                <logger message="[#[message.correlationId]] Sending metadata update for #[flowVars.pid]" level="INFO" doc:name="Sending metadata update"/>
                 <until-successful maxRetries="5" synchronous="true" doc:name="Until Successful">
                     <http:request config-ref="Update_fragments" path="#['/mediahaven-rest-api/resources/media/' + flowVars.fragment_id]" method="POST" followRedirects="false" parseResponse="false" doc:name="Update metadata with API">
                         <http:request-builder>
@@ -289,14 +289,14 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
                         </http:request-builder>
                     </http:request>
                 </until-successful>
-                <logger message="Succes! Metadata is updated for #[flowVars.pid]" level="INFO" doc:name="Succes! Metadata is updated"/>
+                <logger message="[#[message.correlationId]] Succes! Metadata is updated for #[flowVars.pid]" level="INFO" doc:name="Succes! Metadata is updated"/>
                 <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
                 <set-variable variableName="comment" value="#[&quot;Metadata updated for local_id: &quot; + flowVars.local_id + &quot; and pid: &quot; + flowVars.pid]" doc:name="Set comment"/>
             </otherwise>
         </choice>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <logger message="[#[message.correlationId]] FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
             <flow-ref name="PI_DELIVERY_METADATA_RECON" doc:name="PI_DELIVERY_METADATA_RECON"/>
         </catch-exception-strategy>

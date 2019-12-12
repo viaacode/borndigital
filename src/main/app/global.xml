@@ -96,7 +96,7 @@ CAST(#[flowVars.result] as outcome),
 	<sub-flow name="getCpByOrId">
         <choice doc:name="Do we have this cp_id in memory already?">
             <when expression="#[!app.registry.get(&quot;memoryStore&quot;).contains(flowVars.cp_id)]">
-                <logger message="Memory does not contain data for #[flowVars.cp_id]. Requesting the data from the organisations api." level="DEBUG" doc:name="Logger"/>
+                <logger message="[#[message.id]] Memory does not contain data for #[flowVars.cp_id]. Requesting the data from the organisations api." level="DEBUG" doc:name="Logger"/>
                 <http:request config-ref="Organisation_API" path="/org/{id}" method="GET" doc:name="Request info for CP" metadata:id="de8176d2-f328-49b9-9750-f811809e87f3">
                     <http:request-builder>
                         <http:uri-param paramName="id" value="#[flowVars.cp_id]"/>
@@ -106,7 +106,7 @@ CAST(#[flowVars.result] as outcome),
                 <expression-component doc:name="Add the 'data' result to the memory 'store'"><![CDATA[payload = app.registry.get("memoryStore").put(flowVars.cp_id, payload.data)]]></expression-component>
             </when>
             <otherwise>
-                <logger message="Memory store already contains data for #[flowVars.cp_id]. Returning that data" level="DEBUG" doc:name="Logger"/>
+                <logger message="[#[message.id]] Memory store already contains data for #[flowVars.cp_id]. Returning that data" level="DEBUG" doc:name="Logger"/>
                 <set-payload value="#[app.registry.get(&quot;memoryStore&quot;).get(flowVars.cp_id)]" doc:name="Set Payload"/>
             </otherwise>
         </choice>
@@ -120,7 +120,7 @@ CAST(#[flowVars.result] as outcome),
             </http:request-builder>
         </http:request>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"></json:json-to-object-transformer>
-        <logger message="#[flowVars.setDate] is valid? : #[payload.validEDTF]. Value Fallback : #[flowVars.fallback]" level="INFO" doc:name="Logger: is_valid_date"></logger>
+        <logger message="[#[message.id]] #[flowVars.setDate] is valid? : #[payload.validEDTF]. Value Fallback : #[flowVars.fallback]" level="INFO" doc:name="Logger: is_valid_date"></logger>
         <set-payload value="#[payload.validEDTF]" doc:name="Set Payload"/>
 		<catch-exception-strategy doc:name="Catch Exception Strategy">
 			<set-payload
@@ -133,18 +133,18 @@ CAST(#[flowVars.result] as outcome),
 		</catch-exception-strategy>
 	</flow>
     <flow name="date_validator_fallback">
-        <logger message="This is the fallback service" level="INFO" doc:name="Logger: fallback_message"></logger>
+        <logger message="[#[message.id]] This is the fallback service" level="INFO" doc:name="Logger: fallback_message"></logger>
         <http:request config-ref="Texasunidatevalidator" path="/isValid.json" method="GET" doc:name="Send Request to Validate Date">
             <http:request-builder>
                 <http:query-param paramName="date" value="#[flowVars.setDate]"/>
             </http:request-builder>
         </http:request>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"></json:json-to-object-transformer>
-        <logger message="#[flowVars.setDate] is valid? : #[payload.validEDTF]." level="INFO" doc:name="Logger: is_valid_date"></logger>
+        <logger message="[#[message.id]] #[flowVars.setDate] is valid? : #[payload.validEDTF]." level="INFO" doc:name="Logger: is_valid_date"></logger>
         <set-payload value="#[payload.validEDTF]" doc:name="Set Payload"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
             <flow-ref name="GroovyAmqpExceptionFlow" doc:name="GroovyAmqpExceptionFlow"/>
-            <logger message="#[exception.getSummaryMessage()]" level="ERROR" doc:name="Error Log"></logger>
+            <logger message="[#[message.id]] #[exception.getSummaryMessage()]" level="ERROR" doc:name="Error Log"></logger>
             <set-payload value="#[true]" doc:name="Set valid to true"></set-payload>
         </catch-exception-strategy>
     </flow>

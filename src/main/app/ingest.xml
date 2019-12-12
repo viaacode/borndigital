@@ -43,7 +43,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
         </amqp:inbound-endpoint>
         <set-variable variableName="message" value="#[payload]" doc:name="Set message" mimeType="application/json"/>
         <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
-        <logger message="[#[message.correlationId]] Sip package in payload: #[payload.sip_package]" level="INFO" doc:name="Log: sip_package"/>
+        <logger message="[#[message.id]] Sip package in payload: #[payload.sip_package]" level="INFO" doc:name="Log: sip_package"/>
         <set-variable variableName="input" value="#[payload]" doc:name="Set input"/>
         <set-variable variableName="cp" value="#[flowVars.input.cp_name]" doc:name="Set cp"/>
         <component class="utils.Utils" doc:name="Extract files"/>
@@ -61,7 +61,7 @@ http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mul
                 <set-payload value="#[flowVars.input]" doc:name="Set Payload with original input"/>
                 <choice doc:name="Ingest with essence or metadata reconciliation?">
                     <when expression="#[flowVars.files.get(&quot;essence&quot;) == null]">
-                        <logger message="[#[message.correlationId]] Metadata reconciliation" level="INFO" doc:name="Metadata reconciliation"/>
+                        <logger message="[#[message.id]] Metadata reconciliation" level="INFO" doc:name="Metadata reconciliation"/>
                         <flow-ref name="init_variables" doc:name="init_variables"/>
                         <flow-ref name="init_info" doc:name="init_info"/>
                         <flow-ref name="PI_GET_PID_METADATA_RECON" doc:name="PI_GET_PID_METADATA_RECON"/>
@@ -199,9 +199,9 @@ VALUES (
                     </when>
                     <otherwise>
                         <flow-ref name="PI_SIP_DELIVERY_GENERIC_ESSENCE" doc:name="PI_SIP_DELIVERY_GENERIC_ESSENCE"/>
-                <logger message="[#[message.correlationId]] Start sidecar" level="DEBUG" doc:name="Log: &quot;Start sidecar&quot;"/>
+                <logger message="[#[message.id]] Start sidecar" level="DEBUG" doc:name="Log: &quot;Start sidecar&quot;"/>
                         <flow-ref name="PI_SIP_DELIVERY_GENERIC_SIDECAR" doc:name="PI_SIP_DELIVERY_GENERIC_SIDECAR"/>
-                <logger message="[#[message.correlationId]] Done sidecar" level="DEBUG" doc:name="Log: &quot;Done sidecar&quot;"/>
+                <logger message="[#[message.id]] Done sidecar" level="DEBUG" doc:name="Log: &quot;Done sidecar&quot;"/>
                     </otherwise>
                 </choice>
                 <flow-ref name="CLEAR_VALUES" doc:name="CLEAR_VALUES"/>
@@ -229,7 +229,7 @@ WHERE (filename = #[flowVars.filenameWithoutExtension]
                         </db:update>
                     </otherwise>
                 </choice>
-                <logger message="[#[message.correlationId]] Done with local_id #[flowVars.local_id] and pid #[flowVars.pid]" level="INFO" doc:name="Done"/>
+                <logger message="[#[message.id]] Done with local_id #[flowVars.local_id] and pid #[flowVars.pid]" level="INFO" doc:name="Done"/>
         
     </sub-flow>
     <sub-flow name="init_info">
@@ -277,7 +277,7 @@ WHERE correlation_id = #[flowVars.correlation_id];]]></db:parameterized-query>
                 <flow-ref name="MultiMD5" doc:name="FlowRef: MultiMD5"/>
                 <choice doc:name="Choice: Can multiple MD5's exist for this CP?">
                     <when expression="#[flowVars.multi_md5 == true]">
-                        <logger message="[#[message.correlationId]] PI_SET_PID: multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
+                        <logger message="[#[message.id]] PI_SET_PID: multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
                         <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 AND local_id (and cp)">
                             <db:parameterized-query><![CDATA[SELECT *
 FROM sips
@@ -309,7 +309,7 @@ WHERE (
                 </choice>
                 <choice doc:name="Found?">
                     <when expression="#[payload.size()&gt;0]">
-                        <logger message="[#[message.correlationId]] md5 already present (local_id:#[flowVars.local_id] / md5:#[flowVars.md5metadata])" level="INFO" doc:name="md5 already present"/>
+                        <logger message="[#[message.id]] md5 already present (local_id:#[flowVars.local_id] / md5:#[flowVars.md5metadata])" level="INFO" doc:name="md5 already present"/>
                         <choice doc:name="Has already pid?">
                             <when expression="#[payload[0].pid == null || payload[0].pid == &quot;&quot;]">
                                 <flow-ref name="PI_GET_PID" doc:name="PI_GET_PID"/>
@@ -320,7 +320,7 @@ WHERE (
                         </choice>
                     </when>
                     <otherwise>
-                        <logger message="[#[message.correlationId]] md5 not found (#[flowVars.local_id] / #[flowVars.md5metadata])" level="INFO" doc:name="md5 not found"/>
+                        <logger message="[#[message.id]] md5 not found (#[flowVars.local_id] / #[flowVars.md5metadata])" level="INFO" doc:name="md5 not found"/>
                         <flow-ref name="PI_GET_PID" doc:name="PI_GET_PID"/>
                     </otherwise>
                 </choice>
@@ -360,7 +360,7 @@ WHERE (
                 <set-variable variableName="pid" value="#[payload.mediaDataList[0].externalId]" doc:name="Set pid"/>
             </when>
             <otherwise>
-                <logger message="[#[message.correlationId]] Pid not found - stop with metadata recon" level="INFO" doc:name="Pid not found - stop with metadata recon"/>
+                <logger message="[#[message.id]] Pid not found - stop with metadata recon" level="INFO" doc:name="Pid not found - stop with metadata recon"/>
                 <scripting:component doc:name="Pid not found">
                     <scripting:script engine="Groovy"><![CDATA[throw new java.lang.IllegalArgumentException("Pid not found.");]]></scripting:script>
                 </scripting:component>
@@ -410,13 +410,13 @@ WHERE local_id = #[flowVars.local_id];]]></db:parameterized-query>
         <set-payload value="#[flowVars.incomingXml]" doc:name="Set Payload to sidecar"/>
         <choice doc:name="Which flow_id?">
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
-                <logger message="[#[message.correlationId]] local_id VRT" level="INFO" doc:name="VRT"/>
+                <logger message="[#[message.id]] local_id VRT" level="INFO" doc:name="VRT"/>
                 <set-variable variableName="mediaId" value="#[xpath3(&quot;//mediaId/text()&quot;)]" doc:name="Set mediaId"/>
                 <set-variable variableName="local_id" value="#[flowVars.mediaId]" doc:name="Set local_id equal to mediaId"/>
             </when>
 
             <otherwise>
-                <logger message="[#[message.correlationId]] Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
+                <logger message="[#[message.id]] Generic mapping from MHEM, dc_terms or ebu_core. Set local_id from dc_identifier_localid" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <set-variable variableName="local_id" value="#[xpath3(&quot;//dc_identifier_localid/text()&quot;)]" doc:name="Set local_id from dc_identifier_localid"/>
             </otherwise>
         </choice>
@@ -443,7 +443,7 @@ WHERE local_id = #[flowVars.local_id];]]></db:parameterized-query>
         <set-variable variableName="eventName" value="PI_ADD_TO_SIPS" doc:name="Set eventName"/>
         <choice doc:name="Choice: Can multiple MD5's exist for this CP?">
             <when expression="#[flowVars.multi_md5 == true]">
-                <logger message="[#[message.correlationId]] ADD_TO_SIPS: multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
+                <logger message="[#[message.id]] ADD_TO_SIPS: multiple MD5's allowed for #[flowVars.cp] (#[flowVars.local_id])" level="INFO" doc:name="Log: Multiple MD5's allowed"/>
                 <db:select config-ref="borndigital" doc:name="Check if record already exists for this md5 AND local_id (and cp)">
                     <db:parameterized-query><![CDATA[SELECT *
 FROM sips
@@ -474,7 +474,7 @@ WHERE (
         </choice>
                         <choice doc:name="Found?">
                             <when expression="#[payload.size()&gt;0]">
-                <logger message="[#[message.correlationId]] Updating SIP record for: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Log: Updating SIP record for..."/>
+                <logger message="[#[message.id]] Updating SIP record for: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Log: Updating SIP record for..."/>
                                 <db:update config-ref="borndigital" doc:name="Update existing record">
                     <db:parameterized-query><![CDATA[UPDATE sips
 SET
@@ -492,7 +492,7 @@ WHERE id = #[payload[0].id];]]></db:parameterized-query>
                                 </db:update>
                             </when>
                             <otherwise>
-                <logger message="[#[message.correlationId]] Adding SIP record for: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Log: Adding SIP record for..."/>
+                <logger message="[#[message.id]] Adding SIP record for: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Log: Adding SIP record for..."/>
                                 <db:insert config-ref="borndigital" doc:name="Insert new record into sips table">
                     <db:parameterized-query><![CDATA[INSERT INTO sips (
     local_id,
@@ -544,7 +544,7 @@ VALUES (
                 <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>
             </when>
             <otherwise>
-                <logger message="[#[message.correlationId]] Generic mapping from MHEM, dc_terms or ebu_core: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
+                <logger message="[#[message.id]] Generic mapping from MHEM, dc_terms or ebu_core: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>
                 <flow-ref name="metadata_corrections" doc:name="metadata_corrections"/>
                 <flow-ref name="validateMetadataFromVIAAtoMAM" doc:name="validateMetadataFromVIAAtoMAM"/>
@@ -563,13 +563,13 @@ VALUES (
         <flow-ref name="setMediahavenAuthHeader" doc:name="setMediahavenAuthHeader"/>
         <foreach collection="#[flowVars.files.collateral]" doc:name="For Each collateral">
             <set-variable variableName="filenameCollateral" value="#[payload.file_name]" doc:name="Set filenameCollateral"/>
-            <logger message="[#[message.correlationId]] Contains subtitles" level="INFO" doc:name="Contains collateral"/>
+            <logger message="[#[message.id]] Contains subtitles" level="INFO" doc:name="Contains collateral"/>
             <set-variable variableName="extension_collateral" value="#[flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;).size() == 2 ? flowVars.filenameCollateral.split(&quot;\\.(?=[^\\.]+$)&quot;)[1] : &quot;&quot;]" doc:name="Set extension_collateral"/>
             <flow-ref name="CALCULATE_MD5_COLLATERAL" doc:name="CALCULATE_MD5_COLLATERAL"/>
             <flow-ref name="CHECK_COLLATERAL_DUPLICATE" doc:name="CHECK_COLLATERAL_DUPLICATE"/>
             <choice doc:name="Is collateral duplicate?">
                 <when expression="#[flowVars.is_collateral_duplicate == true]">
-                    <logger message="[#[message.correlationId]] Collateral is a duplicate #[flowVars.filenameCollateral]" level="INFO" doc:name="Collateral is a duplicate"/>
+                    <logger message="[#[message.id]] Collateral is a duplicate #[flowVars.filenameCollateral]" level="INFO" doc:name="Collateral is a duplicate"/>
                 </when>
                 <otherwise>
                     <flow-ref name="CHECK_COLLATERAL_VERSIONING" doc:name="CHECK_COLLATERAL_VERSIONING"/>
@@ -628,7 +628,7 @@ VALUES (
                     </dw:transform-message>
                     <mulexml:dom-to-xml-transformer doc:name="DOM to XML"/>
                     <flow-ref name="SidecarFTPCollateral" doc:name="SidecarFTPCollateral"/>
-                    <logger message="[#[message.correlationId]] Done sending collateral with pid #[flowVars.pid_collateral]" level="INFO" doc:name="Done sending collateral"/>
+                    <logger message="[#[message.id]] Done sending collateral with pid #[flowVars.pid_collateral]" level="INFO" doc:name="Done sending collateral"/>
                 </otherwise>
             </choice>
         </foreach>
@@ -662,13 +662,13 @@ VALUES (
             </dw:transform-message>
             <byte-array-to-string-transformer doc:name="Byte Array to String"/>
             <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
-            <logger message="[#[message.correlationId]] Done deleting collateral with filename #[flowVars.filenameCollateral]" level="INFO" doc:name="Done deleting collateral"/>
+            <logger message="[#[message.id]] Done deleting collateral with filename #[flowVars.filenameCollateral]" level="INFO" doc:name="Done deleting collateral"/>
         </foreach>
     </sub-flow>
     <sub-flow name="check_filename_special_characters">
         <set-variable variableName="filename_contains_bad_characters" value="#[flowVars.filenameWithoutExtension.matches(&quot;.*[\\[\\]()#&#235;+%&#233;&#8217;].*&quot;)]" doc:name="Set filename_contains_bad_characters (e.g.: ()#&#235;+%)"/>
         <set-variable variableName="state" value="BAD_CHAR_CHECKED" doc:name="Set state (BAD_CHAR_CHECKED)"/>
-        <logger message="[#[message.correlationId]] BAD_CHAR_CHECKED: #[flowVars.filename_contains_bad_characters]" level="DEBUG" doc:name="BAD_CHAR_CHECKED"/>
+        <logger message="[#[message.id]] BAD_CHAR_CHECKED: #[flowVars.filename_contains_bad_characters]" level="DEBUG" doc:name="BAD_CHAR_CHECKED"/>
     </sub-flow>
     <sub-flow name="move_files_for_correct_name">
         <set-variable variableName="filename_corrected" value="#[flowVars.filenameWithoutExtension.replaceAll(&quot;\\(&quot;,&quot; &quot;).replaceAll(&quot;\\)&quot;,&quot; &quot;).replaceAll(&quot;#&quot;,&quot; &quot;).replaceAll(&quot;&#235;&quot;,&quot;e&quot;).replaceAll(&quot;&#233;&quot;,&quot;e&quot;).replaceAll(&quot;\\+&quot;,&quot;&quot;).replaceAll(&quot;\\%&quot;,&quot;&quot;).replaceAll(&quot;&#8217;&quot;,&quot;&quot;).replaceAll(&quot;\\[&quot;,&quot; &quot;).replaceAll(&quot;\\]&quot;,&quot; &quot;).replaceAll(&quot;\\+&quot;,&quot; &quot;).trim()]" doc:name="Set filename_corrected"/>
@@ -712,7 +712,7 @@ VALUES (
         <amqp:outbound-endpoint queueName="move_requests" responseTimeout="10000" connector-ref="RabbitMQConnector" doc:name="Send message to move_requests">
         </amqp:outbound-endpoint>
         <set-variable variableName="state" value="FILES_MOVED" doc:name="Set state (FILES_MOVED)"/>
-        <logger message="[#[message.correlationId]] FILES_MOVED" level="INFO" doc:name="FILES_MOVED"/>
+        <logger message="[#[message.id]] FILES_MOVED" level="INFO" doc:name="FILES_MOVED"/>
     </sub-flow>
     <flow name="SidecarFTPCollateral" processingStrategy="synchronous">
     		<ftplite:upload-stream
@@ -723,7 +723,7 @@ VALUES (
     			config-ref="FTPLite__Configuration"
     			password="${ftpDestinationSidecar.password}" doc:name="FTPLite"/>
         <catch-exception-strategy doc:name="Catch Exception Strategy">
-            <logger message="[#[message.correlationId]] FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
+            <logger message="[#[message.id]] FTP Timeout for sidecar! Retrying" level="INFO" doc:name="Logger"/>
             <expression-component doc:name="Sleep"><![CDATA[Thread.sleep(2000);]]></expression-component>
             <flow-ref name="SidecarFTPCollateral" doc:name="SidecarFTPCollateral"/>
         </catch-exception-strategy>
@@ -739,7 +739,7 @@ VALUES (
         <set-payload value="#[payload.mediaDataList]" doc:name="Set Payload to mediaDataList"/>
         <choice doc:name="Ingested correctly?">
             <when expression="#[payload.size() == 0 || payload[0].archiveStatus != 'on_tape']">
-                <logger message="[#[message.correlationId]] Parent not ready" level="WARN" doc:name="Parent not ready"/>
+                <logger message="[#[message.id]] Parent not ready" level="WARN" doc:name="Parent not ready"/>
             </when>
             <otherwise>
                 <set-variable variableName="fragment_id_parent" value="#[payload[0].fragmentId]" doc:name="Set fragment_id_parent"/>
@@ -760,7 +760,7 @@ VALUES (
                 <object-to-string-transformer doc:name="Object to String"/>
                 <set-attachment attachmentName="#['metadata']" value="#[payload]" contentType="application/xml" doc:name="Set metadata"/>
                 <set-payload value="#[&quot;&quot;]" doc:name="Set Payload as empty string"/>
-                <logger message="[#[message.correlationId]] Sending metadata update parent with pid: #[flowVars.pid] and fragment_id: #[flowVars.fragment_id_parent]" level="INFO" doc:name="Sending metadata update parent"/>
+                <logger message="[#[message.id]] Sending metadata update parent with pid: #[flowVars.pid] and fragment_id: #[flowVars.fragment_id_parent]" level="INFO" doc:name="Sending metadata update parent"/>
                 <until-successful maxRetries="5" synchronous="true" doc:name="Until Successful">
                     <http:request config-ref="Update_fragments" path="#['/mediahaven-rest-api/resources/media/' + flowVars.fragment_id_parent]" method="POST" followRedirects="false" parseResponse="false" doc:name="Update metadata with API">
                         <http:request-builder>
@@ -768,7 +768,7 @@ VALUES (
                         </http:request-builder>
                     </http:request>
                 </until-successful>
-                <logger message="[#[message.correlationId]] Succes! Metadata of parent is updated" level="INFO" doc:name="Succes! Metadata of parent is updated"/>
+                <logger message="[#[message.id]] Succes! Metadata of parent is updated" level="INFO" doc:name="Succes! Metadata of parent is updated"/>
             </otherwise>
         </choice>
     </sub-flow>
@@ -790,16 +790,16 @@ VALUES (
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <amqp:outbound-endpoint queueName="delete_requests" responseTimeout="10000" exchange-pattern="request-response" connector-ref="RabbitMQConnectorDelete" doc:name="Send message to delete_requests"/>
-        <logger message="[#[message.correlationId]] Done deleting sidecar" level="INFO" doc:name="Done deleting sidecar"/>
+        <logger message="[#[message.id]] Done deleting sidecar" level="INFO" doc:name="Done deleting sidecar"/>
     </sub-flow>
     <sub-flow name="CALCULATE_MD5_COLLATERAL">
-        <logger message="[#[message.correlationId]] Get collateral #[flowVars.filenameCollateral] from FTP" level="INFO" doc:name="Get collateral from FTP"/>
+        <logger message="[#[message.id]] Get collateral #[flowVars.filenameCollateral] from FTP" level="INFO" doc:name="Get collateral from FTP"/>
         <until-successful maxRetries="2" millisBetweenRetries="5000" synchronous="true" doc:name="Until Successful">
             <mulerequester:request resource="ftp://#[flowVars.input.username]:#[flowVars.input.password]@#[flowVars.input.server]/#[flowVars.filepath]/#[flowVars.filenameCollateral]?connector=FTP" timeout="10000" doc:name="Get Collateral file from FTP"/>
         </until-successful>
-        <logger message="[#[message.correlationId]] Collateral fetched succesfully. Now calculate hash" level="INFO" doc:name="Collateral fetched succesfully. Now calculate hash"/>
+        <logger message="[#[message.id]] Collateral fetched succesfully. Now calculate hash" level="INFO" doc:name="Collateral fetched succesfully. Now calculate hash"/>
         <set-variable variableName="md5_collateral" value="#[org.apache.commons.codec.digest.DigestUtils.md5Hex(payload)]" doc:name="Set md5_collateral"/>
-        <logger message="[#[message.correlationId]] MD5 succesfully calculated: #[flowVars.md5_collateral]" level="INFO" doc:name="MD5 succesfully calculated"/>
+        <logger message="[#[message.id]] MD5 succesfully calculated: #[flowVars.md5_collateral]" level="INFO" doc:name="MD5 succesfully calculated"/>
     </sub-flow>
     <sub-flow name="CHECK_COLLATERAL_VERSIONING">
         <until-successful maxRetries="2" synchronous="true" doc:name="Until Successful">

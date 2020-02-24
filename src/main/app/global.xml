@@ -61,7 +61,6 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
         <spring:bean id="memoryStore" name="memoryStore" class="utils.InMemoryStore" scope="singleton" />
     </spring:beans>
     <mulexml:schema-validation-filter name="xsdValidator" schemaLocations="mediahaven_output_schema.xsd" doc:name="Check output format" returnResult="true"></mulexml:schema-validation-filter>
-    <http:listener-config name="MonitoringListener" host="0.0.0.0" port="8062" doc:name="HTTP Listener Configuration"></http:listener-config>
 	<http:request-config name="Texasunidatevalidator"
 		host="${edtfTexas.host}" port="80" responseTimeout="2000"
 		doc:name="HTTP Request Configuration" basePath="/edtf">

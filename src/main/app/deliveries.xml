@@ -136,7 +136,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
 }]]></dw:set-payload>
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-        <logger message="[#[message.id]] Sending fxp request: #[payload]" level="INFO" doc:name="Sending fxp request"/>
+        <logger message="[#[message.id]] Sending fxp request to Q &quot;fxp_requests&quot; on ${rabbit.fxp.host}: #[payload]" level="INFO" doc:name="Sending fxp request"/>
         <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
         <logger message="[#[message.id]] Fxp message sent: source: #[flowVars.filenameWithoutExtension] / pid: #[flowVars.pid]" level="INFO" doc:name="Log: Fxp message sent"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>

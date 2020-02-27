@@ -72,7 +72,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
 }]]></dw:set-payload>
                     </dw:transform-message>
                     <byte-array-to-string-transformer doc:name="Byte Array to String"/>
-                    <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests">
+                    <amqp:outbound-endpoint queueName="fxp_meise_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_meise_requests">
                     </amqp:outbound-endpoint>
                     <set-payload value="#[flowVars.mappedXml]" doc:name="Set Payload"/>
                     <flow-ref name="SidecarFTPVRT" doc:name="SidecarFTPVRT"/>
@@ -137,7 +137,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
         </dw:transform-message>
         <byte-array-to-string-transformer doc:name="Byte Array to String"/>
         <logger message="[#[message.id]] Sending fxp request: #[payload]" level="INFO" doc:name="Sending fxp request"/>
-        <amqp:outbound-endpoint queueName="fxp_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_requests"/>
+        <amqp:outbound-endpoint queueName="fxp_meise_requests" responseTimeout="10000"  connector-ref="RabbitMQConnectorFXP" doc:name="Send message to fxp_meise_requests"/>
         <logger message="[#[message.id]] Fxp message sent: source: #[flowVars.filenameWithoutExtension] / pid: #[flowVars.pid]" level="INFO" doc:name="Log: Fxp message sent"/>
         <flow-ref name="SetResultAndCommentFXP" doc:name="SetResultAndCommentFXP"/>
         <flow-ref name="PI_LOG" doc:name="PI_LOG"/>
@@ -166,7 +166,7 @@ http://www.mulesoft.org/schema/mule/ftplite http://www.mulesoft.org/schema/mule/
     </flow>
     <sub-flow name="SetResultAndCommentFXP">
         <set-variable variableName="result" value="#['OK']" doc:name="Set result OK"/>
-        <set-variable variableName="comment" value="#[&quot;Message has been sent to fxp_requests.&quot;]" doc:name="Set comment"/>
+        <set-variable variableName="comment" value="#[&quot;Message has been sent to fxp_meise_requests.&quot;]" doc:name="Set comment"/>
     </sub-flow>
     <sub-flow name="while_free_space_sub">
         <logger message="[#[message.id]] Checking free space" level="INFO" doc:name="Logger"/>

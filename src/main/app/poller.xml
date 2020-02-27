@@ -17,7 +17,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <quartz:connector name="Quartz" validateConnections="true" doc:name="Quartz"/>
     <flow name="Redo" processingStrategy="synchronous">
-        <quartz:inbound-endpoint jobName="redo" repeatInterval="1800000" startDelay="0" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
+        <quartz:inbound-endpoint jobName="redo" repeatInterval="14400000" startDelay="1800000" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
         <db:select config-ref="borndigital" doc:name="Fetch borndigital_ingest_choistatus">

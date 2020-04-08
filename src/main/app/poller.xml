@@ -20,13 +20,13 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <quartz:inbound-endpoint jobName="redo" repeatInterval="14400000" startDelay="1800000" connector-ref="Quartz" responseTimeout="10000" doc:name="Quartz">
             <quartz:event-generator-job/>
         </quartz:inbound-endpoint>
-        <db:select config-ref="borndigital" doc:name="Fetch borndigital_ingest_choistatus">
+        <db:select config-ref="borndigital" doc:name="Fetch borndigital_ingest_status">
             <db:parameterized-query><![CDATA[select *
 from borndigital_ingest_status]]></db:parameterized-query>
         </db:select>
         <choice doc:name="When NOK, don't retry">
             <when expression="#[payload[0].status == 'NOK']">
-                <expression-component doc:name="Expression"><![CDATA[// do nothing]]></expression-component>
+                <logger message="[#[message.id]] No retries: borndigital_ingest_status = 'NOK'" level="INFO" doc:name="Log: No retries"/>
             </when>
             <otherwise>
                 <set-variable variableName="MAX_RETRIES" value="#[3]" doc:name="Set MAX_RETRIES (3)"/>
@@ -42,11 +42,11 @@ WHERE ((archive_status = 'in_progress'
                 <foreach doc:name="For Each">
                     <choice doc:name="Amount of retries &lt; MAX_RETRIES?">
                         <when expression="#[payload.retry_count &lt; flowVars.MAX_RETRIES]">
-                            <logger message="[#[message.id]] Retrying #[payload.id] with pid #[payload.pid]" level="INFO" doc:name="Retry"/>
+                            <logger message="[#[message.id]] Retrying #[payload.id] with pid #[payload.pid]" level="INFO" doc:name="Log: Retrying row_id with pid"/>
                             <flow-ref name="retry" doc:name="retry"/>
                         </when>
                         <otherwise>
-                            <logger message="[#[message.id]] Max amount of retries reached. Set archive_status NOK" level="INFO" doc:name="Max amount of retries reached. Set archive_status NOK"/>
+                            <logger message="[#[message.id]] Max retries reached for: row_id #[payload.id] with pid #[payload.pid]. Set archive_status -&gt; NOK." level="INFO" doc:name="Log: Max amount of retries reached. Set archive_status NOK"/>
                             <db:update config-ref="borndigital" doc:name="Set archive_status NOK, preingest_status NOK">
                                 <db:parameterized-query><![CDATA[update sips
 set archive_status = 'NOK', comment = 'Ingest failed.', preingest_status = 'NOK'

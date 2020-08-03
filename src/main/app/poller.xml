@@ -34,7 +34,7 @@ from borndigital_ingest_status]]></db:parameterized-query>
                     <db:parameterized-query><![CDATA[SELECT *
 FROM sips
 WHERE ((archive_status = 'in_progress'
-        AND (last_event_date < (now() - interval '168 hours')))
+        AND (last_event_date < (now() - interval '240 hours')))
        OR preingest_status = 'TODO')
   AND message IS NOT NULL
   AND is_deleted IS FALSE

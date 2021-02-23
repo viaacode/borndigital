@@ -427,14 +427,7 @@ WHERE local_id = #[flowVars.local_id];]]></db:parameterized-query>
     <sub-flow name="PI_SET_MD5">
         <set-variable variableName="eventName" value="PI_SET_MD5" doc:name="Set eventName"/>
         <set-variable variableName="eventName" value="PI_MD5_CHECK" doc:name="Set Name"/>
-        <choice doc:name="When vlaamsparlement">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;OR-7h1dk9t&quot;)]">
-            <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
-            </when>
-            <otherwise>
-                <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
-            </otherwise>
-        </choice>
+        <set-variable variableName="md5metadata" value="#[xpath3('//md5/text()', flowVars.incomingXml)]" doc:name="Set md5metadata"/>
         <set-variable variableName="result" value="OK" doc:name="Set result OK"/>
         <set-variable variableName="comment" value="#[&quot;MD5: &quot; + flowVars.md5metadata]" doc:name="Set comment"/>
                 <flow-ref name="PI_LOG" doc:name="PI_LOG"/>

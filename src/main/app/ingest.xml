@@ -532,9 +532,6 @@ VALUES (
             <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;)]">
                 <flow-ref name="PI_METADATA_MAPPING_VRT" doc:name="PI_METADATA_MAPPING_VRT"/>
             </when>
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;)]">
-                <flow-ref name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT" doc:name="PI_METADATA_MAPPING_VLAAMS_PARLEMENT"/>
-            </when>
             <otherwise>
                 <logger message="[#[message.id]] Generic mapping from MHEM, dc_terms or ebu_core: pid:#[flowVars.pid] / local_id:#[flowVars.local_id]" level="INFO" doc:name="Generic mapping from MHEM, dc_terms or ebu_core"/>
                 <flow-ref name="PI_METADATA_MAPPING_MHEM" doc:name="PI_METADATA_MAPPING_MHEM"/>

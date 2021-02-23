@@ -247,7 +247,7 @@ WHERE (filename = #[flowVars.filenameWithoutExtension]
         <set-variable variableName="sourceUsername" value="#[flowVars.input.username]" doc:name="Set sourceUsername"/>
         <set-variable variableName="sourcePassword" value="#[flowVars.input.password]" doc:name="Set sourcePassword"/>
         <choice doc:name="When not a custom CP, use flow_id as CP_id">
-            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;vlaamsparlement&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
+            <when expression="#[flowVars.input.flow_id.equals(&quot;vrt.video.1&quot;) || flowVars.input.flow_id.equals(&quot;Medialaan&quot;)]">
                 <flow-ref name="get_cp_id" doc:name="get_cp_id"/>
                 <set-variable variableName="cp_id" value="#[payload]" doc:name="Set cp_id"/>
             </when>
